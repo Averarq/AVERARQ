@@ -159,16 +159,21 @@
   /* ---------- PROJECT LIST ---------- */
   .proj-list{ padding:8px 32px 30px; display:flex; flex-direction:column; gap:10px; }
   .proj-card{
-    background:var(--grafito2); border-radius:10px; padding:14px 18px; cursor:pointer;
+    background:var(--grafito2); border-radius:10px; padding:14px 18px; cursor:default;
     display:flex; align-items:center; gap:16px; border-left:4px solid var(--gris);
   }
   .proj-card:hover{ background:var(--grafito3); }
   .proj-card.p-alta{ border-left-color:var(--orange); }
   .proj-card.p-media{ border-left-color:#e8a23c; }
   .proj-card.p-baja{ border-left-color:var(--gris); }
+  .pc-main{ display:flex; align-items:center; gap:16px; flex:1; cursor:pointer; min-width:0; }
   .proj-card .pc-name{ font-weight:700; font-size:15px; min-width:190px; }
   .proj-card .pc-estado{ font-size:12px; color:var(--neutro); flex:1; }
   .proj-card .pc-pago{ font-size:12px; color:var(--neutro); min-width:110px; text-align:right; }
+  .pc-actions{ display:flex; gap:6px; flex-shrink:0; }
+  .pc-btn{ background:var(--ink); border:1px solid #3a3c3b; border-radius:7px; width:34px; height:34px; font-size:14px; cursor:pointer; transition:all .12s; }
+  .pc-edit:hover{ border-color:var(--orange); color:var(--orange); }
+  .pc-del-btn:hover{ border-color:var(--rojo); color:var(--rojo); }
   .proj-card .pc-badge{
     font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px;
     padding:4px 10px; border-radius:20px;
@@ -311,6 +316,15 @@
   .legend{ display:flex; gap:18px; justify-content:center; margin-top:18px; flex-wrap:wrap; }
   .legend-item{ display:flex; align-items:center; gap:7px; font-size:12px; color:var(--neutro); }
   .legend-dot{ width:11px; height:11px; border-radius:50%; }
+
+  /* ---------- MATRIZ ---------- */
+  .matriz-container{ display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap; justify-content:center; width:100%; }
+  .matriz-svg{ flex-shrink:0; max-width:100%; }
+  .matriz-leyenda{ display:flex; flex-direction:column; gap:7px; min-width:190px; padding-top:10px; }
+  .matriz-leg-item{ display:flex; align-items:center; gap:9px; cursor:pointer; padding:4px 6px; border-radius:6px; transition:background .12s; }
+  .matriz-leg-item:hover{ background:var(--grafito3); }
+  .matriz-leg-num{ width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--ink); flex-shrink:0; }
+  .matriz-leg-name{ font-size:12px; color:var(--cream); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 </style>
 </head>
 <body>
@@ -1065,14 +1079,28 @@ function renderProjList(){
         <input type="checkbox" ${p.fechaCompletada?'checked':''} onchange="toggleFechaCompletada('${p.id}', this.checked)">
       </label>` : '';
     return `
-    <div class="proj-card p-${p.prioridad}" onclick="openProjModal('${p.id}')">
+    <div class="proj-card p-${p.prioridad}">
       <span class="pc-badge">${PRIORIDAD_LABEL[p.prioridad]}</span>
-      <div class="pc-name">${p.nombre}</div>
-      <div class="pc-estado">${p.estado}${fechaTxt? ' · '+fechaTxt : ''}</div>
+      <div class="pc-main" onclick="openProjModal('${p.id}')">
+        <div class="pc-name">${p.nombre}</div>
+        <div class="pc-estado">${p.estado}${fechaTxt? ' · '+fechaTxt : ''}</div>
+      </div>
       ${checkbox}
       <div class="pc-pago">${pagoTexto(p)}</div>
+      <div class="pc-actions">
+        <button class="pc-btn pc-edit" onclick="openProjModal('${p.id}')" title="Editar">✎</button>
+        <button class="pc-btn pc-del-btn" onclick="deleteProjDirect('${p.id}')" title="Eliminar">🗑</button>
+      </div>
     </div>`;
   }).join('');
+}
+
+function deleteProjDirect(id){
+  const p = proyectos.find(x=>x.id===id);
+  if(!p) return;
+  if(!confirm(`¿Eliminar el proyecto "${p.nombre}" definitivamente? Esta acción no se puede deshacer.`)) return;
+  proyectos = proyectos.filter(x=>x.id!==id);
+  saveProyectos(); renderProyectos();
 }
 
 function toggleFechaCompletada(id, checked){
@@ -1141,8 +1169,8 @@ function chartPrioridad(){
 }
 
 function chartMatriz(){
-  const W=680, H=380, PAD=50;
-  const pts = proyectos.map(p=>{
+  const W=680, H=420, PAD=54;
+  let pts = proyectos.map((p,i)=>{
     const d = daysUntil(p.fecha);
     let urgencia;
     if(d===null || p.fechaCompletada) urgencia = 8;
@@ -1151,15 +1179,62 @@ function chartMatriz(){
     const pendiente = pct===null ? 50 : (100-pct);
     const x = PAD + (urgencia/100)*(W-2*PAD);
     const y = (H-PAD) - (pendiente/100)*(H-2*PAD);
-    return {x,y,p};
+    return {x,y,p,idx:i+1};
   });
-  const midX = PAD+(W-2*PAD)/2, midY = PAD+(H-2*PAD)/2;
+
+  // Anti-superposición: separa puntos que quedan muy cerca empujándolos en espiral
+  // Jitter inicial determinista para puntos exactamente superpuestos (evita dist=0)
+  const seen = {};
+  pts.forEach(pt=>{
+    const key = Math.round(pt.x)+','+Math.round(pt.y);
+    if(seen[key]!==undefined){
+      const n = ++seen[key];
+      const ang = n*2.399; // ángulo áureo
+      pt.x += Math.cos(ang)*12;
+      pt.y += Math.sin(ang)*12;
+    } else { seen[key]=0; }
+  });
+
+  const MIN_DIST = 30;
+  for(let iter=0; iter<120; iter++){
+    let moved = false;
+    for(let a=0; a<pts.length; a++){
+      for(let b=a+1; b<pts.length; b++){
+        let dx = pts[b].x-pts[a].x, dy = pts[b].y-pts[a].y;
+        let dist = Math.sqrt(dx*dx+dy*dy);
+        if(dist < 0.01){ dx = Math.cos(a*2.399); dy = Math.sin(a*2.399); dist = 1; }
+        if(dist < MIN_DIST){
+          const push = (MIN_DIST-dist)/2;
+          const ux = dx/dist, uy = dy/dist;
+          pts[a].x -= ux*push; pts[a].y -= uy*push;
+          pts[b].x += ux*push; pts[b].y += uy*push;
+          moved = true;
+        }
+      }
+    }
+    // mantener dentro de límites
+    pts.forEach(pt=>{
+      pt.x = Math.max(PAD+6, Math.min(W-24, pt.x));
+      pt.y = Math.max(26, Math.min(H-PAD-6, pt.y));
+    });
+    if(!moved) break;
+  }
+
+  const midX = PAD+(W-2*PAD)/2, midY = 26+((H-PAD-6)-26)/2;
   const dots = pts.map(pt=>`
-    <circle cx="${pt.x}" cy="${pt.y}" r="9" fill="${PRIORIDAD_COLOR[pt.p.prioridad]}" stroke="#212322" stroke-width="2" style="cursor:pointer;" onclick="openProjModal('${pt.p.id}')"/>
-    <text x="${pt.x}" y="${pt.y-14}" text-anchor="middle" font-size="10" fill="#c7c9c7">${pt.p.nombre.split(' ')[0]}</text>
+    <circle cx="${pt.x}" cy="${pt.y}" r="13" fill="${PRIORIDAD_COLOR[pt.p.prioridad]}" stroke="#212322" stroke-width="2" style="cursor:pointer;" onclick="openProjModal('${pt.p.id}')"><title>${pt.p.nombre}</title></circle>
+    <text x="${pt.x}" y="${pt.y+4}" text-anchor="middle" font-size="11" font-weight="700" fill="#212322" style="pointer-events:none;">${pt.idx}</text>
   `).join('');
-  return `<div>
-    <svg width="${W}" height="${H+40}" viewBox="0 0 ${W} ${H+40}">
+
+  const leyenda = pts.map(pt=>`
+    <div class="matriz-leg-item" onclick="openProjModal('${pt.p.id}')">
+      <span class="matriz-leg-num" style="background:${PRIORIDAD_COLOR[pt.p.prioridad]}">${pt.idx}</span>
+      <span class="matriz-leg-name">${pt.p.nombre}</span>
+    </div>
+  `).join('');
+
+  return `<div class="matriz-container">
+    <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" class="matriz-svg">
       <line x1="${PAD}" y1="${H-PAD}" x2="${W-20}" y2="${H-PAD}" stroke="#3a3c3b"/>
       <line x1="${PAD}" y1="20" x2="${PAD}" y2="${H-PAD}" stroke="#3a3c3b"/>
       <line x1="${midX}" y1="20" x2="${midX}" y2="${H-PAD}" stroke="#3a3c3b" stroke-dasharray="4 4"/>
@@ -1168,15 +1243,11 @@ function chartMatriz(){
       <text x="${(PAD+midX)/2}" y="35" text-anchor="middle" font-size="11" fill="#8a8c8a">VIGILAR</text>
       <text x="${(midX+W-20)/2}" y="${H-PAD+30}" text-anchor="middle" font-size="11" fill="#8a8c8a">RESOLVER PRONTO</text>
       <text x="${(PAD+midX)/2}" y="${H-PAD+30}" text-anchor="middle" font-size="11" fill="#8a8c8a">ESTABLE</text>
-      <text x="${W/2}" y="${H+22}" text-anchor="middle" font-size="11" fill="#c7c9c7">Urgencia (proximidad a fecha crítica) →</text>
-      <text x="18" y="${H/2}" text-anchor="middle" font-size="11" fill="#c7c9c7" transform="rotate(-90 18 ${H/2})">% pago pendiente →</text>
+      <text x="${W/2}" y="${H-8}" text-anchor="middle" font-size="11" fill="#c7c9c7">Urgencia (proximidad a fecha crítica) →</text>
+      <text x="16" y="${H/2}" text-anchor="middle" font-size="11" fill="#c7c9c7" transform="rotate(-90 16 ${H/2})">% pago pendiente →</text>
       ${dots}
     </svg>
-    <div class="legend">
-      <div class="legend-item"><span class="legend-dot" style="background:${PRIORIDAD_COLOR.alta}"></span>Alta</div>
-      <div class="legend-item"><span class="legend-dot" style="background:${PRIORIDAD_COLOR.media}"></span>Media</div>
-      <div class="legend-item"><span class="legend-dot" style="background:${PRIORIDAD_COLOR.baja}"></span>Baja</div>
-    </div>
+    <div class="matriz-leyenda">${leyenda}</div>
   </div>`;
 }
 
