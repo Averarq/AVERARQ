@@ -1464,4 +1464,1541 @@ function htmlHonorarios(){
         <option value="completo" ${s.tipo==="completo"?"selected":""}>Diseño obra nueva — completo</option>
         <option value="parcial" ${s.tipo==="parcial"?"selected":""}>Diseño parcial — hasta planos</option>
         <option value="remo" ${s.tipo==="remo"?"selected":""}>Remodelación / interiorismo</option>
-        <option value="regu" ${s.tipo==="reg
+        <option value="regu" ${s.tipo==="regu"?"selected":""}>Regularización D.O.M.</option>
+        <option value="comercial" ${s.tipo==="comercial"?"selected":""}>Habilitación comercial (local)</option>
+        <option value="manual" ${s.tipo==="manual"?"selected":""}>Otro servicio (nombre manual)</option>
+      </select></div>
+    ${s.tipo==="manual"?`<div class="row"><label style="width:70px">Nombre</label><input type="text" class="grow" value="${esc(s.nombreMan)}" placeholder="nombre del servicio a mostrar en el presupuesto" data-sv="nombreMan"></div>`:""}
+    ${(s.tipo==="comercial"||s.tipo==="manual")?`<div class="row"><label style="width:70px">Monto $</label><input type="number" step="10000" style="width:110px" value="${s.montoMan||""}" placeholder="monto fijo" data-sv="montoMan"><span class="small" style="color:var(--muted)">monto fijo del servicio (no se calcula por m²)</span></div>`:""}
+    <div class="row"><label style="width:70px">Superficie</label><label style="width:auto"><input type="checkbox" style="width:auto" ${s.verM2?"checked":""} data-sv="verM2"> incluir m² en el presupuesto</label></div>
+    ${s.verM2?`<div class="row"><label>m²</label><input type="number" style="width:64px" value="${s.m2}" data-sv="m2">
+      <label>UF $</label><input type="number" style="width:78px" value="${s.uf}" data-sv="uf">
+      <button class="btn mini" id="svUF">UF hoy</button></div>`:`<div class="row"><label>UF $</label><input type="number" style="width:78px" value="${s.uf}" data-sv="uf"><button class="btn mini" id="svUF">UF hoy</button><span class="small" style="color:var(--muted)">m² oculto</span></div>`}
+    <div class="row"><label style="width:auto">Tarifa manual UF/m²</label>
+      <input type="number" step="0.05" style="width:70px" value="${s.tarifaMan||""}" placeholder="auto" data-sv="tarifaMan">
+      <span class="small" style="color:var(--muted)">${(+s.tarifaMan>0)?`activa: ${s.tarifaMan} UF/m² (sobrescribe estándar)`:`vacío = usa ${s.ing?"1,45":"0,85"} UF/m² automático`}</span></div>
+    <div class="row"><label><input type="checkbox" style="width:auto" ${s.ing?"checked":""} data-sv="ing"> c/ ingenierías (1,45 UF/m²)</label>
+      <label style="margin-left:8px">Detalle</label>
+      <select data-sv="det" style="width:110px">
+        <option value="1" ${s.det==1?"selected":""}>Estándar ×1,0</option>
+        <option value="1.2" ${s.det==1.2?"selected":""}>Detallado ×1,2</option>
+        <option value="1.4" ${s.det==1.4?"selected":""}>Integral ×1,4</option>
+      </select></div>
+    <div class="row"><button class="btn" id="svSug">⚙ Calcular ítem sugerido</button>
+      <span class="small">según directriz Averarq (web + presupuestos aprobados)</span></div>
+  </div>
+  <h3>ÍTEMS DEL PRESUPUESTO</h3>
+  <table><tr><th>Descripción</th><th>Valor neto</th><th>Plazo</th><th></th></tr>${rows}</table>
+  <div class="row" style="margin-top:6px;flex-wrap:wrap;gap:4px">
+    <span class="small" style="width:100%;color:var(--muted)">Menú de servicios (agrégalos como ítems; edita el valor de cada uno):</span>
+    <button class="btn mini" data-sv-add="Diseño de arquitectura de la vivienda: anteproyecto, desarrollo y planimetría para construcción|0|3–5 meses">+ 1· Diseño vivienda</button>
+    <button class="btn mini" data-sv-add="Tramitación y obtención del permiso de edificación ante la D.O.M.: preparación y presentación del expediente arquitectónico. No incluye proyectos de especialidades (cálculo, sanitario, eléctrico, gas), que se cotizarán por separado según los requiera el proyecto|900000|2–4 meses">+ 2· Tramitación municipal</button>
+    <button class="btn mini" data-sv-add="Regularización del destino de la propiedad ante el Servicio de Impuestos Internos (cambio de destino): revisión de antecedentes, preparación de planos y documentación, y presentación de la solicitud para actualizar el destino registrado del inmueble|450000|3–6 semanas">+ 3· Cambio destino SII</button>
+    <button class="btn mini" data-sv-add="Proyecto sanitario – alcantarillado SEREMI|810000|2–4 meses">+ Sanitario</button>
+    <button class="btn mini" data-sv-add="Proyecto de gas – certificación TC6 SEC|750000|6 semanas aprox.">+ Gas TC6</button>
+    <button class="btn mini" data-sv-add="Ítem|0|">+ libre</button>
+  </div>
+  <h3>CONDICIONES</h3>
+  <div class="card">
+    <div class="row"><label>Descuento %</label><input type="number" style="width:56px" value="${s.dcto}" data-sv="dcto">
+      <label>G. operativos %</label><input type="number" style="width:56px" value="${s.gop}" data-sv="gop"></div>
+    ${(+s.dcto>0)?`<div class="row"><label style="width:auto">Concepto descuento</label><input type="text" class="grow" value="${esc(s.dctoConcepto)}" placeholder="ej: por localía · por servicio completo · cliente frecuente" data-sv-txt="dctoConcepto"></div>`:""}
+    <div class="row"><label><input type="checkbox" style="width:auto" ${s.boleta?"checked":""} data-sv="boleta"> Impuesto boleta 15,25% (total = neto ÷ 0,8475)</label></div>
+    <div class="row"><label style="width:auto">Forma de pago</label>
+      <select data-sv="pagoModo" class="grow">
+        <option value="cuotas" ${s.pagoModo==="cuotas"?"selected":""}>Abono + cuotas iguales</option>
+        <option value="hitos" ${s.pagoModo==="hitos"?"selected":""}>Por hitos de tramitación (pie + ingreso DOM + recepción)</option>
+      </select></div>
+    ${s.pagoModo==="cuotas"?`<div class="row"><label>Abono %</label><input type="number" style="width:56px" value="${s.abonoPct}" data-sv="abonoPct">
+      <label>Cuotas</label><input type="number" style="width:50px" value="${s.cuotas}" data-sv="cuotas"></div>`:`
+    <div class="row"><label style="width:auto">Pie al inicio %</label><input type="number" style="width:56px" value="${s.hitoPie}" data-sv="hitoPie"></div>
+    <div class="row"><label style="width:auto">Al ingreso a D.O.M. %</label><input type="number" style="width:56px" value="${s.hitoIngreso}" data-sv="hitoIngreso"></div>
+    <div class="row"><label style="width:auto">A la recepción D.O.M. %</label><input type="number" style="width:56px" value="${s.hitoRecep}" data-sv="hitoRecep">
+      <span class="small" style="color:${t.hitoSuma===100?'var(--ok)':'var(--naranja2)'}">suma ${t.hitoSuma}%${t.hitoSuma!==100?" ⚠ debe sumar 100":""}</span></div>`}
+    <div class="row"><label>Plazo total</label><input type="text" class="grow" value="${esc(s.plazo||"")}" data-sv-txt="plazo"></div>
+    <div class="row"><label style="width:auto">Texto acompañamiento</label>
+      <select data-sv="acompModo" class="grow">
+        <option value="auto" ${s.acompModo==="auto"?"selected":""}>Automático según servicio ${(s.tipo==="regu"||s.tipo==="comercial")?"(→ gestión)":"(→ diseño)"}</option>
+        <option value="diseno" ${s.acompModo==="diseno"?"selected":""}>Con diseño (reuniones de avance)</option>
+        <option value="gestion" ${s.acompModo==="gestion"?"selected":""}>Solo gestión / tramitación</option>
+        <option value="libre" ${s.acompModo==="libre"?"selected":""}>Escribir texto libre</option>
+      </select></div>
+    ${s.acompModo==="libre"?`<div class="row"><textarea class="grow" rows="4" placeholder="Escribe el texto de plazo y acompañamiento que aparecerá en el presupuesto…" data-sv-txt="acompLibre" style="resize:vertical;font-family:inherit;font-size:12px">${esc(s.acompLibre)}</textarea></div>`:""}
+  </div>
+  <div id="resumen">
+    <div class="tot"><span>Subtotal ítems</span><span class="money">${CLP(t.sub)}</span></div>
+    ${t.dcto?`<div class="tot"><span>Descuento ${s.dcto}%</span><span class="money">− ${CLP(t.dcto)}</span></div>`:""}
+    ${t.gop?`<div class="tot"><span>Gastos operativos ${s.gop}%</span><span class="money">${CLP(t.gop)}</span></div>`:""}
+    <div class="tot"><span>Honorarios netos</span><span class="money">${CLP(t.neto)}</span></div>
+    ${s.boleta?`<div class="tot"><span>Impuesto boleta 15,25%</span><span class="money">${CLP(t.imp)}</span></div>`:""}
+    <div class="tot big"><span>TOTAL REFERENCIAL</span><span class="money">${CLP(t.total)}</span></div>
+    ${s.pagoModo==="cuotas"?`<div class="tot"><span>Abono ${s.abonoPct}%</span><span class="money">${CLP(t.abono)} neto · ${CLP(t.abonoB)} c/imp</span></div>
+    <div class="tot"><span>${t.n} cuotas</span><span class="money">${CLP(t.cuota)} netas · ${CLP(t.cuotaB)} c/imp</span></div>`:`
+    <div class="tot"><span>Pie al inicio (${s.hitoPie}%)</span><span class="money">${CLP(t.hPie)} neto · ${CLP(t.hPieB)} c/imp</span></div>
+    <div class="tot"><span>Al ingreso D.O.M. (${s.hitoIngreso}%)</span><span class="money">${CLP(t.hIng)} neto · ${CLP(t.hIngB)} c/imp</span></div>
+    <div class="tot"><span>A la recepción D.O.M. (${s.hitoRecep}%)</span><span class="money">${CLP(t.hRec)} neto · ${CLP(t.hRecB)} c/imp</span></div>`}
+  </div>
+  <div class="row" style="margin-top:12px"><button class="btn primary grow" id="svEmitir">🖨 Emitir presupuesto de honorarios</button></div>`;
+}
+function eeSel(path,opts,val){return `<select data-ee="${path}" class="grow">${opts.map(o=>`<option value="${o[0]}" ${o[0]===val?"selected":""}>${o[1]}</option>`).join("")}</select>`;}
+function eeChk(path,val,lbl){return `<label style="font-size:11px;color:var(--txt)"><input type="checkbox" style="width:auto" data-ee="${path}" ${val?"checked":""}> ${lbl}</label>`;}
+function eeTxt(path,val,ph){return `<input type="text" class="grow" data-ee="${path}" value="${esc(val||"")}" placeholder="${ph||""}">`;}
+function htmlEETT(){
+  const e=state.eett;
+  return `<h3>GENERADOR DE ESPECIFICACIONES TÉCNICAS</h3>
+  <p class="small" style="margin-bottom:8px">Completa el formulario y emite una EETT profesional lista para expediente D.O.M. o para entregar al mandante. Los textos se redactan según lo marcado, con las soluciones constructivas Averarq.</p>
+  <h3>PROPIETARIO Y PROPIEDAD</h3>
+  <div class="card">
+    <div class="row"><label style="width:64px">Nombre</label>${eeTxt("prop.nombre",e.prop.nombre,"Nombre propietario")}</div>
+    <div class="row"><label style="width:64px">RUT</label>${eeTxt("prop.rut",e.prop.rut,"12.345.678-9")}</div>
+    <div class="row"><label style="width:64px">Dirección</label>${eeTxt("prop.dir",e.prop.dir,"Calle N°, sector")}</div>
+    <div class="row"><label style="width:64px">Comuna</label>
+      <select id="comunaSel" class="grow">${(function(){
+        let o='<option value="">— elige comuna —</option>';
+        const zr=state.minvuDB.zonasRegion||{};
+        const cur=e.prop.comuna||"";let matched=false;
+        for(const region in zr){
+          o+=`<optgroup label="${esc(region)}">`;
+          for(const row of zr[region]){
+            const sel=(normComuna(row[0])===normComuna(cur))?"selected":"";
+            if(sel)matched=true;
+            o+=`<option value="${esc(row[0])}" ${sel}>${esc(row[0])} · Zona ${row[1]}${row[2]?" ⚠":""}</option>`;
+          }
+          o+=`</optgroup>`;
+        }
+        o+=`<option value="__otra__" ${(cur&&!matched)?"selected":""}>Otra comuna (escribir a mano)…</option>`;
+        return o;
+      })()}</select></div>
+    <div class="row" id="comunaLibreRow" style="${(function(){const z=zonaInfo(e.prop.comuna);return (e.prop.comuna&&!z)?"":"display:none";})()}">
+      <label style="width:64px">↳ escribir</label>${eeTxt("prop.comuna",e.prop.comuna,"nombre de la comuna")}</div>
+    <div class="row"><label style="width:64px">Rol SII</label><input type="text" style="width:84px" data-ee="prop.rol" value="${esc(e.prop.rol)}" placeholder="123-45"></div>
+  </div>
+  <h3>ARQUITECTO Y DOCUMENTO</h3>
+  <div class="card">
+    <div class="row"><label style="width:110px">RUT arquitecto</label>${eeTxt("arq.rut",e.arq.rut,"12.345.678-9")}
+      <label>Rev.</label><input type="text" style="width:46px" data-ee="rev" value="${esc(e.rev)}"></div>
+    <div class="row">${eeChk("dj",e.dj,"Incluir Declaración Jurada del arquitecto al final del documento")}</div>
+    <div class="row">${eeChk("notas",e.notas,"Incluir página de notas internas / verificaciones pendientes (no entregable)")}</div>
+    <div class="row"><label style="width:120px">Firma propietario</label>
+      <input type="file" id="firmaPropFile" accept="image/png,image/jpeg" style="max-width:170px">
+      ${e.firmaProp?`<img src="${e.firmaProp}" style="height:34px;margin-left:8px;background:#fff;border:1px solid var(--line);border-radius:4px;padding:2px"><button class="btn mini" id="firmaPropDel" style="margin-left:6px">quitar</button>`:`<span class="small" style="color:var(--muted)">PNG con fondo transparente ideal</span>`}</div>
+  </div>
+  <h3>PROYECTO</h3>
+  <div class="card">
+    <div class="row"><label style="width:64px">Destino</label>${eeSel("pj.destino",[["Habitacional — vivienda unifamiliar","Habitacional — vivienda unifamiliar"],["Habitacional — segunda vivienda","Habitacional — segunda vivienda"],["Comercial","Comercial"],["Equipamiento","Equipamiento"],["Bodega / taller","Bodega / taller"],["Quincho / obra menor","Quincho / obra menor"]],e.pj.destino)}</div>
+    <div class="row"><label style="width:64px">Sup. m²</label><input type="number" style="width:70px" data-ee="pj.m2" value="${e.pj.m2}">
+      <label>Pisos</label><input type="number" min="1" max="4" style="width:50px" data-ee="pj.pisos" value="${e.pj.pisos}"></div>
+    <div class="row"><label style="width:64px">Sistema</label>${eeSel("pj.sistema",[["sip","Paneles SIP"],["alba","Albañilería confinada"],["madera","Tabiquería de madera"],["metalcon","Metalcon (acero galvanizado)"]],e.pj.sistema)}</div>
+    ${(+e.pj.pisos>1)?Array.from({length:Math.min(+e.pj.pisos,4)},(_,i)=>{
+      const d=e.pj.det[i]||{};
+      return `<div class="row"><label style="width:64px">Piso ${i+1}</label>
+        <input type="number" style="width:70px" placeholder="m²" data-eefloor="${i}.m2" value="${d.m2||""}">
+        <select data-eefloor="${i}.sistema" class="grow"><option value="">(mismo sistema)</option>
+          <option value="sip" ${d.sistema==="sip"?"selected":""}>Paneles SIP</option>
+          <option value="alba" ${d.sistema==="alba"?"selected":""}>Albañilería confinada</option>
+          <option value="madera" ${d.sistema==="madera"?"selected":""}>Tabiquería de madera</option><option value="metalcon" ${d.sistema==="metalcon"?"selected":""}>Metalcon (acero galvanizado)</option></select></div>`;
+    }).join("")+`<p class="small">Si un piso no indica m² o sistema, se asume reparto en partes iguales y el sistema general.</p>`:""}
+    <div class="row"><label style="width:64px">Descripción</label>${eeTxt("pj.desc",e.pj.desc,"breve descripción del proyecto (opcional)")}</div>
+  </div>
+  <h3>PRELIMINARES Y OBRA GRUESA</h3>
+  <div class="card">
+    <div class="row">${eeChk("prelim.faena",e.prelim.faena,"Instalación de faena")} ${eeChk("prelim.trazado",e.prelim.trazado,"Trazado y niveles")}</div>
+    <div class="row">${eeChk("og.fund",e.og.fund,"Fundaciones corridas")} ${eeChk("og.radier",e.og.radier,"Radier")}</div>
+    <div class="row"><label style="width:64px">Techumbre</label>${eeSel("og.tech",[["cerchas","Cerchas de pino @80 cm"],["cerchasmetal","Cerchas metálicas Metalcon"],["vigas","Vigas a la vista"],["mixta","Mixta (cerchas + vigas a la vista)"]],e.og.tech)}</div>
+    <div class="row"><label style="width:64px">Cubierta</label>${eeSel("og.cubierta",[["zinc","Plancha ondulada zinc 0,35"],["teja","Teja chilena de arcilla"],["pv4","PV-4 / prepintada"]],e.og.cubierta)}</div>
+    <div class="row"><label style="width:64px">Obs.</label>${eeTxt("og.obs",e.og.obs,"notas de obra gruesa (opcional)")}</div>
+  </div>
+  <h3>AISLACIÓN</h3>
+  <div class="card">
+    <div class="row"><label style="width:64px">Vertical</label>${eeSel("aisl.muros",[["auto","Homologar a MINVU (LOSCAT, auto)"],["lana80","Lana de vidrio 80 mm (genérico)"],["lana100","Lana de vidrio 100 mm (genérico)"],["lanamin","Lana mineral 80 mm (genérico)"]],e.aisl.muros)}</div>
+    ${e.aisl.muros==="auto"?`<div class="row"><label style="width:64px">Espesor lana</label><input type="number" style="width:60px" data-ee="aisl.espesorMuro" value="${e.aisl.espesorMuro}"><span class="small">mm (albañilería/madera; el SIP usa su propio espesor de panel)</span></div>
+    <div class="row"><label style="width:64px">Escuadría</label>${eeSel("aisl.escuadria",[["2x3","Pino 2×3\" (tabiquería estándar)"],["2x4","Pino 2×4\" (mayor cámara de aire)"]],e.aisl.escuadria)}<span class="small">solo aplica a tabiquería de madera</span></div>`:""}
+    <div class="row"><label style="width:64px">Horizontal</label>${eeSel("aisl.tech",[["lana100","Lana de vidrio 100 mm s/ cielo"],["lana140","Lana de vidrio 140 mm s/ cielo"],["lvproy","Lana de vidrio proyectada (soplada s/ cielo)"],["lanamin100","Lana mineral 100 mm"]],e.aisl.tech)}</div>
+    <div class="row">${eeChk("aisl.vapor",e.aisl.vapor,"Barreras de humedad y de vapor")}</div>
+    <div class="row"><label style="width:64px">Obs.</label>${eeTxt("aisl.obs",e.aisl.obs,"notas de aislación (opcional)")}</div>
+    <p class="small" style="margin-top:6px">${(function(){const z=zonaInfo(e.prop.comuna);return z?`Zona Térmica <b>${z.letra}</b> (art. 4.1.10 vigente) para "${esc(e.prop.comuna)}"${z.alt?` <b>⚠ verificar altitud del predio</b>`:""}.`:`Zona <b>no determinada</b> para "${esc(e.prop.comuna||"(sin comuna)")}" — elige del listado o el documento remitirá a la memoria de cálculo.`;})()} Zonificación oficial MINVU/DITEC (V, IV y VI región cargadas).</p>
+  </div>
+  <h3>TERMINACIONES</h3>
+  <div class="card">
+    <div class="row"><label style="width:64px">Rev. exterior</label>${eeSel("term.revExt",[["auto","Según sistema (auto)"],["fibro","Fibrocemento tinglado (siding)"],["estuco","Estuco y pintura"],["smart","Panel OSB smart / siding vinílico"],["madera","Entablado de madera tratada"],["visto","Ladrillo a la vista + hidrorrepelente"]],e.term.revExt)}</div>
+    <div class="row"><label style="width:64px">Rev. interior</label>${eeSel("term.revInt",[["yeso","Yeso-cartón 10 mm"],["wall","Wall panel PVC/WPC"],["mixto","Yeso-cartón + wall panel en zonas húmedas"],["madera","Entablado de madera"]],e.term.revInt)}</div>
+    <div class="row"><label style="width:64px">Cielos</label>${eeSel("term.cielo",[["volcanita","Yeso-cartón s/ listoneado"],["tablas","Tablas de pino machihembrado"]],e.term.cielo)}</div>
+    <div class="row"><label style="width:64px">Pavimentos</label>${eeSel("term.pav",[["ceramica","Cerámica / porcelanato"],["flotante","Piso flotante / vinílico"],["afinado","Radier afinado pulido"],["mixto","Porcelanato zonas húmedas + flotante recintos"]],e.term.pav)}</div>
+    <div class="row"><label style="width:64px">Ventanas</label>${eeSel("term.ventanas",[["pvc","PVC termopanel"],["alu","Aluminio línea intermedia"],["madera","Madera"]],e.term.ventanas)}<span class="small">se usa solo si el catálogo está vacío</span></div>
+    <div class="row" style="margin-top:2px"><b class="small" style="letter-spacing:1px;color:var(--txt2)">CATÁLOGO DE VENTANAS DEL PROYECTO</b></div>
+    <table style="margin-bottom:6px"><tr><th>Recinto</th><th style="width:70px">Cm×Cm</th><th style="width:30px">Cant</th><th style="width:74px">Marco</th><th style="width:92px">Vidriado</th><th style="width:80px">Accionam.</th><th></th></tr>
+    ${e.term.ventanasCat.map((v,ix)=>`<tr>
+      <td><input type="text" value="${esc(v.recinto)}" data-vent="${ix}" data-vk="recinto"></td>
+      <td style="white-space:nowrap"><input type="number" style="width:42px" value="${v.ancho}" data-vent="${ix}" data-vk="ancho"> × <input type="number" style="width:42px" value="${v.alto}" data-vent="${ix}" data-vk="alto"></td>
+      <td><input type="number" style="width:36px" value="${v.cant}" data-vent="${ix}" data-vk="cant"></td>
+      <td><select data-vent="${ix}" data-vk="marco"><option value="pvc" ${v.marco==="pvc"?"selected":""}>PVC</option><option value="alu" ${v.marco==="alu"?"selected":""}>Aluminio</option><option value="madera" ${v.marco==="madera"?"selected":""}>Madera</option></select></td>
+      <td><select data-vent="${ix}" data-vk="vidriado"><option value="monolitico" ${v.vidriado==="monolitico"?"selected":""}>Monolítico</option><option value="dvh49" ${v.vidriado==="dvh49"?"selected":""}>DVH 4-9-4</option><option value="dvh412" ${v.vidriado==="dvh412"?"selected":""}>DVH 4-12-4</option><option value="dvh416" ${v.vidriado==="dvh416"?"selected":""}>DVH 4-16-4</option></select></td>
+      <td><select data-vent="${ix}" data-vk="accion"><option value="corredera" ${v.accion==="corredera"?"selected":""}>Corredera</option><option value="proyectante" ${v.accion==="proyectante"?"selected":""}>Proyectante</option><option value="abatible" ${v.accion==="abatible"?"selected":""}>Abatible</option><option value="fija" ${v.accion==="fija"?"selected":""}>Fija</option><option value="guillotina" ${v.accion==="guillotina"?"selected":""}>Guillotina</option></select></td>
+      <td class="tdel" data-ventdel="${ix}">✕</td></tr>`).join("")}
+    </table>
+    <div class="row" style="flex-wrap:wrap;gap:4px">
+      <button class="btn mini" data-ventadd="Baño|60|70|1|pvc|dvh49|proyectante">+ Baño</button>
+      <button class="btn mini" data-ventadd="Dormitorio|120|130|1|pvc|dvh412|proyectante">+ Dormitorio</button>
+      <button class="btn mini" data-ventadd="Cocina|100|60|1|pvc|dvh49|corredera">+ Cocina</button>
+      <button class="btn mini" data-ventadd="Living/comedor|200|200|1|pvc|dvh416|corredera">+ Living</button>
+      <button class="btn mini" data-ventadd="Ventanal a piso|192|192|1|pvc|dvh416|corredera">+ Ventanal a piso</button>
+      <button class="btn mini" data-ventadd="Tipo libre|100|100|1|pvc|dvh49|corredera">+ libre</button>
+    </div>
+    <p class="small" style="margin:4px 0 8px">Tamaños en cm, valores típicos de partida — ajústalos al vano real de cada proyecto.</p>
+    <div class="row"><label style="width:64px">Puertas int.</label>${eeSel("term.puertas",[["terciado","Terciado / HDF"],["enchapada","Enchapadas"],["madera","Madera maciza"]],e.term.puertas)}</div>
+    <div class="row"><label style="width:64px">Acceso ppal.</label>${eeSel("term.puertaPpal",[["seguridad","Placa reforzada + cerradura seguridad"],["maciza","Madera maciza + cerradura seguridad"],["metalica","Metálica con relleno aislante"],["enchapada","Enchapada + cerradura seguridad"]],e.term.puertaPpal)}</div>
+    <div class="row">${eeChk("term.tieneSec",e.term.tieneSec,"Incluir puerta de acceso secundario / servicio")}
+      ${e.term.tieneSec?eeSel("term.puertaSec",[["metalica","Metálica simple"],["terciado","Terciado/HDF con cerradura exterior"],["aluminio","Marco aluminio + vidrio (patio/logia)"]],e.term.puertaSec):""}</div>
+    <div class="row">${eeChk("term.pintura",e.term.pintura,"Pinturas")} ${eeChk("term.quinc",e.term.quinc,"Quincallería")} ${eeChk("term.artef",e.term.artef,"Artefactos y grifería")}</div>
+    <div class="row"><label style="width:64px">Obs.</label>${eeTxt("term.obs",e.term.obs,"notas de terminaciones (opcional)")}</div>
+  </div>
+  <h3>INSTALACIONES</h3>
+  <div class="card">
+    <div class="row">${eeChk("inst.elec",e.inst.elec,"Eléctrica c/ TE1")} ${eeChk("inst.gas",e.inst.gas,"Gas c/ sello verde")}</div>
+    ${e.inst.elec?`<div class="row"><label style="width:64px">Eléctrica</label>${eeSel("inst.elecModo",[["estandar","Especificación estándar Averarq"],["proyecto","Según proyecto eléctrico (remite a instalador SEC)"]],e.inst.elecModo)}</div>`:""}
+    ${e.inst.gas?`<div class="row"><label style="width:64px">Gas</label>${eeSel("inst.gasModo",[["estandar","Especificación estándar Averarq"],["proyecto","Según proyecto de gas (remite a instalador SEC)"]],e.inst.gasModo)}</div>`:""}
+    <div class="row"><label style="width:64px">Agua</label>${eeSel("inst.agua",[["red","Red pública"],["apr","APR"],["pozo","Pozo/noria c/ sistema propio"]],e.inst.agua)}</div>
+    <div class="row"><label style="width:64px">Alcantar.</label>${eeSel("inst.alc",[["red","Red pública"],["fosa","Fosa séptica 2.500 L + drenes (Bioplastic)"],["proyecto","Según proyecto sanitario (remite a proyectista)"]],e.inst.alc)}</div>
+    <div class="row">${eeChk("inst.acsOn",e.inst.acsOn,"Incluir punto de agua caliente sanitaria")}</div>
+    ${e.inst.acsOn?`<div class="row"><label style="width:64px">Agua cal.</label>${eeSel("inst.acs",[["calefont","Calefont a gas"],["termo","Termo eléctrico"],["solar","Solar térmico + respaldo"]],e.inst.acs)}</div>`:""}
+    <div class="row"><label style="width:64px">Obs.</label>${eeTxt("inst.obs",e.inst.obs,"notas de instalaciones (opcional)")}</div>
+  </div>
+  <h3>OBRAS POSTERIORES Y PRESUPUESTO</h3>
+  <div class="card">
+    <div class="row">${eeChk("post.cierre",e.post.cierre,"Cierre perimetral")} ${eeChk("post.aseo",e.post.aseo,"Aseo y entrega")}</div>
+    <div class="row">${eeChk("presup.incluir",e.presup.incluir,"Incluir presupuesto de las obras (desde la cubicación)")}</div>
+    <div class="row"><label>Valor manual $</label><input type="number" style="width:110px" data-ee="presup.manual" value="${e.presup.manual}" title="Se usa si no hay partidas cubicadas"> 
+      <label>Plazo</label>${eeTxt("presup.plazo",e.presup.plazo,"ej: 5 meses")}</div>
+  </div>
+  <div class="row" style="margin-top:12px"><button class="btn primary grow" id="eeEmitir">🖨 Emitir EETT</button></div>`;
+}
+// ===== COMPARADOR DE SISTEMAS CONSTRUCTIVOS =====
+// Definición de los sistemas de muro con su APU y rendimiento (independiente de las partidas trazadas)
+function sistemasComparar(){
+  // Cada sistema: APU estructural (levantar el muro) + termAdd (lo que falta para "muro terminado" equivalente).
+  // termRend = rendimiento de las faenas de terminación (m²/día), para sumar días al llevar a terminado.
+  return [
+    {key:"sip",nombre:"Panel SIP (híbrido asimétrico)",color:"#4f9dd1",rend:16,termRend:8,nM1:1,nM2:1,
+      apu:[["Panel SIP 90 mm (Centropanel, neto)","m²",1.05,sipNetoM2?sipNetoM2(90):15143],["Pino 2×3\" empalmes y soleras","ml",1.6,1500],["Espuma PU","tubo",0.12,6900],["Tornillo 6\" + fijaciones","u",9,130]],
+      termAdd:[["Fibrocemento siding 6 mm (ext.)","m²",1.05,6500],["Membrana hidrófuga","m²",1.1,900],["Yeso-cartón 10 mm (int.)","m²",1.05,3300],["Pasta muro y tratamiento juntas","m²",1,1500],["Pintura ext. + int. (2 manos)","m²",2,2500]]},
+    {key:"alba",nombre:"Albañilería confinada e=14",color:"#fc4c02",rend:3.0,termRend:10,nM1:1,nM2:1,
+      apu:[["Ladrillo fiscal artesanal","u",39,420],["Cemento mortero de pega","saco",0.42,5990],["Arena mortero","m³",0.045,28000],["Hormigón pilares/cadenas (cemento)","saco",0.61,5990],["Arena confinamiento","m³",0.022,28000],["Gravilla confinamiento","m³",0.033,26000],["Fierro pilares/cadenas 4φ10+estribos","kg",3.6,1450],["Moldaje pilares y cadenas","m²",0.44,3500],["Alambre + clavos","gl",1,1200]],
+      termAdd:[["Estuco interior (mortero)","m²",1,2800],["Pintura interior (2 manos)","m²",1,2500],["Sellado/impermeabilizante cara exterior","m²",1,1200]]},
+    {key:"madera",nombre:"Tabiquería de madera 2×3\" + OSB",color:"#7fb069",rend:9,termRend:9,nM1:1,nM2:1,
+      apu:[["Pino cepillado seco 2×3\"","ml",3.4,1500],["OSB 11,1 mm estructural (ext.)","m²",1.05,6500],["Lana de vidrio 80 mm","m²",1.05,2600],["Membrana hidrófuga","m²",1.1,900],["Clavos y tornillos","gl",1,900]],
+      termAdd:[["Fibrocemento siding 6 mm (ext.)","m²",1.05,6500],["Yeso-cartón 10 mm (int.)","m²",1.05,3300],["Pasta muro y tratamiento juntas","m²",1,1500],["Pintura ext. + int. (2 manos)","m²",2,2500]]},
+    {key:"metalcon",nombre:"Tabiquería Metalcon U 92 + OSB",color:"#4472c4",rend:9,termRend:9,nM1:1,nM2:1,
+      apu:[["Perfil montante U 92×30×0,85 galv.","ml",3.2,2650],["Perfil canal 92 galv.","ml",0.85,2650],["OSB 11,1 mm estructural (ext.)","m²",1.05,6500],["Lana mineral 80 mm","m²",1.05,2800],["Membrana hidrófuga","m²",1.1,900],["Tornillos autoperforantes + arriostramiento","gl",1,1500]],
+      termAdd:[["Fibrocemento siding 6 mm (ext.)","m²",1.05,6500],["Yeso-cartón 10 mm (int.)","m²",1.05,3300],["Pasta muro y tratamiento juntas","m²",1,1500],["Pintura ext. + int. (2 manos)","m²",2,2500]]}
+  ];
+}
+function comparaCalc(sis,m2,alcance){
+  const jornal=sis.nM1*state.costos.m1+sis.nM2*state.costos.m2;
+  // estructura
+  let matM2=sis.apu.reduce((s,a)=>s+a[2]*a[3],0);
+  let dias=sis.rend>0? m2/sis.rend : 0;
+  // terminación (si alcance = "terminado")
+  if(alcance==="terminado" && sis.termAdd){
+    matM2+=sis.termAdd.reduce((s,a)=>s+a[2]*a[3],0);
+    if(sis.termRend>0)dias+=m2/sis.termRend;
+  }
+  const moM2=m2>0? (jornal*dias)/m2 : 0;
+  return {matM2,moM2,directoM2:matM2+moM2,dias,matTot:matM2*m2,moTot:moM2*m2,total:(matM2+moM2)*m2};
+}
+// ===== RADIOGRAFÍA DE OBRA (informe de inspección de estado) =====
+function defaultRadio(){
+  return {
+    inmueble:{dir:"",comuna:"",rol:"",sup:"",anio:"",sistema:"",destino:"vivienda",nombre:""},
+    fecha:new Date().toLocaleDateString("es-CL"),
+    proposito:"remodel",
+    items:[
+      {area:"Estructura y fundaciones",estado:"regular",obs:"",prio:"media"},
+      {area:"Muros y tabiques",estado:"bueno",obs:"",prio:"baja"},
+      {area:"Techumbre y cubierta",estado:"regular",obs:"",prio:"media"},
+      {area:"Cielos",estado:"bueno",obs:"",prio:"baja"},
+      {area:"Pisos y pavimentos",estado:"bueno",obs:"",prio:"baja"},
+      {area:"Puertas y ventanas",estado:"regular",obs:"",prio:"media"},
+      {area:"Instalación eléctrica",estado:"regular",obs:"",prio:"alta"},
+      {area:"Instalación de agua y alcantarillado",estado:"regular",obs:"",prio:"alta"},
+      {area:"Humedad y filtraciones",estado:"regular",obs:"",prio:"alta"},
+      {area:"Terminaciones y pintura",estado:"bueno",obs:"",prio:"baja"}
+    ],
+    concl:""
+  };
+}
+const RADIO_ESTADOS={bueno:{t:"Bueno",c:"#2e7d32"},regular:{t:"Regular",c:"#e8a33d"},malo:{t:"Deficiente",c:"#c0392b"},na:{t:"No aplica",c:"#999"}};
+const RADIO_PRIO={alta:{t:"Alta",c:"#c0392b"},media:{t:"Media",c:"#e8a33d"},baja:{t:"Baja",c:"#2e7d32"}};
+const RADIO_PROP={
+  remodel:"evaluación previa a un proyecto de remodelación o ampliación",
+  venta:"respaldo técnico para un proceso de compraventa del inmueble",
+  regular:"evaluación del estado para un eventual proceso de regularización",
+  general:"diagnóstico general del estado de conservación del inmueble"
+};
+function radioData(){ if(!state.radio)state.radio=defaultRadio(); return state.radio; }
+
+function htmlRadiografia(){
+  const r=radioData();
+  const im=r.inmueble;
+  let h=`<h3>RADIOGRAFÍA DE OBRA — INFORME DE ESTADO</h3>
+  <p class="small" style="margin-bottom:8px">Informe técnico del estado de una construcción existente. Útil como evaluación previa a una remodelación, respaldo para una venta, o diagnóstico general. Describe el estado de cada área observada, sin constituir un cálculo estructural ni un peritaje formal.</p>
+  <div class="card">
+    <div class="row"><span class="grow" style="font-weight:600;color:var(--txt)">Identificación del inmueble</span></div>
+    <div class="row"><label style="width:80px">Nombre/ref.</label><input type="text" class="grow" value="${esc(im.nombre)}" placeholder="ej: Casa Los Aromos" data-ri="nombre"></div>
+    <div class="row"><label style="width:80px">Dirección</label><input type="text" class="grow" value="${esc(im.dir)}" data-ri="dir"></div>
+    <div class="row"><label style="width:80px">Comuna</label><input type="text" style="width:110px" value="${esc(im.comuna)}" data-ri="comuna">
+      <label style="width:30px">Rol</label><input type="text" style="width:90px" value="${esc(im.rol)}" data-ri="rol"></div>
+    <div class="row"><label style="width:80px">Sup. aprox.</label><input type="text" style="width:70px" value="${esc(im.sup)}" data-ri="sup"><span class="small">m²</span>
+      <label style="width:60px">Año aprox.</label><input type="text" style="width:60px" value="${esc(im.anio)}" data-ri="anio"></div>
+    <div class="row"><label style="width:80px">Sistema</label><input type="text" class="grow" value="${esc(im.sistema)}" placeholder="ej: albañilería / madera / mixto" data-ri="sistema"></div>
+    <div class="row"><label style="width:80px">Propósito</label>
+      <select data-rp="proposito" class="grow">
+        <option value="remodel" ${r.proposito==="remodel"?"selected":""}>Evaluación previa a remodelación/ampliación</option>
+        <option value="venta" ${r.proposito==="venta"?"selected":""}>Respaldo técnico para compraventa</option>
+        <option value="regular" ${r.proposito==="regular"?"selected":""}>Evaluación previa a regularización</option>
+        <option value="general" ${r.proposito==="general"?"selected":""}>Diagnóstico general de conservación</option>
+      </select></div>
+  </div>
+  <div class="card">
+    <div class="row"><span class="grow" style="font-weight:600;color:var(--txt)">Evaluación por área</span>
+      <button class="btn mini" id="riAdd">+ área</button></div>`;
+  r.items.forEach((it,i)=>{
+    const est=RADIO_ESTADOS[it.estado]||RADIO_ESTADOS.regular;
+    const pr=RADIO_PRIO[it.prio]||RADIO_PRIO.media;
+    h+=`<div class="card" style="border-left:3px solid ${est.c};margin:5px 0">
+      <div class="row"><input type="text" class="grow" value="${esc(it.area)}" data-riarea="${i}" style="font-weight:600">
+        <button class="btn mini" data-ridel="${i}">✕</button></div>
+      <div class="row"><label style="width:50px">Estado</label>
+        <select data-riest="${i}" style="width:110px">
+          ${Object.keys(RADIO_ESTADOS).map(k=>`<option value="${k}" ${it.estado===k?"selected":""}>${RADIO_ESTADOS[k].t}</option>`).join("")}
+        </select>
+        <label style="width:60px">Prioridad</label>
+        <select data-riprio="${i}" style="width:90px">
+          ${Object.keys(RADIO_PRIO).map(k=>`<option value="${k}" ${it.prio===k?"selected":""}>${RADIO_PRIO[k].t}</option>`).join("")}
+        </select></div>
+      <div class="row"><textarea class="grow" rows="2" placeholder="Observaciones: qué se observó, patologías, recomendación…" data-riobs="${i}" style="resize:vertical;font-family:inherit;font-size:12px">${esc(it.obs)}</textarea></div>
+    </div>`;
+  });
+  h+=`<div class="card">
+    <div class="row"><span class="grow" style="font-weight:600;color:var(--txt)">Conclusión general</span></div>
+    <div class="row"><textarea class="grow" rows="4" placeholder="Síntesis del estado general, viabilidad para el propósito indicado, recomendaciones principales…" data-rconcl="1" style="resize:vertical;font-family:inherit;font-size:12px">${esc(r.concl)}</textarea></div>
+  </div>
+  <div class="row" style="margin-top:10px"><button class="btn primary grow" id="riEmitir">🖨 Emitir radiografía</button></div>`;
+  return h;
+}
+function htmlComparar(){
+  if(!state.compM2)state.compM2=100;
+  if(!state.compAlcance)state.compAlcance="estructural";
+  const m2=+state.compM2||100;
+  const alc=state.compAlcance;
+  const sis=sistemasComparar().map(s=>({...s,calc:comparaCalc(s,m2,alc)}));
+  sis.sort((a,b)=>a.calc.total-b.calc.total);
+  const min=sis[0].calc.total, max=sis[sis.length-1].calc.total;
+  let h=`<h3>COMPARADOR DE SISTEMAS CONSTRUCTIVOS</h3>
+  <p class="small" style="margin-bottom:8px">Compara el costo directo (material + mano de obra) de los cuatro sistemas de muro para una misma superficie. Ideal para la etapa de anteproyecto: muestra al cliente números, no opiniones. Usa los mismos precios y jornales de tu proyecto actual.</p>
+  <div class="card">
+    <div class="row"><label style="width:150px">Superficie de muro</label>
+      <input type="number" style="width:80px" min="1" value="${m2}" data-compm2="1"><span class="small">m² (a comparar en los 4 sistemas)</span></div>
+    <div class="row"><label style="width:150px">Nivel de alcance</label>
+      <select data-compalc="1" class="grow">
+        <option value="estructural" ${alc==="estructural"?"selected":""}>Muro estructural (sin revestir — como sale de obra gruesa)</option>
+        <option value="terminado" ${alc==="terminado"?"selected":""}>Muro terminado (+ revestimiento, yeso-cartón y pintura equivalentes)</option>
+      </select></div>
+    <div class="row"><span class="small grow">Jornales: M1 ${CLP(state.costos.m1)}/día · M2 ${CLP(state.costos.m2)}/día · ${alc==="terminado"?"incluye faenas de terminación para nivelar los 4 sistemas al mismo estado":"solo estructura; la albañilería a la vista ya viene casi terminada, el SIP no — usa \"terminado\" para comparar peras con peras"}</span></div>
+  </div>`;
+  // tarjetas comparativas
+  sis.forEach((s,i)=>{
+    const c=s.calc;
+    const esMin=c.total===min, esMax=c.total===max;
+    const difPct=min>0? ((c.total-min)/min*100) : 0;
+    const barW=max>0? (c.total/max*100) : 0;
+    h+=`<div class="card" style="border-left:4px solid ${s.color}">
+      <div class="row"><span class="grow" style="font-weight:600;color:var(--txt)">${i+1}. ${esc(s.nombre)}</span>
+        ${esMin?`<span class="chip" style="background:var(--ok);color:#fff">más económico</span>`:esMax?`<span class="chip" style="background:var(--naranja);color:#fff">más caro</span>`:``}</div>
+      <div class="row"><div style="flex:1;background:var(--bg);border-radius:3px;height:9px;overflow:hidden"><div style="width:${barW}%;height:100%;background:${s.color}"></div></div></div>
+      <div class="row"><span class="small grow">Costo directo por m²</span><span class="money"><b>${CLP(Math.round(c.directoM2))}</b>/m²</span></div>
+      <div class="row"><span class="small grow" style="color:var(--muted)">· material ${CLP(Math.round(c.matM2))}/m² · mano de obra ${CLP(Math.round(c.moM2))}/m²</span></div>
+      <div class="row"><span class="small grow" style="color:var(--txt)">Rendimiento cuadrilla</span><span class="small" style="color:${s.color};font-weight:600">${F(s.rend,1)} m²/día</span></div>
+      <div class="row"><span class="small grow" style="color:var(--txt)">Plazo de ejecución</span><span class="small" style="font-weight:600">${F(c.dias,1)} días</span><span class="small" style="color:var(--muted)">· ~${F(c.dias/6,1)} semanas (jornada 6 días)</span></div>
+      <div class="row"><span class="small grow">Total ${m2} m²</span><span class="money" style="font-size:14px"><b>${CLP(Math.round(c.total))}</b></span>
+        ${difPct>0.5?`<span class="small" style="color:var(--naranja2)">+${F(difPct,1)}% vs. más barato</span>`:``}</div>
+    </div>`;
+  });
+  // síntesis
+  const ahorro=max-min;
+  h+=`<div class="card" style="background:var(--panel2,#f7f6f2)">
+    <div class="row"><span class="small grow" style="color:var(--txt)"><b>Diferencia entre el más caro y el más barato</b></span><span class="money"><b>${CLP(Math.round(ahorro))}</b></span></div>
+    <p class="small" style="margin-top:4px;color:var(--muted)">La mano de obra pesa tanto como el material: un sistema de montaje rápido (SIP, rend. alto) puede ganarle a uno de material barato pero lento (albañilería). Por eso el comparador incluye ambos. Costos directos sin gastos generales ni utilidad — para comparar sistemas, no para cotizar al cliente.</p>
+  </div>
+  <div class="row" style="margin-top:12px"><button class="btn primary grow" id="compEmitir">🖨 Emitir comparativa</button></div>`;
+  return h;
+}
+function htmlObra(){
+  const parts=state.partidas.map(p=>({p,c:partidaCalc(p)})).filter(x=>x.c.q>0);
+  if(!parts.length)return `<h3>SEGUIMIENTO DE OBRA</h3><p class="small">Aún no hay partidas cubicadas. Traza y cubica el proyecto en la pestaña PARTIDAS; luego aquí registras el avance y el gasto real de cada una.</p>`;
+  const t=obraTotales();const o=obraData();
+  const barra=(pct,color)=>`<div style="background:var(--bg);border-radius:3px;height:7px;overflow:hidden;flex:1"><div style="width:${Math.min(100,pct)}%;height:100%;background:${color}"></div></div>`;
+  let h=`<h3>SEGUIMIENTO DE OBRA — PANEL ÚNICO</h3>
+  <div class="card">
+    <div class="row"><label style="width:70px">Cliente</label><input type="text" class="grow" value="${esc(o.info.cliente||"")}" data-obrainfo="cliente" placeholder="nombre del mandante"></div>
+    <div class="row"><label style="width:70px">Inicio</label><input type="text" style="width:110px" value="${esc(o.info.inicio||"")}" data-obrainfo="inicio" placeholder="dd-mm-aaaa">
+      <span class="small grow" style="text-align:right">Avance físico ponderado: <b class="qty" style="font-size:14px">${F(t.avanceFisico,1)}%</b></span></div>
+  </div>
+
+  <h3>INDICADORES</h3>
+  <div id="resumen">
+    <div class="tot"><span>Avance físico (ponderado por $)</span><span class="money">${F(t.avanceFisico,1)} %</span></div>
+    <div class="tot"><span>Costo directo presupuestado</span><span class="money">${CLP(t.presup)}</span></div>
+    <div class="tot"><span>Ejecutado valorizado (a costo)</span><span class="money">${CLP(t.valor)}</span></div>
+    <div class="tot"><span>Gasto real acumulado</span><span class="money">${CLP(t.gastoReal)}</span></div>
+    <div class="tot" style="border-bottom:2px solid ${t.desvio>=0?'var(--ok)':'var(--naranja)'}"><span><b>${t.desvio>=0?'Margen sobre lo ejecutado':'Sobregasto sobre lo ejecutado'}</b></span><span class="money" style="color:${t.desvio>=0?'var(--ok)':'var(--naranja2)'}"><b>${CLP(Math.abs(t.desvio))}</b></span></div>
+    <div class="tot big"><span>Valorización para cobrar (c/ GG+util)</span><span class="money">${CLP(t.valorVenta)}</span></div>
+    <div class="tot"><span class="small">de un total de venta ${CLP(t.ventaTotal)}</span><span class="small money">saldo por cobrar ${CLP(t.ventaTotal-t.valorVenta)}</span></div>
+  </div>
+
+  <h3>AVANCE Y GASTO POR PARTIDA</h3>
+  <p class="small" style="margin-bottom:6px">Ajusta el <b>% de avance</b> real y registra el <b>gasto real</b> en materiales y mano de obra de cada partida. El desvío verde = vas bajo presupuesto; naranja = sobregasto.</p>`;
+
+  for(const g of partsPorGrupo()){
+    h+=`<div class="grph">${g.gn.toUpperCase()}</div>`;
+    for(const {p} of g.ps){
+      const oc=obraCalc(p);
+      const col=oc.desvio>=0?'var(--ok)':'var(--naranja)';
+      h+=`<div class="card">
+        <div class="row"><span class="small grow" style="color:var(--txt)">${esc(p.nombre)}</span>
+          <span class="small">${CLP(oc.c.directo)} ppto</span></div>
+        <div class="row"><label style="width:52px">Avance</label>
+          <input type="number" style="width:56px" min="0" max="100" value="${oc.pct}" data-obra="${p.id}" data-ok="pct"><span class="small">%</span>
+          ${barra(oc.pct,'var(--naranja)')}
+          <span class="money small" style="width:78px">${CLP(oc.valorizado)}</span></div>
+        <div class="row"><label style="width:52px">Gasto real</label>
+          <span class="small">mat</span><input type="number" style="width:78px" step="1000" value="${oc.gMat}" data-obra="${p.id}" data-ok="gMat">
+          <span class="small">mo</span><input type="number" style="width:78px" step="1000" value="${oc.gMo}" data-obra="${p.id}" data-ok="gMo"></div>
+        <div class="row"><span class="small grow">presup. mat ${CLP(oc.c.mat)} · mo ${CLP(oc.c.mo)}</span>
+          <span class="small" style="color:${col}">${oc.desvio>=0?'▲ +':'▼ −'}${CLP(Math.abs(oc.desvio))} ${oc.desvio>=0?'a favor':'sobregasto'}</span></div>
+      </div>`;
+    }
+  }
+  // ===== CURVA S (uso interno) =====
+  const meds=(o.meds||[]).slice().sort((a,b)=>a.sem-b.sem);
+  h+=`<h3 style="margin-top:16px">CURVA DE AVANCE (curva S · uso interno)</h3>
+  <p class="small" style="margin-bottom:6px">La línea negra es el avance <b>planificado</b> (curva S teórica según la duración de obra). Los puntos naranjas son tus <b>mediciones reales</b>. Si los puntos van bajo la curva, la obra está atrasada respecto al plan.</p>
+  <div class="card">
+    <div class="row"><label style="width:120px">Duración planificada</label>
+      <input type="number" style="width:60px" min="1" max="200" value="${o.durSem}" data-obradur="1"><span class="small">semanas</span>
+      <span class="small grow" style="text-align:right">Avance real actual: <b class="qty">${F(t.avanceFisico,1)}%</b></span></div>
+  </div>
+  <div style="margin:8px 0">${curvaSVG(o,t.avanceFisico)}</div>
+  <div class="card">
+    <div class="row"><label style="width:120px">Registrar medición</label>
+      <span class="small">semana</span><input type="number" id="medSem" style="width:52px" min="0" max="${o.durSem}" placeholder="${meds.length?(meds[meds.length-1].sem+1):0}">
+      <span class="small">avance %</span><input type="number" id="medPct" style="width:56px" min="0" max="100" placeholder="${F(t.avanceFisico,0)}">
+      <button class="btn mini" id="medAdd">+ agregar punto</button></div>
+    ${meds.length?`<table style="margin-top:6px">${meds.map((m,i)=>`<tr><td class="small">Semana ${m.sem}</td><td class="small money">${F(m.pct,1)}%</td><td style="width:24px"><button class="btn mini" data-meddel="${i}">×</button></td></tr>`).join("")}</table>`:`<p class="small" style="margin-top:4px;color:var(--muted)">Aún no hay mediciones. Agrega el % de avance real observado en cada semana de control; puedes tomar el "avance real actual" de arriba como referencia.</p>`}
+  </div>`;
+  h+=`<div class="row" style="margin-top:12px"><button class="btn primary grow" id="obraEmitir">🖨 Emitir estado de obra</button></div>`;
+  return h;
+}
+function htmlResumen(){
+  const t=totales();
+  let h=`<div id="resumen"><h3>RESUMEN POR GRUPO Y PARTIDA</h3><table>
+  <tr><th>Partida</th><th class="money">Cant.</th><th class="money">Días</th><th class="money">$ Directo</th></tr>`;
+  for(const g of partsPorGrupo()){
+    h+=`<tr><td colspan="4" style="color:var(--naranja2);font-weight:700;letter-spacing:1px;font-size:10px;padding-top:8px">${g.gn.toUpperCase()}</td></tr>`;
+    let st=0;
+    for(const {p,c} of g.ps){st+=c.directo;
+      h+=`<tr><td>${esc(p.nombre)}</td><td class="money">${F(c.q)} ${p.tipo}</td><td class="money">${F(c.dias,1)}</td><td class="money">${CLP(c.directo)}</td></tr>`;}
+    h+=`<tr><td colspan="3" style="text-align:right;color:var(--txt2);font-size:10px">Subtotal ${g.gn}</td><td class="money" style="border-bottom:1px solid var(--line)"><b>${CLP(st)}</b></td></tr>`;
+  }
+  h+=`</table><h3 style="margin-top:16px">TOTALES</h3>
+  <div class="tot"><span>Materiales</span><span class="money">${CLP(t.mat)}</span></div>
+  <div class="tot"><span>Mano de obra (${F(t.dias,1)} días)</span><span class="money">${CLP(t.mo)}</span></div>
+  <div class="tot"><span>Costo directo</span><span class="money">${CLP(t.directo)}</span></div>
+  <div class="tot"><span>Gastos generales ${state.costos.gg}%</span><span class="money">${CLP(t.gg)}</span></div>
+  <div class="tot"><span>Utilidad (${F(t.dias,1)} días × ${CLP(state.costos.utilDia)})</span><span class="money">${CLP(t.util)}</span></div>
+  <div class="tot"><span>Neto</span><span class="money">${CLP(t.neto)}</span></div>
+  ${state.costos.iva?`<div class="tot"><span>IVA 19%</span><span class="money">${CLP(t.iva)}</span></div>`:""}
+  <div class="tot big"><span>TOTAL</span><span class="money">${CLP(t.total)}</span></div>
+  <p class="small" style="margin-top:10px">Plazo estimado con 1 cuadrilla por partida en serie: ${F(t.dias,1)} días hábiles.</p></div>`;
+  return h;
+}
+
+function bindTab(){
+  $$("#tabContent [data-act]").forEach(c=>c.addEventListener("click",e=>{
+    if(e.target.closest("input,.tdel"))return;
+    activePid=c.dataset.act;renderTab();setTool(tool);
+  }));
+  $$("#grpChips .chip").forEach(ch=>ch.onclick=()=>{grpSel=ch.dataset.grp;renderTab();});
+  $$("#tabContent [data-f]").forEach(i=>i.addEventListener("change",()=>{
+    const p=state.partidas.find(x=>x.id===i.dataset.id);if(!p)return;
+    const f=i.dataset.f;
+    p[f]=(f==="nombre"||f==="color"||f==="grupo")?i.value:parseFloat(i.value)||0;
+    refreshUI();draw();
+  }));
+  $$("#tabContent [data-delp]").forEach(x=>x.onclick=()=>{
+    if(!confirm("¿Eliminar partida y sus trazados?"))return;
+    state.shapes=state.shapes.filter(s=>s.pid!==x.dataset.delp);
+    state.partidas=state.partidas.filter(p=>p.id!==x.dataset.delp);
+    if(activePid===x.dataset.delp&&state.partidas[0])activePid=state.partidas[0].id;
+    refreshUI();draw();
+  });
+  const npAdd=$("#npAdd");if(npAdd)npAdd.onclick=()=>{
+    const tr=$("#npTrazo").value;
+    const p={id:nid(),nombre:"Nueva partida",trazo:tr,tipo:tr==="punto"?"un":tr==="linea"?"m2":"m2",
+      altura:tr==="linea"?2.4:0,color:"#"+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,"0"),
+      rend:10,nM1:1,nM2:1,manual:0,apu:[],grupo:$("#npGrupo")?$("#npGrupo").value:"otros"};
+    state.partidas.push(p);activePid=p.id;refreshUI();
+  };
+  const npBase=$("#npBase");if(npBase)npBase.onclick=()=>{
+    let n=0;
+    for(const d of defaultPartidas())
+      if(!state.partidas.some(x=>x.nombre===d.nombre)){state.partidas.push(d);n++;}
+    hint(n?n+" partidas base agregadas.":"La base ya está completa.");refreshUI();
+  };
+  const fpf=$("#firmaPropFile");if(fpf)fpf.onchange=e=>{
+    const f=e.target.files[0];if(!f)return;
+    if(f.size>2*1024*1024){alert("La imagen es muy grande (máx 2 MB). Usa un PNG más liviano.");return;}
+    const rd=new FileReader();
+    rd.onload=ev=>{state.eett.firmaProp=ev.target.result;refreshUI();};
+    rd.readAsDataURL(f);
+  };
+  const fpd=$("#firmaPropDel");if(fpd)fpd.onclick=()=>{state.eett.firmaProp="";refreshUI();};
+  const npCat=$("#npCatalogo");if(npCat)npCat.onchange=()=>{
+    const nom=npCat.value;if(!nom)return;
+    const d=defaultPartidas().find(x=>x.nombre===nom);
+    if(!d){hint("No encontrada.");return;}
+    // clonar con nuevo id (permite agregar aunque ya exista una igual)
+    const nueva=JSON.parse(JSON.stringify(d));nueva.id=nid();
+    state.partidas.push(nueva);activePid=nueva.id;
+    hint('Agregada: '+nom+' — ahora trázala en el plano con la herramienta correspondiente.');
+    refreshUI();
+  };
+  const p=state.partidas.find(x=>x.id===activePid);
+  $$("#tabContent [data-apu]").forEach(i=>i.addEventListener("change",()=>{
+    const it=p.apu[+i.dataset.apu];const k=i.dataset.k;
+    it[k]=(k==="d"||k==="u")?i.value:parseFloat(i.value)||0;refreshUI();
+  }));
+  $$("#tabContent [data-delapu]").forEach(x=>x.onclick=()=>{p.apu.splice(+x.dataset.delapu,1);refreshUI();});
+  const apuAdd=$("#apuAdd");if(apuAdd)apuAdd.onclick=()=>{p.apu.push({d:"Material",u:"u",c:1,p:0});refreshUI();};
+  const apuFB=$("#apuFromBase");if(apuFB)apuFB.onchange=()=>{
+    const v=apuFB.value;if(!v)return;
+    const [ci,ii]=v.split(":").map(Number);
+    const it=state.matDB.cats[ci].items[ii];
+    p.apu.push({d:it.d,u:it.u,c:1,p:it.p});refreshUI();
+  };
+  $$("#tabContent [data-matp]").forEach(i=>i.addEventListener("change",()=>{
+    const [ci,ii]=i.dataset.matp.split(":").map(Number);
+    state.matDB.cats[ci].items[ii].p=parseFloat(i.value)||0;autosave();
+  }));
+  $$("#tabContent [data-vent]").forEach(i=>i.addEventListener("change",()=>{
+    const row=state.eett.term.ventanasCat[+i.dataset.vent];const k=i.dataset.vk;
+    row[k]=(k==="ancho"||k==="alto"||k==="cant")?(parseFloat(i.value)||0):i.value;
+    autosave();
+  }));
+  $$("#tabContent [data-ventdel]").forEach(x=>x.onclick=()=>{state.eett.term.ventanasCat.splice(+x.dataset.ventdel,1);refreshUI();});
+  $$("#tabContent [data-ventadd]").forEach(b=>b.onclick=()=>{
+    const [recinto,ancho,alto,cant,marco,vidriado,accion]=b.dataset.ventadd.split("|");
+    state.eett.term.ventanasCat.push({recinto,ancho:+ancho,alto:+alto,cant:+cant,marco,vidriado,accion});
+    refreshUI();
+  });
+  const sipSel=$("#sipEspSel");if(sipSel)sipSel.onchange=()=>{p.sipEsp=+sipSel.value;applySip(p);refreshUI();};
+  const bioSel=$("#bioSel");if(bioSel)bioSel.onchange=()=>{p.bioSku=bioSel.value;applyBio(p);refreshUI();};
+  $$("#tabContent [data-biop]").forEach(i=>i.addEventListener("change",()=>{
+    const it=state.bioDB.items[+i.dataset.biop];
+    it.precio=parseFloat(i.value)||0;
+    if(p.bioSku===it.sku)applyBio(p);
+    refreshUI();
+  }));
+  $$("#tabContent [data-sipp]").forEach(i=>i.addEventListener("change",()=>{
+    const t=+i.dataset.sipp;
+    state.sipDB.precios[t]=parseFloat(i.value)||0;
+    if(p.sipEsp===t)applySip(p);
+    refreshUI();
+  }));
+  $$("#tabContent [data-sv]").forEach(i=>i.addEventListener("change",()=>{
+    const k=i.dataset.sv;const s=state.serv;
+    s[k]=(i.type==="checkbox")?i.checked:((k==="tipo"||k==="nombreMan"||k==="acompModo"||k==="pagoModo")?i.value:parseFloat(i.value)||0);
+    refreshUI();
+  }));
+  $$("#tabContent [data-sv-item]").forEach(i=>i.addEventListener("change",()=>{
+    const it=state.serv.items[+i.dataset.svItem];
+    it[i.dataset.k]=(i.dataset.k==="v")?(parseFloat(i.value)||0):i.value;refreshUI();
+  }));
+  $$("#tabContent [data-sv-txt]").forEach(i=>i.addEventListener("change",()=>{
+    state.serv[i.dataset.svTxt]=i.value;refreshUI();
+  }));
+  $$("#tabContent [data-sv-del]").forEach(x=>x.onclick=()=>{state.serv.items.splice(+x.dataset.svDel,1);refreshUI();});
+  $$("#tabContent [data-sv-add]").forEach(b=>b.onclick=()=>{
+    const [d,v,t]=b.dataset.svAdd.split("|");state.serv.items.push({d,v:+v,t:t||""});refreshUI();
+  });
+  const svSug=$("#svSug");if(svSug)svSug.onclick=()=>{servSugerir();refreshUI();};
+  const svUF=$("#svUF");if(svUF)svUF.onclick=async()=>{
+    svUF.textContent="…";
+    try{const r=await fetch("https://mindicador.cl/api/uf");const d=await r.json();
+      state.serv.uf=Math.round(d.serie[0].valor);hint("UF actualizada: "+CLP(state.serv.uf));}
+    catch(e){hint("No se pudo obtener la UF (sin conexión). Edítala a mano.");}
+    refreshUI();
+  };
+  const svEm=$("#svEmitir");if(svEm)svEm.onclick=emitirHon;
+  $$("#tabContent [data-ee]").forEach(i=>i.addEventListener("change",()=>{
+    const full=i.dataset.ee;
+    const path=full.split(".");let o=state.eett;
+    while(path.length>1)o=o[path.shift()];
+    const k=path[0];
+    o[k]=(i.type==="checkbox")?i.checked:(i.type==="number"?(parseFloat(i.value)||0):i.value);
+    autosave();
+    if(full==="pj.pisos")renderTab();
+  }));
+  $$("#tabContent [data-eefloor]").forEach(i=>i.addEventListener("change",()=>{
+    const [ix,k]=i.dataset.eefloor.split(".");
+    if(!state.eett.pj.det[+ix])state.eett.pj.det[+ix]={};
+    state.eett.pj.det[+ix][k]=(k==="m2")?(parseFloat(i.value)||""):i.value;
+    autosave();
+  }));
+  const eeEm=$("#eeEmitir");if(eeEm)eeEm.onclick=emitirEETT;
+  $$("#tabContent [data-obra]").forEach(i=>i.addEventListener("change",()=>{
+    const a=obraPartida(state.partidas.find(x=>x.id===i.dataset.obra));
+    a[i.dataset.ok]=parseFloat(i.value)||0;
+    refreshUI();
+  }));
+  $$("#tabContent [data-obrainfo]").forEach(i=>i.addEventListener("change",()=>{
+    obraData().info[i.dataset.obrainfo]=i.value;autosave();
+  }));
+  const obEm=$("#obraEmitir");if(obEm)obEm.onclick=emitirObra;
+  const oDur=$("[data-obradur]");if(oDur)oDur.addEventListener("change",()=>{obraData().durSem=Math.max(1,parseInt(oDur.value)||16);refreshUI();});
+  const cM2=$("[data-compm2]");if(cM2)cM2.addEventListener("change",()=>{state.compM2=Math.max(1,parseFloat(cM2.value)||100);refreshUI();});
+  const cAlc=$("[data-compalc]");if(cAlc)cAlc.addEventListener("change",()=>{state.compAlcance=cAlc.value;refreshUI();});
+  // Radiografía
+  $$("#tabContent [data-ri]").forEach(i=>i.addEventListener("change",()=>{radioData().inmueble[i.dataset.ri]=i.value;}));
+  const rProp=$("[data-rp='proposito']");if(rProp)rProp.addEventListener("change",()=>{radioData().proposito=rProp.value;});
+  $$("#tabContent [data-riarea]").forEach(i=>i.addEventListener("change",()=>{radioData().items[+i.dataset.riarea].area=i.value;}));
+  $$("#tabContent [data-riest]").forEach(i=>i.addEventListener("change",()=>{radioData().items[+i.dataset.riest].estado=i.value;refreshUI();}));
+  $$("#tabContent [data-riprio]").forEach(i=>i.addEventListener("change",()=>{radioData().items[+i.dataset.riprio].prio=i.value;refreshUI();}));
+  $$("#tabContent [data-riobs]").forEach(i=>i.addEventListener("change",()=>{radioData().items[+i.dataset.riobs].obs=i.value;}));
+  $$("#tabContent [data-ridel]").forEach(b=>b.onclick=()=>{radioData().items.splice(+b.dataset.ridel,1);refreshUI();});
+  const rConcl=$("[data-rconcl]");if(rConcl)rConcl.addEventListener("change",()=>{radioData().concl=rConcl.value;});
+  const riAdd=$("#riAdd");if(riAdd)riAdd.onclick=()=>{radioData().items.push({area:"Nueva área",estado:"regular",obs:"",prio:"media"});refreshUI();};
+  const riEm=$("#riEmitir");if(riEm)riEm.onclick=emitirRadiografia;
+  const cEm=$("#compEmitir");if(cEm)cEm.onclick=emitirComparativa;
+  const medAdd=$("#medAdd");if(medAdd)medAdd.onclick=()=>{
+    const sem=parseFloat($("#medSem").value), pct=parseFloat($("#medPct").value);
+    if(isNaN(sem)||isNaN(pct)){alert("Indica la semana y el % de avance para agregar el punto.");return;}
+    obraData().meds.push({sem:Math.max(0,sem),pct:Math.max(0,Math.min(100,pct))});refreshUI();
+  };
+  $$("#tabContent [data-meddel]").forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.meddel;const m=obraData().meds.slice().sort((a,b)=>a.sem-b.sem)[i];
+    const idx=obraData().meds.indexOf(m);if(idx>=0)obraData().meds.splice(idx,1);refreshUI();
+  });
+  const comunaSel=$("#comunaSel");
+  if(comunaSel)comunaSel.onchange=()=>{
+    if(comunaSel.value==="__otra__"){ state.eett.prop.comuna=""; renderTab(); setTimeout(()=>{const li=$("#comunaLibreRow");if(li){li.style.display="";li.querySelector("input").focus();}},0); }
+    else { state.eett.prop.comuna=comunaSel.value; renderTab(); }
+    autosave();
+  };
+  $$("#tabContent [data-c]").forEach(i=>i.addEventListener("change",()=>{
+    const k=i.dataset.c;
+    state.costos[k]=k==="iva"?i.checked:(parseFloat(i.value)||0);refreshUI();
+  }));
+}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");}
+
+/* ---------- CSV SKETCHUP ---------- */
+$("#btnCSV").onclick=()=>$("#fileCSV").click();
+$("#fileCSV").onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    const sep=rd.result.includes(";")?";":",";
+    const rows=rd.result.split(/\r?\n/).map(l=>l.split(sep).map(c=>c.trim().replace(/^"|"$/g,""))).filter(r=>r.length>1&&r.some(c=>c));
+    const parsed=[];
+    for(const r of rows){
+      let qty=null;
+      for(let i=r.length-1;i>0;i--){const v=parseFloat(String(r[i]).replace(",","."));if(!isNaN(v)){qty=v;break;}}
+      if(qty!==null&&r[0])parsed.push({nombre:r[0],qty});
+    }
+    if(!parsed.length){alert("No se encontraron filas con nombre + cantidad numérica.");return;}
+    const opts=state.partidas.map(p=>`<option value="${p.id}">${esc(p.nombre)} (${p.tipo})</option>`).join("");
+    $("#csvRows").innerHTML=parsed.map((r,i)=>`<div class="row">
+      <span class="grow small">${esc(r.nombre)} — <b>${F(r.qty)}</b></span>
+      <select data-csv="${i}" style="width:220px"><option value="">— ignorar —</option>${opts}</select></div>`).join("");
+    $("#dlgCSV").showModal();
+    $("#csvOk").onclick=()=>{
+      $$("#csvRows select").forEach((s,i)=>{
+        if(!s.value)return;
+        const p=state.partidas.find(x=>x.id===s.value);
+        p.manual=(+p.manual||0)+parsed[i].qty;
+      });
+      $("#dlgCSV").close();refreshUI();hint("Cantidades de SketchUp sumadas como manuales.");
+    };
+  };
+  rd.readAsText(f);e.target.value="";
+};
+$("#csvCancel").onclick=()=>$("#dlgCSV").close();
+
+/* ---------- GUARDAR / ABRIR ---------- */
+function snapshot(){return {...state,proyecto:$("#nomProyecto").value};}
+$("#btnGuardar").onclick=()=>{
+  const blob=new Blob([JSON.stringify(snapshot(),null,1)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download=($("#nomProyecto").value||"proyecto").replace(/[^\w\- ]/g,"")+"_cubicacion.json";a.click();
+};
+$("#btnAbrir").onclick=()=>$("#fileJSON").click();
+$("#fileJSON").onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{try{loadState(JSON.parse(rd.result));hint("Proyecto cargado."+(state.pdfName?" Recargue el PDF: "+state.pdfName:""));}catch(err){alert("Archivo inválido.");}};
+  rd.readAsText(f);e.target.value="";
+};
+function loadState(s){
+  state=s;
+  if(!state.sipDB)state.sipDB=defaultSipDB();
+  if(!state.serv)state.serv=defaultServ();
+  if(state.serv.tarifaMan===undefined)state.serv.tarifaMan=0;
+  if(state.serv.nombreMan===undefined)state.serv.nombreMan="";
+  if(state.serv.montoMan===undefined)state.serv.montoMan=0;
+  if(state.serv.verM2===undefined)state.serv.verM2=true;
+  if(state.serv.pagoModo===undefined)state.serv.pagoModo="cuotas";
+  if(state.serv.hitoPie===undefined)state.serv.hitoPie=40;
+  if(state.serv.hitoIngreso===undefined)state.serv.hitoIngreso=30;
+  if(state.serv.hitoRecep===undefined)state.serv.hitoRecep=30;
+  if(state.serv.acompModo===undefined)state.serv.acompModo="auto";
+  if(state.serv.acompLibre===undefined)state.serv.acompLibre="";
+  if(state.serv.dctoConcepto===undefined)state.serv.dctoConcepto="";
+  if(!state.bioDB)state.bioDB=defaultBioDB();
+  if(!state.matDB)state.matDB=defaultMatDB();
+  if(!state.minvuDB)state.minvuDB=defaultMinvuDB();
+  if(state.eett.aisl.espesorMuro===undefined)state.eett.aisl.espesorMuro=80;
+  if(state.eett.aisl.escuadria===undefined)state.eett.aisl.escuadria="2x3";
+  if(state.eett.aisl.tech==="celulosa")state.eett.aisl.tech="lvproy"; // celulosa reemplazada por lana de vidrio proyectada (R100/LV.4.1)
+  if(!state.eett)state.eett=defaultEETT();
+  if(!state.eett.aisl)state.eett.aisl={muros:"auto",tech:"lana100",vapor:true,obs:""};
+  if(!state.eett.pj.det)state.eett.pj.det=[];
+  if(state.eett.term.revExt===undefined)state.eett.term.revExt="auto";
+  if(state.eett.term.artef===undefined)state.eett.term.artef=true;
+  if(state.eett.term.puertaPpal===undefined)state.eett.term.puertaPpal="seguridad";
+  if(state.eett.term.tieneSec===undefined)state.eett.term.tieneSec=false;
+  if(state.eett.term.puertaSec===undefined)state.eett.term.puertaSec="metalica";
+  if(!Array.isArray(state.eett.term.ventanasCat))state.eett.term.ventanasCat=[];
+  if(!state.eett.arq)state.eett.arq={rut:""};
+  if(state.eett.rev===undefined)state.eett.rev="R0";
+  if(state.eett.dj===undefined)state.eett.dj=true;
+  if(state.eett.notas===undefined)state.eett.notas=true;
+  if(state.eett.firmaProp===undefined)state.eett.firmaProp="";
+  if(state.eett.inst.elecModo===undefined)state.eett.inst.elecModo="estandar";
+  if(state.eett.inst.gasModo===undefined)state.eett.inst.gasModo="estandar";
+  if(state.eett.inst.acsOn===undefined)state.eett.inst.acsOn=true;
+  state.partidas.forEach(p=>{if(!p.grupo)p.grupo=grupoAuto(p);});activePid=state.partidas[0]?.id;selShape=null;drawPts=[];
+  $("#nomProyecto").value=state.proyecto||"";
+  let mx=1;JSON.stringify(state).replace(/"p(\d+)"/g,(m,n)=>{mx=Math.max(mx,+n+1);return m;});uid=mx;
+  updEscala();hist=[];pushHist();refreshUI();draw();
+}
+function autosave(){try{localStorage.setItem("averarq_cubicador",JSON.stringify(snapshot()));}catch(e){}}
+
+/* ---------- PUENTE CABIDA -> GESTOR ---------- */
+function importarDesdeCabida(data){
+  const c=data.cabida||{};
+  const msg="Estudio de cabida detectado:\n\n"+
+    "• Terreno: "+(c.terreno_m2||"—")+" m²\n"+
+    "• Superficie edificable: "+(c.edificable_m2||"—")+" m²\n"+
+    "• Pisos: "+(c.pisos||1)+"\n\n"+
+    "¿Arrancar un proyecto nuevo en el GESTOR con estos datos? (se reemplazará el proyecto actual)";
+  if(!confirm(msg))return;
+  // proyecto nuevo desde cero
+  const s=snapshot();
+  const fresh={...s};
+  // limpiar partidas y obra previa
+  fresh.partidas=[]; fresh.shapes=[]; fresh.obra={info:{cliente:"",inicio:"",obs:""},av:{}};
+  fresh.proyecto=c.nombre||"Proyecto Cabida";
+  // volcar datos de cabida al EETT del proyecto
+  fresh.eett=fresh.eett||{};
+  fresh.eett.pj=fresh.eett.pj||{};
+  fresh.eett.pj.m2=c.edificable_m2||0;
+  fresh.eett.pj.pisos=c.pisos||1;
+  fresh.eett.pj.det=[];
+  // si multipiso, repartir superficie por piso (igual, editable luego)
+  if((c.pisos||1)>1){
+    const porPiso=Math.round((c.edificable_m2||0)/(c.pisos));
+    for(let i=0;i<c.pisos;i++)fresh.eett.pj.det.push({m2:porPiso,sistema:fresh.eett.pj.sistema||"sip"});
+  }
+  loadState(fresh); autosave();
+  // guardar una nota de procedencia
+  alert("Proyecto «"+fresh.proyecto+"» iniciado desde la Cabida.\n\n"+
+    "Superficie edificable "+(c.edificable_m2||0)+" m² ya cargada en la EETT. "+
+    "Ahora traza y cubica las partidas en la pestaña PARTIDAS, y el proyecto fluye por todo el GESTOR.");
+  curTab="eett";$$(".tab").forEach(x=>x.classList.toggle("active",x.dataset.tab==="eett"));renderTab();
+}
+
+/* ---------- GUARDAR / ABRIR PROYECTO (.avproj) ---------- */
+function exportarProyecto(){
+  const data={
+    _formato:"averarq-proyecto",
+    _version:GESTOR_VERSION,
+    _fecha:new Date().toISOString(),
+    _app:"GESTOR AVERARQ",
+    proyecto:snapshot()
+  };
+  const nombre=(($("#nomProyecto").value||"proyecto").trim().replace(/[^\w\s-]/g,"").replace(/\s+/g,"_"))||"proyecto";
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download=nombre+".avproj";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function importarProyecto(file){
+  const rd=new FileReader();
+  rd.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      // aceptar tanto el formato con envoltorio como un snapshot directo
+      let snap=null;
+      if(data&&data._formato==="averarq-proyecto"&&data.proyecto)snap=data.proyecto;
+      else if(data&&data.partidas&&data.eett)snap=data; // snapshot directo
+      else if(data&&data._formato==="averarq-cabida"){ importarDesdeCabida(data); return; }
+      if(!snap){alert("El archivo no es un proyecto Averarq válido (.avproj).");return;}
+      if(!confirm("¿Abrir este proyecto? Se reemplazará el proyecto actual en pantalla (si no lo has guardado, se perderá)."))return;
+      loadState(snap); autosave();
+      alert("Proyecto abierto: "+(snap.proyecto||"sin título"));
+    }catch(err){alert("No se pudo leer el archivo: "+err.message);}
+  };
+  rd.readAsText(file);
+}
+window.addEventListener("beforeunload",autosave);
+
+/* ---------- INFORMES ---------- */
+const ISO=`<svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg">
+  <polygon fill="#fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>`;
+const R='style="text-align:right"';
+function prHead(sub,fecha){return `
+  <div class="pr-head">${ISO}<h1>AVER<span style="color:#fc4c02">ARQ</span></h1>
+    <div class="pr-tag">ARQUITECTURA · VALLE DEL ACONCAGUA<br>${sub}</div></div>
+  <div style="display:flex;justify-content:space-between;color:#555;font-size:11px;margin-bottom:12px">
+    <span>${esc($("#nomProyecto").value)}</span><span>${fecha}</span></div>`;}
+function prFoot(){return `<div class="pr-foot"><span><b>AVERARQ</b> · ALEJANDRO VERA DONOSO</span><span>averarq.cl · @averarq · contacto@averarq.cl</span></div>`;}
+
+$("#btnInforme").onclick=()=>$("#dlgInf").showModal();
+$("#btnGuardar").onclick=exportarProyecto;
+$("#btnAbrir").onclick=()=>$("#fileProyecto").click();
+$("#fileProyecto").onchange=e=>{const f=e.target.files[0];if(f)importarProyecto(f);e.target.value="";};
+$("#infCancel").onclick=()=>$("#dlgInf").close();
+$("#infCliente").onclick=()=>{$("#dlgInf").close();emitir("cliente");};
+$("#infInterno").onclick=()=>{$("#dlgInf").close();emitir("interno");};
+
+function emitir(modo){
+  const t=totales();const fecha=new Date().toLocaleDateString("es-CL");
+  const hayPartidas=partsPorGrupo().length>0;
+  if(!hayPartidas){hint("No hay partidas con cantidades para informar.");return;}
+  const f=t.directo>0? t.neto/t.directo : 1; // factor de venta: GG + utilidad prorrateados
+  let html="";
+
+  if(modo==="cliente"){
+    let rows="";
+    for(const g of partsPorGrupo()){
+      rows+=`<tr><td colspan="4" style="color:#fc4c02;font-weight:bold;letter-spacing:1px;font-size:10px;padding-top:8px">${g.gn.toUpperCase()}</td></tr>`;
+      let st=0;
+      for(const {p,c} of g.ps){
+        const venta=c.directo*f; st+=venta;
+        rows+=`<tr><td>${esc(p.nombre)}</td><td ${R}>${F(c.q)} ${p.tipo}</td>
+          <td ${R}>${CLP(c.q?venta/c.q:0)} /${p.tipo}</td><td ${R}>${CLP(venta)}</td></tr>`;
+      }
+      rows+=`<tr><td colspan="3" style="text-align:right;color:#777;font-size:10px">Subtotal ${g.gn}</td><td ${R}><b>${CLP(st)}</b></td></tr>`;
+    }
+    html=`<div class="pr-page">`+prHead("PRESUPUESTO DE OBRA",fecha)+`
+      <h2>DETALLE DE PARTIDAS</h2>
+      <table><tr><th>Partida</th><th ${R}>Cantidad</th><th ${R}>Precio unitario</th><th ${R}>Total</th></tr>${rows}</table>
+      <h2>RESUMEN</h2>
+      <div class="pr-tot"><span>Neto</span><span>${CLP(t.neto)}</span></div>
+      ${state.costos.iva?`<div class="pr-tot"><span>IVA 19%</span><span>${CLP(t.iva)}</span></div>`:""}
+      <div class="pr-tot big"><span>TOTAL</span><span>${CLP(t.total)}</span></div>
+      <p style="margin-top:12px;font-size:11px">Plazo estimado de ejecución: <b>${F(t.dias,1)} días hábiles</b> desde el inicio de obra.</p>
+      <p style="margin-top:8px;font-size:10px;color:#777">Los valores por partida incluyen materiales, mano de obra, dirección técnica y gastos asociados. Presupuesto válido por 30 días. No incluye partidas ni obras no descritas en este documento; toda modificación se cotizará por separado.</p>
+      `+prFoot()+`</div>`;
+  }else{
+    let rows="";const apuArr=[];
+    for(const g of partsPorGrupo()){
+      rows+=`<tr><td colspan="8" style="color:#fc4c02;font-weight:bold;letter-spacing:1px;font-size:10px;padding-top:8px">${g.gn.toUpperCase()}</td></tr>`;
+      let sd=0,sv=0;
+      for(const {p,c} of g.ps){
+        const venta=c.directo*f; sd+=c.directo; sv+=venta;
+        rows+=`<tr><td>${esc(p.nombre)}</td><td ${R}>${F(c.q)} ${p.tipo}</td><td ${R}>${F(c.dias,1)}</td>
+          <td ${R}>${CLP(c.mat)}</td><td ${R}>${CLP(c.mo)}</td><td ${R}>${CLP(c.directo)}</td>
+          <td ${R}>${CLP(venta)}</td><td ${R}>${CLP(venta-c.directo)}</td></tr>`;
+      const blk=`<div class="apu-block"><h2>APU — ${esc(p.nombre)} (por 1 ${p.tipo})</h2><table>
+        <tr><th>Material</th><th>Un</th><th ${R}>Cant</th><th ${R}>$ unit</th><th ${R}>Subtotal</th></tr>`+
+        p.apu.map(i=>`<tr><td>${esc(i.d)}</td><td>${esc(i.u)}</td><td ${R}>${F(i.c)}</td><td ${R}>${CLP(i.p)}</td><td ${R}>${CLP(i.c*i.p)}</td></tr>`).join("")+
+        `<tr><td colspan="4"><b>Materiales por ${p.tipo}</b></td><td ${R}><b>${CLP(p.apu.reduce((s,i)=>s+i.c*i.p,0))}</b></td></tr>
+         <tr><td colspan="4">Cuadrilla ${p.nM1} M1 + ${p.nM2} M2 · rendimiento ${F(p.rend)} ${p.tipo}/día</td><td></td></tr></table></div>`;
+        apuArr.push({html:blk, hEst: 22*(p.apu.length+4)+56}); // altura estimada del bloque en px
+      }
+      rows+=`<tr><td colspan="5" style="text-align:right;color:#777;font-size:10px">Subtotal ${g.gn}</td><td ${R}><b>${CLP(sd)}</b></td><td ${R}><b>${CLP(sv)}</b></td><td ${R}><b>${CLP(sv-sd)}</b></td></tr>`;
+    }
+    // Paginación determinista de APUs: llenar páginas sin cortar bloques
+    const PAGE=800; let apuPages=[],cur="",used=0;
+    for(const b of apuArr){
+      if(used+b.hEst>PAGE && cur){apuPages.push(cur);cur="";used=0;}
+      cur+=b.html; used+=b.hEst;
+    }
+    if(cur)apuPages.push(cur);
+    const contHead=`<div class="pr-cont"><b>AVER<span style="color:#fc4c02">ARQ</span></b><span>ANÁLISIS DE PRECIOS UNITARIOS · ${esc($("#nomProyecto").value)} · ${fecha} · <b style="color:#fc4c02">USO INTERNO</b></span></div>`;
+    const apusHtml=apuPages.map((pg,i)=>`<div class="pr-page">${contHead}<div style="font-size:9px;color:#999;text-align:right;margin-bottom:6px">APU — página ${i+1} de ${apuPages.length}</div>${pg}${i===apuPages.length-1?`<p style="margin-top:14px;font-size:10px;color:#777">Precios de materiales referenciales sujetos a cotización con proveedores. Rendimientos estimados según experiencia de obra.</p>`:""}${prFoot()}</div>`).join("");
+    const margenPct=t.neto>0?(t.gg+t.util)/t.neto*100:0;
+    html=`<div class="pr-page">`+prHead("CUBICACIÓN Y COSTOS — CONTROL DE OBRA",fecha)+
+      `<div class="pr-banner">DOCUMENTO DE <b>USO INTERNO</b> — NO ENTREGAR AL CLIENTE</div>
+      <h2>RESUMEN POR PARTIDA</h2>
+      <table><tr><th>Partida</th><th ${R}>Cant.</th><th ${R}>Días</th><th ${R}>Materiales</th>
+      <th ${R}>M. obra</th><th ${R}>Directo</th><th ${R}>Venta</th><th ${R}>Margen</th></tr>${rows}</table>
+      <h2>TOTALES Y MARGEN</h2>
+      <div class="pr-tot"><span>Materiales</span><span>${CLP(t.mat)}</span></div>
+      <div class="pr-tot"><span>Mano de obra (${F(t.dias,1)} días · M1 ${CLP(state.costos.m1)} / M2 ${CLP(state.costos.m2)})</span><span>${CLP(t.mo)}</span></div>
+      <div class="pr-tot"><span>Costo directo</span><span>${CLP(t.directo)}</span></div>
+      <div class="pr-tot"><span>Gastos generales ${state.costos.gg}%</span><span>${CLP(t.gg)}</span></div>
+      <div class="pr-tot"><span>Utilidad (${F(t.dias,1)} días × ${CLP(state.costos.utilDia)})</span><span>${CLP(t.util)}</span></div>
+      <div class="pr-tot"><span>Neto venta cliente</span><span>${CLP(t.neto)}</span></div>
+      ${state.costos.iva?`<div class="pr-tot"><span>IVA 19%</span><span>${CLP(t.iva)}</span></div>`:""}
+      <div class="pr-tot big"><span>TOTAL VENTA</span><span>${CLP(t.total)}</span></div>
+      <div class="pr-tot"><span>Margen bruto (GG + utilidad)</span><span>${CLP(t.gg+t.util)} · ${F(margenPct,1)}% del neto</span></div>
+      `+prFoot()+`</div>`+apusHtml;
+  }
+  $("#printArea").innerHTML=html;
+  window.print();
+}
+
+/* ---------- PRESUPUESTO DE HONORARIOS (impresión) ---------- */
+function emitirHon(){
+  const s=state.serv,t=servTot();
+  const fecha=new Date().toLocaleDateString("es-CL");
+  if(!s.items.length){hint("Agregue o calcule al menos un ítem.");return;}
+  const rows=s.items.map(i=>`<tr><td>${esc(i.d)}</td><td ${R}>${CLP(i.v)}</td><td ${R}>${esc(i.t||"—")}</td></tr>`).join("");
+  const jt=(SERV_TXT[s.tipo]||SERV_TXT.completo).justif;
+  $("#printArea").innerHTML=`<div class="pr-page pr-fit">`+prHead("PRESUPUESTO DE HONORARIOS<br>SERVICIOS PROFESIONALES DE ARQUITECTURA",fecha)+`
+    <p style="font-size:11px;margin-bottom:10px">${jt}</p>
+    <h2>VALOR POR ÍTEM</h2>
+    <table><tr><th>Servicio</th><th ${R}>Valor neto</th><th ${R}>Plazo</th></tr>${rows}</table>
+    <h2>RESUMEN</h2>
+    ${t.dcto?`<div class="pr-tot"><span>Subtotal</span><span>${CLP(t.sub)}</span></div>
+    <div class="pr-tot"><span>Descuento ${s.dcto}%${s.dctoConcepto?` <span style="font-weight:400;color:#777">(${esc(s.dctoConcepto)})</span>`:""}</span><span>− ${CLP(t.dcto)}</span></div>`:""}
+    ${t.gop?`<div class="pr-tot"><span>Gastos operativos ${s.gop}%</span><span>${CLP(t.gop)}</span></div>`:""}
+    <div class="pr-tot"><span>Honorarios profesionales netos</span><span>${CLP(t.neto)}</span></div>
+    ${s.boleta?`<div class="pr-tot"><span>Impuesto boleta de honorarios (15,25%)</span><span>${CLP(t.imp)}</span></div>`:""}
+    <div class="pr-tot big"><span>VALOR TOTAL REFERENCIAL DEL SERVICIO</span><span>${CLP(t.total)}</span></div>
+    <h2>PLAZO Y ACOMPAÑAMIENTO</h2>
+    <p style="font-size:11px">Duración estimada del servicio: <b>${esc(s.plazo||"a convenir")}</b>. ${acompTexto()}</p>
+    <h2>PROPUESTA DE FORMA DE PAGO</h2>
+    ${s.pagoModo==="hitos"?`
+    <p style="font-size:11px">Con el fin de asociar el pago al avance real de la gestión, se propone dividir los honorarios en tres pagos vinculados a los hitos de tramitación del encargo:</p>
+    <div class="pr-tot"><span>Pie al inicio (${s.hitoPie}%)</span><span><b>${CLP(t.hPie)} netos</b>${s.boleta?` · <b>${CLP(t.hPieB)}</b> c/ impuesto`:""}</span></div>
+    <div class="pr-tot"><span>Al ingreso del expediente a la D.O.M. (${s.hitoIngreso}%)</span><span><b>${CLP(t.hIng)} netos</b>${s.boleta?` · <b>${CLP(t.hIngB)}</b> c/ impuesto`:""}</span></div>
+    <div class="pr-tot"><span>A la recepción / aprobación de la D.O.M. (${s.hitoRecep}%)</span><span><b>${CLP(t.hRec)} netos</b>${s.boleta?` · <b>${CLP(t.hRecB)}</b> c/ impuesto`:""}</span></div>`:`
+    <p style="font-size:11px">Con el fin de facilitar la planificación financiera del proyecto, se propone dividir los honorarios en un abono inicial y ${t.n} cuotas asociadas al avance progresivo del encargo.</p>
+    <div class="pr-tot"><span>Abono inicial (${s.abonoPct}%)</span><span><b>${CLP(t.abono)} netos</b>${s.boleta?` · <b>${CLP(t.abonoB)}</b> c/ impuesto`:""}</span></div>
+    <div class="pr-tot"><span>${t.n} cuotas</span><span><b>${CLP(t.cuota)} netas c/u</b>${s.boleta?` · <b>${CLP(t.cuotaB)}</b> c/ impuesto aprox.`:""}</span></div>`}
+    <p style="margin-top:12px;font-size:10px;color:#555">Se reafirma el compromiso y el profesionalismo con que se abordará el encargo, garantizando la calidad del trabajo y el cumplimiento de los plazos estipulados, de principio a fin.</p>
+    <p style="margin-top:8px;font-size:10px;color:#777">VALIDEZ DEL PRESUPUESTO: este presupuesto tiene una validez de 1 MES desde su emisión.</p>
+    <div style="margin-top:18px;font-size:11px">Saluda atentamente,<br><b>Alejandro Vera Donoso</b><br>Arquitecto PUCV · ${fecha}</div>
+    <p style="margin-top:10px;font-size:8.5px;color:#999;border-top:1px solid #eee;padding-top:5px">Nota: los valores expresados en UF se calcularon considerando un valor de referencia de <b>${CLP(s.uf)}</b> por UF a la fecha de emisión. El valor final en pesos podrá ajustarse según la UF vigente al momento de la contratación.</p>
+    `+prFoot()+`</div>`;
+  window.print();
+}
+
+/* ---------- EETT: plantillas y emisión ---------- */
+const SIS_NOM={sip:"paneles SIP",alba:"albañilería confinada",madera:"tabiquería de madera",metalcon:"tabiquería de acero galvanizado (Metalcon)"};
+const EE={
+ exca:"Se ejecutarán las excavaciones necesarias para alcanzar el sello de fundación en terreno natural firme, libre de rellenos, materia orgánica y escombros, con profundidad mínima según planos de estructura. Los sellos serán compactados y recibidos conforme antes de hormigonar. El material excedente se acopiará para rellenos autorizados o se retirará de la obra. En caso de encontrarse terreno de mala calidad, se dará aviso al arquitecto y al calculista para definir mejoramiento de suelo.",
+ fund:"Emplantillado de hormigón pobre de 5 cm como superficie de trabajo limpia. Cimiento corrido de hormigón grado G-20 con hasta 30% de bolón desplazador limpio, de sección según planos de estructura. Sobrecimiento de hormigón G-20 con enfierradura según cálculo, moldajes de madera de tapa de pino 1×4\" arriostrados con estacas de pino 2×1\", aplomados y nivelados, contemplando todas las pasadas de instalaciones antes de hormigonar. Curado húmedo mínimo de 7 días. Impermeabilización superior del sobrecimiento mediante membrana asfáltica o emulsión, como barrera de humedad bajo la estructura de muros.",
+ radier:"Radier de hormigón G-15/H-20 de 10 cm de espesor, sobre cama de estabilizado o ripio compactado de 10 cm y film de polietileno de 0,2 mm traslapado 30 cm como barrera de humedad. Malla ACMA C-92 (o según planos) sobre calugas separadoras. Juntas de dilatación según modulación, nivelación con maestras y terminación de platachado o afinado según el pavimento final de cada recinto. Curado húmedo mínimo de 7 días antes de cargar.",
+ muros:{
+  sip:"Muros estructurales en paneles SIP —panel híbrido asimétrico, denominación técnica del sistema— compuestos por dos placas de OSB estructural de 11,1 mm y núcleo aislante de poliestireno expandido (EPS) de alta densidad, espesor según planos, con adhesivo estructural de fábrica (Centropanel o equivalente técnico). Montaje sobre solera basal de pino impregnado 2×3\" anclada al sobrecimiento con pernos de anclaje sobre barrera de humedad. Empalmes entre paneles mediante lengüetas de pino seco cepillado 2×3\" y sello continuo de espuma de poliuretano en todas las uniones verticales y horizontales; solera de amarre superior de pino seco; fijaciones con tornillos autoperforantes de 6\". Refuerzos de madera en vanos, esquinas y apoyos de cargas puntuales según detalle. El sistema cumple la zonificación térmica del art. 4.1.10 de la O.G.U.C.",
+  alba:"Muros de albañilería confinada de ladrillo fiscal artesanal, espesor 14 cm o según planos, asentado con mortero de junta cemento:arena 1:4 y cantería de 15 mm, con hiladas aplomadas y niveladas a lienza. Confinamiento mediante pilares y cadenas de hormigón armado G-20 con enfierradura A63-42H según planos de cálculo, hormigonados contra la albañilería endentada, en conformidad con NCh 2123. Escalerillas de refuerzo en hiladas según especificación del calculista. Dinteles de hormigón armado sobre todos los vanos con apoyo mínimo de 20 cm por lado. Los muros se mantendrán húmedos durante la faena para evitar la deshidratación del mortero.",
+  madera:"Tabiquería estructural de pino radiata seco cepillado grado estructural, escuadría 2×3\" (o según planos), pies derechos distanciados a 40/60 cm, soleras superior e inferior, cadenetas y diagonales de arriostramiento, clavada y encolada conforme a NCh 1198. Solera inferior de pino impregnado anclada al sobrecimiento/radier sobre barrera de humedad. Arriostramiento y revestimiento estructural exterior en placas OSB de 11,1 mm clavadas @15 cm en bordes. Refuerzos dobles en vanos y esquinas, y pie derecho adicional bajo cargas concentradas.",
+  metalcon:"Tabiquería estructural en perfilería de acero galvanizado conformado en frío sistema Metalcon (Cintac o equivalente técnico), acero estructural galvanizado grado 40 (ASTM A653). Montantes verticales en perfil U 92×30×0,85 mm distanciados a 40/60 cm entre ejes, y canales (soleras) superior e inferior del mismo perfil, fijados entre sí con tornillos autoperforantes galvanizados según norma AISI. Solera inferior anclada al sobrecimiento/radier mediante tornillos roscalata con tarugo o fijaciones de impacto tipo Hilti, sobre barrera de humedad. Arriostramiento mediante pletinas estructurales tensadas de 70/100 mm (espesor mínimo 0,85 mm) dispuestas en V bajo vanos y en X en muros continuos, con pletinas gusset y ángulos tensores en los extremos. Refuerzos dobles de montante en vanos, esquinas y bajo cargas concentradas según planos de cálculo. Revestimiento estructural exterior en placas OSB o fibrocemento atornilladas @15 cm en bordes. Todos los elementos con protección galvánica; en cortes y perforaciones se aplicará retoque anticorrosivo."
+ },
+ entrepiso:"Estructura de entrepiso en envigado de pino radiata seco cepillado 2×8\" distanciado a 40 cm entre ejes, con cadenetas de arriostramiento al centro de la luz, apoyado sobre cadena o solera de amarre del primer piso mediante conectores metálicos o rebaje según detalle. Superficie de piso en placas de terciado estructural de 18 mm (o OSB 18 mm) atornilladas y encoladas al envigado para evitar crujidos. Aislación acústica de lana de vidrio de 80 mm entre vigas y cielo inferior según capítulo de aislación.",
+ tech:{
+  cerchas:"Estructura de techumbre en cerchas de pino radiata seco grado estructural, cuerdas superiores e inferiores de 2×4\" y diagonales/montantes de 2×2\", ensambladas con placas dentadas o clavadores según detalle, distanciadas a 80 cm entre ejes, ancladas a la cadena o solera superior mediante conectores metálicos antivuelco. Arriostramiento longitudinal y crucetas de San Andrés según planos. Costaneras de pino 2×2\" distanciadas según el tipo de cubierta.",
+  vigas:"Estructura de techumbre en vigas a la vista de pino radiata seco cepillado 2×8\" (o escuadría según planos), con terminación de protector de madera o barniz aplicado antes del montaje, apoyadas en soleras/cadenas mediante soportes metálicos ocultos o rebajes según detalle. Entablado superior visto de pino machihembrado o costaneras según cubierta, y arriostramiento según cálculo.",
+  mixta:"Estructura mixta de techumbre: cerchas de pino radiata seco (cuerdas 2×4\", diagonales 2×2\") a 80 cm entre ejes en recintos con cielo raso horizontal, y vigas a la vista de pino cepillado 2×8\" con terminación de protector de madera en estar-comedor u otros recintos señalados en planos, ambas ancladas mediante conectores metálicos, con arriostramiento y costaneras según cálculo y tipo de cubierta.",
+  cerchasmetal:"Estructura de techumbre en cerchas de perfilería de acero galvanizado conformado en frío sistema Metalcon (Cintac o equivalente), cuerdas y montantes en perfiles estructurales galvanizados según planos de cálculo, distanciadas según diseño y ancladas a la solera/cadena superior mediante conectores y tornillos autoperforantes galvanizados conforme a norma AISI. Elementos de arriostramiento —cruces de San Andrés, estabilizadores y refuerzos— en perfil metálico según planos. Costaneras metálicas galvanizadas distanciadas según el tipo de cubierta. Todos los cortes y perforaciones con retoque anticorrosivo; el conjunto conforma una estructura liviana, dimensionalmente estable y no combustible."
+ },
+ cubierta:{
+  zinc:"Cubierta de planchas onduladas de acero zincado 0,35 mm, con traslapos longitudinales de 1,5 onda y transversales según pendiente, fijadas con tornillos autoperforantes con golilla de neopreno en cresta de onda. Fieltro asfáltico de 15 lb bajo cubierta, traslapado 15 cm y corrido de abajo hacia arriba. Caballetes y limahoyas de acero zincado con desarrollo mínimo de 40 cm.",
+  teja:"Cubierta de teja chilena de arcilla sobre listoneado/costaneras según pendiente, con fieltro asfáltico de 15 lb bajo teja, hiladas amarradas o con mortero de fijación en caballetes, bordes y aleros, y emboquillado de terminación. Limahoyas y encuentros con hojalatería de acero zincado. La estructura considera la sobrecarga propia de la teja según cálculo.",
+  pv4:"Cubierta de planchas de acero prepintado tipo PV-4 (o equivalente), traslapos según fabricante, fijación con tornillos autoperforantes con golilla de neopreno, fieltro asfáltico de 15 lb bajo cubierta, y caballetes, forros y terminaciones en plegados de acero prepintado del mismo color."
+ },
+ hojal:"Hojalatería completa de acero zincado (o prepintado según pauta): canales de aguas lluvias con pendiente mínima de 0,5% hacia bajadas, bajadas de 75/100 mm con abrazaderas, forros de encuentro muro-cubierta, botaguas de vanos y frontones, y remates perimetrales. Descarga de aguas lluvias a terreno propio mediante zanjas de infiltración o pozos absorbentes, sin escurrir a predios vecinos, conforme a la O.G.U.C.",
+ aislV:{
+  auto:{sip:"La aislación térmica vertical queda resuelta por el núcleo de poliestireno expandido (EPS) del panel SIP —panel híbrido asimétrico según la nomenclatura del LOSCAT—, continuo y sin puentes térmicos relevantes, cuyo espesor según planos verifica la exigencia de la zonificación térmica del art. 4.1.10 de la O.G.U.C. para la comuna. En tabiques interiores de recintos húmedos o dormitorios se incorpora lana de vidrio de 40–60 mm con función acústica.",
+   alba:"Aislación térmica vertical mediante trasdosado interior: listoneado o perfilería sobre el muro de albañilería, lana de vidrio de 80 mm con papel una cara (o poliestireno expandido de 50 mm según pauta) y terminación de yeso-cartón, verificando la exigencia térmica del art. 4.1.10 de la O.G.U.C. Se cuidará la continuidad de la aislación en encuentros de muros, cadenas y vanos para reducir puentes térmicos.",
+   madera:"Aislación térmica vertical de lana de vidrio de 80 mm con papel una cara (barrera de vapor hacia el interior) colocada entre pies derechos en la totalidad de los muros perimetrales, sin compresión y sin dejar cavidades vacías, verificando la exigencia del art. 4.1.10 de la O.G.U.C.",
+   metalcon:"Aislación térmica y acústica vertical de lana mineral o de vidrio colocada entre los montantes de acero galvanizado, en la totalidad de los muros perimetrales, sin compresión ni cavidades vacías. Se cuidará especialmente la continuidad de la aislación y la interposición de una banda desolidarizante o barrera que reduzca el puente térmico propio de la perfilería metálica, verificando la exigencia del art. 4.1.10 de la O.G.U.C."},
+  lana80:"Aislación térmica vertical de lana de vidrio de 80 mm con papel una cara (barrera de vapor hacia el interior), colocada continua entre la estructura de los muros perimetrales, sin compresión ni cavidades vacías, cumpliendo el art. 4.1.10 de la O.G.U.C.",
+  lana100:"Aislación térmica vertical de lana de vidrio de 100 mm con papel una cara (barrera de vapor hacia el interior), colocada continua entre la estructura de los muros perimetrales, mejorando el estándar mínimo de la zonificación térmica del art. 4.1.10 de la O.G.U.C.",
+  lanamin:"Aislación térmica y acústica vertical de lana mineral de 80 mm, colocada continua entre la estructura de los muros perimetrales y en tabiques interiores de dormitorios y baños, cumpliendo el art. 4.1.10 de la O.G.U.C."
+ },
+ aislH:{
+  lana100:"Aislación térmica horizontal de techumbre mediante lana de vidrio de 100 mm con papel una cara, dispuesta sobre el cielo (cara papel hacia el recinto calefaccionado), continua, con traslapos y sin zonas descubiertas, cumpliendo la exigencia de complejo de techumbre del art. 4.1.10 de la O.G.U.C.",
+  lana140:"Aislación térmica horizontal de techumbre mediante lana de vidrio de 140 mm con papel una cara sobre el cielo (cara papel hacia el recinto), continua y sin compresión, superando el estándar mínimo del art. 4.1.10 de la O.G.U.C., recomendada para el clima de heladas del Valle del Aconcagua.",
+  celulosa:"Aislación térmica horizontal de techumbre mediante celulosa proyectada de 120 mm de espesor nominal sobre cielo, con densidad y espesor certificados por el aplicador, cubriendo continua y homogéneamente el entretecho, en cumplimiento del art. 4.1.10 de la O.G.U.C.",
+  lanamin100:"Aislación térmica y acústica horizontal de lana mineral de 100 mm sobre cielo, continua y sin compresión, cumpliendo el art. 4.1.10 de la O.G.U.C."
+ },
+ vapor:"Barreras: membrana hidrófuga (fieltro de 10 lb o membrana de polietileno de alta densidad tipo Tyvek o equivalente) por la cara exterior de la estructura de muros perimetrales, bajo el revestimiento exterior, traslapada y sellada; y barrera de vapor (papel de la lana o polietileno) siempre por la cara caliente (interior). En entrepisos sobre recintos húmedos se dispondrá lana con papel hacia el recinto inferior. Estas barreras controlan la condensación intersticial en el clima de inviernos fríos del valle.",
+ revExt:{
+  auto:{sip:"Revestimiento exterior de placas de fibrocemento tinglado (siding) de 6 mm sobre membrana hidrófuga y listoneado de ventilación, con esquineros, canterías y remates del sistema, y pintura de terminación según pauta.",
+   alba:"Terminación exterior de ladrillo a la vista con juntas rehundidas y aplicación de hidrorrepelente incoloro en dos manos; alternativamente estuco de mortero afinado según pauta de fachadas, con pintura elastomérica.",
+   madera:"Revestimiento exterior de placas de fibrocemento tinglado (siding) de 6 mm sobre membrana hidrófuga, con esquineros y remates del sistema y pintura según pauta.",
+   metalcon:"Revestimiento exterior de placas de fibrocemento tinglado (siding) de 6 mm o planchas OSB con cara técnica, atornilladas a los montantes de acero con tornillos autoperforantes, sobre membrana hidrófuga y listoneado de ventilación, con esquineros, canterías y remates del sistema y pintura de terminación según pauta."},
+  fibro:"Revestimiento exterior de placas de fibrocemento tinglado (siding) de 6 mm instaladas horizontalmente con traslapo según fabricante, sobre membrana hidrófuga y listoneado, con esquineros, botaguas y remates del sistema, y pintura de terminación en dos manos según pauta de colores.",
+  estuco:"Estuco exterior de mortero cemento:arena 1:4 afinado, espesor 20 mm sobre puente de adherencia o malla según sustrato, con cantería según fachadas, y terminación de pintura elastomérica en dos manos según pauta de colores.",
+  smart:"Revestimiento exterior de paneles OSB con cara técnica tipo smart panel (o siding vinílico según pauta), instalados sobre membrana hidrófuga, con junquillos, esquineros y remates del sistema, sellos de poliuretano en encuentros y pintura de terminación.",
+  madera:"Revestimiento exterior de entablado de madera de pino impregnado tinglado o tipo rainscreen sobre listoneado ventilado y membrana hidrófuga, con protector de madera aplicado en todas las caras y mantención indicada al mandante.",
+  visto:"Terminación exterior de ladrillo a la vista con juntas de mortero rehundidas y aplicación de hidrorrepelente incoloro en dos manos sobre paramentos expuestos."
+ },
+ revInt:{
+  yeso:"Revestimientos interiores de planchas de yeso-cartón de 10 mm (tipo RH de 12,5 mm en baños, cocina y logia), fijadas con tornillos autorroscantes a la estructura o listoneado @ 30 cm, con tratamiento completo de juntas invisibles (cinta y pasta en tres manos), esquineros metálicos, y superficie empastada y lijada lista para pintura.",
+  wall:"Revestimientos interiores de wall panel de PVC/WPC según elección del mandante, instalados a plomo con adhesivo de montaje y/o fijaciones ocultas sobre superficie regularizada, con perfiles de partida, unión, esquineros y junquillos del mismo sistema, y sellos de silicona neutra en encuentros con pavimentos y artefactos.",
+  mixto:"Revestimientos interiores de planchas de yeso-cartón de 10 mm con juntas invisibles en recintos secos, y wall panel PVC/WPC (o yeso-cartón RH 12,5 mm con revestimiento cerámico) en baños, cocina y logia, con perfiles de remate de cada sistema y sellos de silicona neutra en zonas húmedas.",
+  madera:"Revestimientos interiores de entablado de pino machihembrado ½×4\" fijado con clavo punta perdida sobre listoneado, con terminación de barniz o sellador en dos manos, junquillos y cubrejuntas de madera en encuentros."
+ },
+ cielo:{
+  volcanita:"Cielos de planchas de yeso-cartón de 10 mm sobre listoneado de pino 2×2\" @ 40/60 cm o perfilería metálica nivelada, con juntas invisibles (cinta y pasta), cornisas o canterías perimetrales según detalle, registro de acceso al entretecho, y terminación empastada lista para pintura.",
+  tablas:"Cielos de tablas de pino machihembrado ½×4\" clavado punta perdida sobre listoneado nivelado, con terminación de barniz o sellador en dos manos, cubrejuntas perimetrales y registro de acceso al entretecho."
+ },
+ pav:{
+  ceramica:"Pavimentos de cerámica o porcelanato según elección del mandante, instalados con adhesivo cerámico en doble encolado sobre radier afinado y nivelado, juntas con separadores de 3 mm, fragüe según fabricante con sello en zonas húmedas, cortes a máquina en encuentros, y guardapolvos del mismo material o MDF según pauta.",
+  flotante:"Pavimentos de piso flotante laminado AC4 o vinílico SPC de tráfico residencial según elección del mandante, sobre espuma niveladora de 2–3 mm con film de polietileno, dilatación perimetral de 8–10 mm oculta por guardapolvos MDF, y perfiles de transición y término en cambios de pavimento y puertas.",
+  afinado:"Pavimento de radier afinado pulido mecánicamente con endurecedor superficial de cuarzo y sellador acrílico o poliuretano, juntas de dilatación aserradas según modulación de planos, y cantos protegidos en umbrales.",
+  mixto:"Pavimentos de porcelanato en acceso, cocina, baños y logia (instalado con adhesivo en doble encolado, fragüe sellado), y piso flotante laminado AC4 o SPC en estar, pasillos y dormitorios, con perfiles de transición en cada cambio de material y guardapolvos según zona."
+ },
+ ventanas:{
+  pvc:"Ventanas de perfiles de PVC blanco con refuerzo interior, doble vidriado hermético (termopanel) de 4/10/4 mm mínimo, herrajes multipunto, celosías de ventilación según recinto, quincallería del sistema, instaladas a plomo y nivel con sellos perimetrales de silicona neutra por ambas caras y botaguas en alféizares, dimensiones y vanos según planos de arquitectura.",
+  alu:"Ventanas de perfiles de aluminio línea intermedia (5000/6000 o equivalente) color según pauta, con vidrio monolítico de 4–6 mm o termopanel según recinto y orientación, felpas y burletes del sistema, instaladas con sellos perimetrales de silicona neutra y botaguas en alféizares.",
+  madera:"Ventanas de madera de pino finger o raulí según pauta, con vidrio según detalle, bisagras y cierres de bronce o acero, tratadas con protector o barniz marino en dos manos, e instaladas con sellos perimetrales y botaguas."
+ },
+ puertas:{
+  terciado:"Puertas interiores placarol de terciado/HDF lisas de 45 mm en marcos de pino finger o metálicos con topes, ajustadas con holgura de 5 mm sobre pavimento terminado.",
+  enchapada:"Puertas interiores enchapadas en madera según pauta de terminaciones, de 45 mm, en marcos de madera sólida con topes, barnizadas en dos manos.",
+  madera:"Puertas interiores de madera maciza según diseño, con marcos y centros de madera sólida, tratadas con protector o barniz en dos manos."
+ },
+ puertaPpal:{
+  seguridad:"Puerta de acceso principal de placa reforzada de 45 mm con cerradura de seguridad de doble golpe (o multipunto), marco metálico o de madera sólida anclado a la estructura, mirilla y tope de piso.",
+  maciza:"Puerta de acceso principal de madera maciza según diseño, con marco de madera sólida, cerradura de seguridad de doble golpe, mirilla y tope de piso.",
+  metalica:"Puerta de acceso principal metálica con relleno aislante térmico/acústico, marco metálico reforzado, cerradura de seguridad multipunto, burletes perimetrales y mirilla.",
+  enchapada:"Puerta de acceso principal enchapada en madera según pauta de terminaciones, con núcleo reforzado, marco de madera sólida, cerradura de seguridad de doble golpe y mirilla."
+ },
+ puertaSec:{
+  metalica:"Puerta de acceso secundario o de servicio, metálica simple con marco metálico, cerradura con llave por ambas caras y burletes perimetrales.",
+  terciado:"Puerta de acceso secundario o de servicio, de terciado/HDF de 45 mm en marco de pino finger, con cerradura apta para uso exterior y protección de la cara expuesta a la intemperie.",
+  aluminio:"Puerta de acceso secundario con marco de aluminio y paño de vidrio (monolítico o termopanel según orientación), típica de patio de servicio o logia, con cerradura y quincallería del sistema."
+ },
+ pintura:"Pinturas y terminación superficial: esmalte al agua satinado en muros y cielos interiores, mínimo dos manos sobre superficie empastada y lijada, con imprimante donde corresponda; esmalte al agua o barniz en elementos de madera vistos; antióxido y esmalte en elementos metálicos; y pintura exterior según revestimiento (elastomérica en estucos, esmalte al agua exterior en fibrocementos). Colores según pauta aprobada por el mandante antes de la aplicación final.",
+ quinc:"Quincallería: bisagras de acero de 3½×3½\" (tres por hoja en puertas de acceso), cerradura de embutir de doble golpe y seguro tipo Scanavini 960 (o equivalente técnico) en puertas exteriores, cerraduras de manilla con roseta en recintos interiores, con condena tipo baño en baños y dormitorios según pauta, topes de puerta en todos los recintos, y quincallería de ventanas propia de cada sistema. Toda la quincallería se entregará operativa, con sus llaves rotuladas al momento de la recepción.",
+ artef:"Artefactos sanitarios y grifería: WC de loza blanca con estanque de doble descarga, lavamanos con pedestal o vanitorio según planos, receptáculo de ducha con pendiente y sifón registrable o tina según recinto, lavaplatos de acero inoxidable con mueble, y lavadero en logia según proyecto. Grifería monomando cromada de línea media (Stretto, FAS o equivalente técnico) con flexibles y llaves de paso individuales por artefacto. Sellos de silicona fungicida en todos los encuentros de artefactos con revestimientos.",
+ remates:"Remates y molduras: guardapolvos de MDF de 70 mm (o del material del pavimento en zonas cerámicas), cornisas o canterías según pauta, cubrejuntas en cambios de material, alféizares interiores con botaguas exteriores en todas las ventanas, y sellos de silicona o poliuretano en todos los encuentros de materiales distintos, tanto interiores como exteriores.",
+ elec:"Instalación eléctrica embutida en conduit de PVC de 20 mm (o sobrepuesta en bandeja donde corresponda), conductores de sección según norma vigente (NCh Elec. 4/2003), tablero general con protecciones diferenciales de 30 mA y disyuntores termomagnéticos por circuito, puesta a tierra de protección y servicio, circuitos independientes para enchufes, iluminación y artefactos de mayor consumo, y centros, enchufes e interruptores de línea media (Bticino/Legrand o equivalente) según planos. La instalación será ejecutada por instalador autorizado y declarada ante la SEC mediante certificado TE1 previo a la recepción.",
+ elecProyecto:"Instalación eléctrica resuelta conforme al proyecto eléctrico específico elaborado y firmado por el instalador eléctrico autorizado responsable (clase según potencia declarada), quien define el empalme, la potencia, el diagrama unilineal, el cuadro de cargas y el dimensionamiento de conductores y protecciones según la norma vigente (NCh Elec. 4/2003). Las obras se ejecutarán íntegramente según dicho proyecto, con puesta a tierra de protección y servicio, y serán declaradas ante la Superintendencia de Electricidad y Combustibles (SEC) mediante el certificado TE1 correspondiente, previo a la recepción. El presente documento no reemplaza el proyecto eléctrico ni su declaración ante la SEC.",
+ agua:{
+  red:"Agua potable desde red pública, con arranque y medidor según normativa del prestador. Red interior en tuberías de PPR termofusionado de 20/25 mm para agua fría y caliente, con llaves de paso por recinto húmedo, aislación de tuberías de agua caliente, y presión y dotación verificadas antes de cerrar tabiques (prueba de presión de la red).",
+  apr:"Agua potable desde comité de Agua Potable Rural (APR), con arranque y medidor según normativa del comité. Red interior en tuberías de PPR termofusionado de 20/25 mm para agua fría y caliente, con llaves de paso por recinto húmedo, aislación de tuberías de agua caliente y prueba de presión de la red antes de cerrar tabiques.",
+  pozo:"Agua potable desde captación propia (pozo/noria) con bomba y sistema de presión hidroneumático, estanque de acumulación según demanda, y tratamiento/cloración según análisis de agua. Red interior en PPR termofusionado de 20/25 mm con llaves de paso por recinto húmedo y prueba de presión antes de cerrar tabiques."
+ },
+ alc:{
+  red:"Alcantarillado conectado a red pública mediante unión domiciliaria, cámaras de inspección de hormigón o PVC según trazado, descargas interiores en PVC sanitario de 40 a 110 mm con pendientes reglamentarias, ventilaciones prolongadas sobre cubierta, y prueba de bola y estanqueidad antes de tapar.",
+  fosa:"Sistema particular de alcantarillado con fosa séptica de polietileno de 2.500 L (Bioplastic o equivalente técnico) para una dotación de hasta 8 personas, cámara desgrasadora de 100 L en la descarga de cocina, cámaras de inspección y de distribución, y drenes de infiltración dimensionados según test de percolación del terreno. Descargas interiores en PVC sanitario de 40 a 110 mm con pendientes reglamentarias y ventilaciones sobre cubierta. La fosa se instalará sobre cama de arena, con acceso para limpieza, y el sistema completo se ejecuta conforme al proyecto sanitario y su aprobación ante la SEREMI de Salud.",
+  proyecto:"Sistema particular de tratamiento y disposición de aguas servidas resuelto conforme al proyecto sanitario específico elaborado por el proyectista sanitario responsable, quien define el tipo y capacidad del sistema (fosa séptica, planta de tratamiento u otro), el dimensionamiento de la unidad y de los drenes de infiltración según el test de percolación del terreno y la dotación real del proyecto, y tramita la resolución de aprobación ante la Autoridad Sanitaria (SEREMI de Salud). Las obras se ejecutarán íntegramente según los planos y especificaciones de dicho proyecto sanitario aprobado, incluyendo las descargas interiores en PVC sanitario con pendientes reglamentarias, cámaras de inspección y ventilaciones sobre cubierta. El presente documento no reemplaza el proyecto sanitario particular ni su resolución aprobatoria."
+ },
+ gas:"Instalación interior de gas licuado en cañería de cobre tipo L o multicapa certificada, con recorridos ventilados según normativa DS 66, reguladores y llaves de corte por artefacto, ejecutada por instalador autorizado SEC, con inspección de entidad certificadora, sello verde de las instalaciones interiores y declaración TC6 previa a la recepción.",
+ gasProyecto:"Instalación interior de gas resuelta conforme al proyecto de gas específico elaborado y firmado por el instalador de gas autorizado responsable (clase según categoría del proyecto), quien define el tipo de gas, el trazado de la red, el dimensionamiento de cañerías, la ventilación de recintos y los artefactos conforme a la normativa vigente (DS 66). Las obras se ejecutarán íntegramente según dicho proyecto, con reguladores y llaves de corte por artefacto, e incluirán la inspección por entidad certificadora, el sello verde de las instalaciones interiores y la declaración TC6 ante la Superintendencia de Electricidad y Combustibles (SEC), previo a la recepción. El presente documento no reemplaza el proyecto de gas ni su declaración ante la SEC.",
+ acs:{
+  calefont:"Agua caliente sanitaria mediante calefont a gas ionizado de 10–14 L/min según número de artefactos, instalado en recinto ventilado o exterior según normativa SEC, con ducto de evacuación de gases y llaves de corte.",
+  termo:"Agua caliente sanitaria mediante termo eléctrico de acumulación de 80–150 L según demanda, con válvula de seguridad, llave de corte y circuito eléctrico exclusivo.",
+  solar:"Agua caliente sanitaria mediante sistema solar térmico (colector y acumulador) dimensionado según demanda, con respaldo de calefont o termo, válvulas de seguridad y mezcladora termostática."
+ }
+};
+function minvuMuroTexto(sistema,aisl,notasInt,zi){
+  const db=state.minvuDB;
+  if(sistema==="sip"){
+    if(notasInt)notasInt.push({tit:"Verificar estratigrafía de la ficha SIP antes de citar textual",txt:"La Solución 1.2.M.I3.1 corresponde a un panel SIP \"híbrido asimétrico\"; verificar la presencia de placas OSB bajo los revestimientos y la estratigrafía intermedia completa en el documento oficial LOSCAT antes de citarla de forma textual en un expediente formal."});
+    const notaSip=db.sip.nota.replace("límite de Zona 3 (1,9 W/m²K)",limFrase(zi,"muros"));
+    return `La aislación térmica vertical queda resuelta por el núcleo de poliestireno expandido (EPS) del panel SIP —panel híbrido asimétrico, denominación técnica de la Solución N° ${db.sip.codigo} del Listado Oficial de Soluciones Constructivas del MINVU (LOSCAT, ${db.fuente.split(", ")[1]||"ED14/2026"})—. ${notaSip} En tabiques interiores de recintos húmedos o dormitorios se incorpora lana de vidrio de 40–60 mm con función acústica.`;
+  }
+  if(sistema==="alba"){
+    const esp=+aisl.espesorMuro||80;
+    const notaAlba=db.alba.nota.replace("límite de Zona 3 (1,9 W/m²K)",limFrase(zi,"muros"));
+    return `Aislación térmica vertical mediante trasdosado interior sobre el muro de albañilería: listoneado o perfilería y lana de vidrio de ${esp} mm con papel una cara, homologado a la Solución N° ${db.alba.codigo} del Listado Oficial MINVU (LOSCAT). ${notaAlba} Terminación de yeso-cartón según capítulo de terminaciones.`;
+  }
+  if(sistema==="metalcon"){
+    const esp=+aisl.espesorMuro||80;
+    if(notasInt)notasInt.push({tit:"Metalcon: homologación térmica por cálculo (puente térmico del acero)",txt:"El LOSCAT no dispone de ficha genérica para tabiquería de acero galvanizado (Metalcon) con esta composición. La perfilería de acero conduce mucho más que la madera, por lo que la aislación entre montantes debe complementarse con una capa continua (aislación exterior o banda desolidarizante) para controlar el puente térmico, y la transmitancia debe acreditarse por cálculo NCh853 considerando el efecto de los montantes metálicos (no basta el R100 del aislante entre perfiles). Adjuntar memoria de cálculo térmico al expediente."});
+    return `Aislación térmica vertical de lana mineral o de vidrio de ${esp} mm colocada entre los montantes de acero galvanizado del sistema Metalcon, complementada con una capa aislante continua o banda desolidarizante para controlar el puente térmico propio de la perfilería metálica. La transmitancia del muro se acredita por cálculo conforme a NCh853, considerando el efecto de los montantes de acero, verificando el ${limFrase(zi,"muros")}. El LOSCAT no dispone de ficha genérica para esta composición, por lo que la acreditación es por memoria de cálculo.`;
+  }
+  if(sistema==="madera"){
+    const esp=+aisl.espesorMuro||80;
+    const esc=aisl.escuadria||"2x3";
+    const fam=esc==="2x4"?db.madera24:db.madera23;
+    const tab=fam.tabla.map(t=>t[0]+": U="+t[1]).join(" · ");
+    return `Aislación térmica vertical de lana de vidrio de ${esp} mm con papel una cara (barrera de vapor hacia el interior), colocada entre pies derechos de ${esc==="2x4"?'2×4"':'2×3"'}, acreditada por cálculo conforme a NCh853 con el valor R100 de la lana (Título II del Listado Oficial MINVU). Como referencia, la familia de Solución N° ${fam.codigo} del LOSCAT certifica ${tab} W/m²K para composiciones con una segunda capa de aislante en perfilería exterior de acero que el sistema Averarq de plano único no incorpora literalmente; por ello la acreditación por cálculo del R100 del espesor efectivamente instalado es la vía normativa correcta.`;
+  }
+  return EE.aislV.auto[sistema];
+}
+function minvuTechTexto(opcion,notasInt,zi){
+  const db=state.minvuDB.tech[opcion];
+  if(opcion==="lana100"||opcion==="lana140"){
+    const esp=opcion==="lana100"?100:140;
+    return `Aislación térmica horizontal de techumbre mediante lana de fibra de vidrio ≥11 kg/m³ de ${esp} mm con papel una cara, dispuesta sobre el listoneado y entre cerchas (cara papel hacia el recinto calefaccionado), continua, con traslapos y sin zonas descubiertas, homologada a la Solución N° ${db.codigo} del Listado Oficial MINVU (LOSCAT), con valor certificado U = ${db.u} W/m²K para este espesor — por debajo del ${limFrase(zi,"techumbre")}.`;
+  }
+  if(opcion==="lvproy"){
+    return `Aislación térmica horizontal de techumbre mediante lana de vidrio proyectada (soplada) sobre el cielo, homologada al valor R100/LV.4.1 del Título II del Listado Oficial MINVU (LOSCAT, ED14/2026) —lana de vidrio para aplicación proyectada, densidad asentada según especificación del fabricante—, distribuida de forma continua y homogénea sobre el entretecho, cubriendo la totalidad de la superficie del cielo sin zonas descubiertas. El espesor instalado se define para verificar la transmitancia máxima exigida, acreditándose por cálculo conforme a NCh853 con el R100 inscrito y el certificado de conductividad del material. Cumple holgadamente el ${limFrase(zi,"techumbre")}.`;
+  }
+  if(opcion==="lanamin100"){
+    if(notasInt)notasInt.push({tit:"Lana mineral horizontal: acreditación por cálculo (verificado con Fabio)",txt:"El LOSCAT no dispone de ficha genérica para lana mineral sobre cerchas y cielo horizontal (las únicas fichas de lana mineral en techumbre son sobre losa Tralix, que no corresponde a este sistema). La acreditación se hace por cálculo NCh853 citando R100/LM.2.2 (Lana Mineral AISLAN 40 kg/m³, colchoneta, λ=0,042 W/mK verificado en el propio documento). Para 100 mm: R aislante = 0,100/0,042 = 2,38 m²K/W; con yeso-cartón, cámara y resistencias superficiales da U ≈ 0,39–0,40 W/m²K, cumpliendo Z3 (≤0,47) con holgura. El MINVU usa 78 mm como mínimo Z3 de esta lana, por lo que 100 mm queda cómodo. Adjuntar la memoria de cálculo al expediente."});
+    return `Aislación térmica y acústica horizontal de lana mineral de 100 mm de espesor, densidad ≥40 kg/m³, en formato colchoneta sobre el cielo, dispuesta continua y sin compresión, cubriendo la totalidad de la superficie e idealmente la cara inferior de las cerchas para cortar el puente térmico. Se homologa al valor R100/LM.2.2 del Título II del Listado Oficial MINVU (LOSCAT, ED14/2026, Res. Ex. N°1403), con conductividad térmica λ = 0,042 W/mK, acreditándose por cálculo conforme a NCh853 (transmitancia resultante del orden de U = 0,40 W/m²K para este espesor), por debajo del ${limFrase(zi,"techumbre")}. El espesor efectivo instalado no debe reducirse por compresión de instalaciones ni entablados, pues la resistencia térmica depende del espesor real de la colchoneta.`;
+  }
+  return EE.aislH[opcion];
+}
+const MARCO_NOM={pvc:"PVC",alu:"aluminio línea intermedia",madera:"madera"};
+const VID_NOM={monolitico:"vidrio monolítico",dvh49:"DVH 4-9-4 mm",dvh412:"DVH 4-12-4 mm",dvh416:"DVH 4-16-4 mm"};
+const ACC_NOM={corredera:"corredera",proyectante:"proyectante",abatible:"abatible",fija:"fija",guillotina:"guillotina"};
+function ventIntroTexto(){
+  return `Las ventanas del proyecto se especifican por conjunto de marco, vidriado y accionamiento; cada conjunto se ensaya como unidad según NCh3137 (transmitancia térmica U) y se clasifica en permeabilidad al aire según NCh3296/NCh3297. El valor de U certificado no se extrapola a dimensiones distintas de la ficha ensayada, mientras que la clase de permeabilidad admite variación de superficie de hasta un 10% manteniendo las demás características del elemento. La exigencia del art. 4.1.10 de la O.G.U.C. para ventanas opera por porcentaje máximo de superficie vidriada respecto a los paramentos verticales de la envolvente: 25% con vidrio monolítico, 60% con DVH de 2,4 < U ≤ 3,6 W/m²K, y 80% con DVH de U ≤ 2,4 W/m²K; las ventanas que formen parte del complejo techumbre con inclinación igual o menor a 60° deben además ser DVH con U ≤ 3,6 W/m²K. El cumplimiento de este porcentaje se verificará en la memoria de cálculo del proyecto una vez definida la superficie total de fachada según planos.`;
+}
+function ventTablaHTML(cat){
+  let filas="",totalM2=0;
+  cat.forEach(v=>{
+    const m2=(v.ancho/100)*(v.alto/100)*(v.cant||1);totalM2+=m2;
+    filas+=`<tr><td>${esc(v.recinto)}</td><td>${F(v.ancho/100,2)}×${F(v.alto/100,2)} m</td><td style="text-align:center">${v.cant}</td><td>${MARCO_NOM[v.marco]||v.marco}</td><td>${VID_NOM[v.vidriado]||v.vidriado}</td><td>${ACC_NOM[v.accion]||v.accion}</td><td style="text-align:right">${F(m2,2)}</td></tr>`;
+  });
+  return `<table style="font-size:9.5px;margin:6px 0"><tr><th>Recinto</th><th>Dimensión</th><th>Cant.</th><th>Marco</th><th>Vidriado</th><th>Accionamiento</th><th>m²</th></tr>${filas}
+    <tr><td colspan="6" style="text-align:right;font-size:9px;color:#777">Superficie vidriada total</td><td style="text-align:right"><b>${F(totalM2,2)} m²</b></td></tr></table>`;
+}
+function figBlock(svg,caption,hEst,widthPct){
+  widthPct=widthPct||100;
+  return {html:`<div style="width:${widthPct}%;margin:10px auto 8px;text-align:center"><div>${svg}</div><p style="font-size:9px;color:#888;margin:4px 0 0">${caption}</p></div>`,h:hEst};
+}
+function svgCrop(svgFull,viewBoxNew){
+  return svgFull.replace('viewBox="0 0 680 320"',`viewBox="${viewBoxNew}"`);
+}
+function minvuIntro(zi,notasInt){
+  const db=state.minvuDB;
+  const comuna=state.eett.prop.comuna||"";
+  let zonaTxt;
+  if(zi){
+    zonaTxt=`El proyecto se ubica en la comuna de ${esc(comuna)}, correspondiente a la Zona Térmica ${zi.letra} de la zonificación establecida en el art. 4.1.10 de la O.G.U.C. Las exigencias de transmitancia térmica para esta zona son: complejo de techumbre U ≤ ${zi.lims.techumbre} W/m²K, muros perimetrales U ≤ ${zi.lims.muros} W/m²K y pisos ventilados U ≤ ${zi.lims.pisosVent} W/m²K.`;
+    if(zi.alt&&notasInt)notasInt.push({tit:`Verificar altitud del predio en ${esc(comuna)}`,txt:`La comuna de ${comuna} tiene sectores de mayor altitud que cambian de zona térmica (típicamente a Zona H sobre los 2.000 m.s.n.m. en la zona central). Confirmar la cota del predio (GPS o IGM); si supera el umbral, la zona y las exigencias U de este capítulo deben ajustarse.`});
+  }else{
+    zonaTxt=`El proyecto se ubica en la comuna de ${esc(comuna||"(indicar comuna)")}, cuya zona térmica se determina conforme a la zonificación del art. 4.1.10 de la O.G.U.C. Las soluciones constructivas de este capítulo se ajustan a la transmitancia térmica máxima (U) exigida para la zona que corresponda a la comuna, la que se acredita en la memoria de cálculo térmico que acompaña al expediente.`;
+    if(notasInt)notasInt.push({tit:`Confirmar zona térmica de la comuna "${comuna||"(sin indicar)"}"`,txt:`Esta comuna no está en la tabla de zonificación cargada (que cubre las comunas del Valle del Aconcagua y las principales del país). Confirmar la zona térmica exacta en la tabla oficial del art. 4.1.10 de la O.G.U.C. y ajustar los límites U de este capítulo si la zona difiere de 3. Los valores U de las soluciones homologadas (SIP, albañilería, techumbre) fueron calibrados para Zona 3; en zonas más exigentes (4 a 7) puede requerirse mayor espesor de aislante o memoria de cálculo específica.`});
+  }
+  return `${zonaTxt} Las soluciones de aislación de este capítulo se homologan, cuando corresponde, al Listado Oficial de Soluciones Constructivas para Acondicionamiento Térmico del MINVU (LOSCAT), ${esc(db.fuente.split(", ")[1]||"edición ED14/2026")}, aprobado por ${esc(db.res)}.`;
+}
+function normComuna(s){
+  return String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim().replace(/\s+/g," ");
+}
+let _comunaIdx=null;
+function comunaIndex(){
+  if(_comunaIdx)return _comunaIdx;
+  _comunaIdx={};
+  const zr=state.minvuDB.zonasRegion||{};
+  for(const region in zr){
+    for(const row of zr[region]){
+      _comunaIdx[normComuna(row[0])]={nombre:row[0],letra:row[1],alt:!!row[2],region};
+    }
+  }
+  return _comunaIdx;
+}
+function zonaInfo(comunaRaw){
+  const key=normComuna(comunaRaw);
+  const rec=comunaIndex()[key];
+  if(!rec)return null;
+  const num=state.minvuDB.letraANum[rec.letra];
+  const lims=state.minvuDB.limPorZona[num];
+  if(!lims)return null;
+  return {zona:num,letra:rec.letra,alt:rec.alt,region:rec.region,lims};
+}
+function limFrase(zi,tipo){
+  if(zi)return `límite de la Zona Térmica ${zi.letra} (U ≤ ${zi.lims[tipo]} W/m²K)`;
+  return `límite de transmitancia térmica exigido para la zona del proyecto según el art. 4.1.10 de la O.G.U.C.`;
+}
+function eeM2Pisos(e){
+  const n=Math.max(1,+e.pj.pisos||1);
+  const tot=+e.pj.m2||0;
+  const det=[];let rest=tot,sinDato=0;
+  for(let i=0;i<n;i++){const d=e.pj.det[i]||{};det.push({m2:+d.m2||0,sistema:d.sistema||e.pj.sistema});if(!(+d.m2))sinDato++; else rest-=+d.m2;}
+  const cada=sinDato>0?Math.max(rest,0)/sinDato:0;
+  det.forEach(d=>{if(!d.m2)d.m2=cada;});
+  return det;
+}
+function emitirEETT(){
+  const e=state.eett;const hoy=new Date();
+  const fecha=hoy.toLocaleDateString("es-CL");
+  const MES=["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"][hoy.getMonth()]+" "+hoy.getFullYear();
+  const P=(tit,txt)=>({html:`<p><b>${tit}.</b> ${txt}</p>`,h:Math.ceil(txt.length/108)*13+10});
+  const H2=t=>({html:`<h2>${t}</h2>`,h:26});
+  const blocks=[];let n=0;const notasInt=[];
+  const pisos=eeM2Pisos(e);const nP=pisos.length;
+  const multiSis=nP>1&&new Set(pisos.map(p=>p.sistema)).size>1;
+  // 1 GENERALIDADES
+  n++;blocks.push(H2(n+". GENERALIDADES"));
+  let gen=`Las presentes Especificaciones Técnicas norman la ejecución de las obras de <b>${esc(e.pj.destino)}</b>${+e.pj.m2?` de <b>${F(+e.pj.m2,0)} m²</b>`:""}${nP>1?` distribuidos en ${nP} pisos (${pisos.map((p,i)=>`piso ${i+1}: ${F(p.m2,0)} m² en ${SIS_NOM[p.sistema]}`).join("; ")})`:""}${e.prop.dir?`, ubicadas en ${esc(e.prop.dir)}`:""}${e.prop.comuna?`, comuna de ${esc(e.prop.comuna)}`:""}${e.prop.rol?` (Rol SII ${esc(e.prop.rol)})`:""}${e.prop.nombre?`, de propiedad de ${esc(e.prop.nombre)}`:""}${e.prop.rut?`, RUT ${esc(e.prop.rut)}`:""}. ${e.pj.desc?esc(e.pj.desc)+". ":""}Las obras se ejecutarán en total conformidad con los planos de arquitectura y de estructura del proyecto, la Ordenanza General de Urbanismo y Construcciones (O.G.U.C.), las Normas Chilenas aplicables y las reglas del arte de la buena construcción. En caso de discrepancia entre documentos, prevalecerá lo indicado por el arquitecto. Toda modificación de materialidad o partida deberá ser aprobada por escrito por el arquitecto antes de su ejecución. Los materiales serán nuevos, de primera calidad y se almacenarán protegidos; toda mención de marca admite equivalente técnico aprobado. La empresa constructora o contratista mantendrá la obra limpia y ordenada, y dará cumplimiento a la normativa laboral y de prevención de riesgos vigente.`;
+  blocks.push({html:`<p>${gen}</p>`,h:Math.ceil(gen.length/108)*13+10});
+  // 2 PRELIMINARES
+  const pre=[];
+  if(e.prelim.faena)pre.push(P("2.1 Instalación de faena","Se contempla instalación de faena con bodega cerrada para materiales y herramientas, servicios provisorios de agua y electricidad, servicio higiénico para el personal, y cierre provisorio del área de trabajo que impida el acceso de terceros. Al término de la obra la faena se retira íntegramente."));
+  if(e.prelim.trazado)pre.push(P("2.2 Trazado y niveles","Trazado mediante cerco de niveletas, lienzas y estacas, replanteando los ejes y niveles de los planos con verificación de escuadras por diagonales. El trazado será recibido conforme por el arquitecto o el profesional a cargo antes de iniciar excavaciones, y se preservarán los puntos de referencia durante la obra."));
+  if(pre.length){n++;blocks.push(H2(n+". OBRAS PRELIMINARES"));pre.forEach(b=>blocks.push(b));}
+  // 3 OBRA GRUESA
+  n++;blocks.push(H2(n+". OBRA GRUESA"));let s=1;
+  blocks.push(P(`${n}.${s++} Excavaciones`,EE.exca));
+  if(e.og.fund)blocks.push(P(`${n}.${s++} Fundaciones`,EE.fund));
+  if(e.og.radier)blocks.push(P(`${n}.${s++} Radier`,EE.radier));
+  if(multiSis||nP>1){
+    pisos.forEach((p,i)=>{blocks.push(P(`${n}.${s++} Estructura de muros — piso ${i+1} (${SIS_NOM[p.sistema]}, ${F(p.m2,0)} m²)`,EE.muros[p.sistema]));});
+    blocks.push(P(`${n}.${s++} Estructura de entrepiso`,EE.entrepiso));
+  }else{
+    blocks.push(P(`${n}.${s++} Estructura de muros (${SIS_NOM[e.pj.sistema]})`,EE.muros[e.pj.sistema]));
+  }
+  blocks.push(P(`${n}.${s++} Estructura de techumbre`,EE.tech[e.og.tech]));
+  blocks.push(P(`${n}.${s++} Cubierta`,EE.cubierta[e.og.cubierta]));
+  blocks.push(P(`${n}.${s++} Hojalatería y aguas lluvias`,EE.hojal));
+  if(e.og.obs)blocks.push(P("Observaciones",esc(e.og.obs)));
+  // 4 AISLACIÓN
+  n++;blocks.push(H2(n+". AISLACIÓN TÉRMICA Y ACÚSTICA"));let sa=1;
+  const zi=zonaInfo(e.prop.comuna);
+  {const intro=minvuIntro(zi,notasInt);blocks.push({html:`<p>${intro}</p>`,h:Math.ceil(intro.length/108)*13+10});}
+  notasInt.push({tit:"Vigencia del LOSCAT citado en Aislación (Cap. 4)",txt:state.minvuDB.vigencia});
+  let sisEnUso=new Set();
+  if(e.aisl.muros==="auto"&&multiSis){
+    const done=new Set();
+    pisos.forEach(p=>{
+      if(done.has(p.sistema))return;done.add(p.sistema);
+      sisEnUso.add(p.sistema);
+      const nums=pisos.map((q,j)=>q.sistema===p.sistema?j+1:null).filter(x=>x);
+      blocks.push(P(`${n}.${sa++} Aislación vertical — ${SIS_NOM[p.sistema]} (piso${nums.length>1?"s":""} ${nums.join(", ")})`,minvuMuroTexto(p.sistema,e.aisl,notasInt,zi)));
+    });
+  }else{
+    sisEnUso.add(e.pj.sistema);
+    const av=e.aisl.muros==="auto"?minvuMuroTexto(e.pj.sistema,e.aisl,notasInt,zi):EE.aislV[e.aisl.muros];
+    blocks.push(P(`${n}.${sa++} Aislación vertical (muros)`,av));
+  }
+  if(e.aisl.muros==="auto"){
+    const dbE=state.minvuDB.esquemas;
+    const tieneSip=sisEnUso.has("sip"), tieneAlba=sisEnUso.has("alba");
+    if(tieneSip&&tieneAlba){
+      blocks.push(figBlock(dbE.murosSipAlba,"Esquema propio Averarq de cortes homologados LOSCAT (panel SIP y albañilería) — no reproduce figuras del documento oficial.",300));
+    }else if(tieneSip){
+      blocks.push(figBlock(svgCrop(dbE.murosSipAlba,"0 0 340 320"),"Esquema propio Averarq del corte homologado LOSCAT (panel SIP) — no reproduce figuras del documento oficial.",260,50));
+    }else if(tieneAlba){
+      blocks.push(figBlock(svgCrop(dbE.murosSipAlba,"340 0 340 320"),"Esquema propio Averarq del corte homologado LOSCAT (albañilería confinada) — no reproduce figuras del documento oficial.",260,50));
+    }
+    if(sisEnUso.has("madera"))
+      blocks.push(figBlock(dbE.tabiques,"Esquema propio Averarq de cortes homologados LOSCAT (tabiquería de madera 2×3\" y 2×4\") — no reproduce figuras del documento oficial.",380));
+  }
+  blocks.push(P(`${n}.${sa++} Aislación horizontal (techumbre y cielos)`,minvuTechTexto(e.aisl.tech,notasInt,zi)));
+  if(e.aisl.tech==="lana100"||e.aisl.tech==="lana140")
+    blocks.push(figBlock(state.minvuDB.esquemas.techumbre,"Esquema propio Averarq de corte homologado LOSCAT (techumbre con cielo horizontal) — no reproduce figuras del documento oficial.",300));
+  if(nP>1)blocks.push(P(`${n}.${sa++} Aislación de entrepisos`,"Aislación acústica de lana de vidrio o mineral de 80 mm entre el envigado de entrepiso, cubriendo la totalidad de la superficie, para el control de ruido de impacto y aéreo entre pisos; en recintos húmedos del piso superior se dispondrá adicionalmente membrana impermeable bajo el pavimento. El LOSCAT no norma entrepisos entre recintos calefaccionados como elemento propio, por lo que esta partida no tiene asociada una exigencia térmica del art. 4.1.10, sino un criterio acústico."));
+  if(e.aisl.vapor)blocks.push(P(`${n}.${sa++} Barreras de humedad y de vapor`,EE.vapor));
+  if(e.aisl.obs)blocks.push(P("Observaciones",esc(e.aisl.obs)));
+  // 5 TERMINACIONES
+  n++;blocks.push(H2(n+". TERMINACIONES"));let st=1;
+  if(e.term.revExt==="auto"&&multiSis){
+    const doneR=new Set();
+    pisos.forEach(p=>{
+      if(doneR.has(p.sistema))return;doneR.add(p.sistema);
+      const nums=pisos.map((q,j)=>q.sistema===p.sistema?j+1:null).filter(x=>x);
+      blocks.push(P(`${n}.${st++} Revestimientos exteriores — ${SIS_NOM[p.sistema]} (piso${nums.length>1?"s":""} ${nums.join(", ")})`,EE.revExt.auto[p.sistema]));
+    });
+  }else{
+    const rext=e.term.revExt==="auto"?EE.revExt.auto[e.pj.sistema]:EE.revExt[e.term.revExt];
+    blocks.push(P(`${n}.${st++} Revestimientos exteriores`,rext));
+  }
+  blocks.push(P(`${n}.${st++} Revestimientos interiores`,EE.revInt[e.term.revInt]));
+  blocks.push(P(`${n}.${st++} Cielos`,EE.cielo[e.term.cielo]));
+  blocks.push(P(`${n}.${st++} Pavimentos`,EE.pav[e.term.pav]));
+  if(nP>1&&(e.term.pav==="ceramica"||e.term.pav==="mixto"))
+    blocks.push(P(`${n}.${st++} Pavimentos en pisos superiores`,"En los pisos sobre entrepiso de madera, las zonas con palmetas cerámicas o de porcelanato llevarán placa intermedia de fibrocemento de 8 mm atornillada al terciado estructural antes de la aplicación del adhesivo, respetando las juntas del entrepiso; alternativamente podrá emplearse pavimento SPC flotante, apto para instalación directa sobre placa de madera."));
+  if(e.term.ventanasCat&&e.term.ventanasCat.length){
+    blocks.push(P(`${n}.${st++} Ventanas`,ventIntroTexto()));
+    blocks.push({html:ventTablaHTML(e.term.ventanasCat),h:40+e.term.ventanasCat.length*16});
+    notasInt.push({tit:"Transición normativa OGUC 4.1.10 — ventanas",txt:"La actualización del art. 4.1.10 (publicada 27.05.2024, entrada en vigor prevista noviembre 2025) incorpora exigencias de hermeticidad por provincia, clase de permeabilidad mínima y porcentaje máximo de ventanas según orientación, régimen que podría convivir transitoriamente con la zonificación 1–7 vigente en el LOSCAT ED14. Verificar con la D.O.M. correspondiente (San Felipe / Los Andes) qué marco normativo están aplicando antes de ingresar cada permiso."});
+    notasInt.push({tit:"Fichas de ventana: códigos LOSCAT aún no confirmados",txt:"El catálogo de ventanas de este documento describe marco, vidriado y accionamiento con criterio de diseño Averarq; los códigos de ficha específicos del Título III del LOSCAT (U certificado y clase de permeabilidad exactos por conjunto) todavía no fueron extraídos del documento oficial. Verificar y citar la ficha exacta antes de usar este documento como respaldo normativo formal."});
+  }else{
+    blocks.push(P(`${n}.${st++} Ventanas`,EE.ventanas[e.term.ventanas]));
+  }
+  blocks.push(P(`${n}.${st++} Puertas interiores`,EE.puertas[e.term.puertas]));
+  blocks.push(P(`${n}.${st++} Puerta de acceso principal`,EE.puertaPpal[e.term.puertaPpal]));
+  if(e.term.tieneSec)blocks.push(P(`${n}.${st++} Puerta de acceso secundario`,EE.puertaSec[e.term.puertaSec]));
+  blocks.push(P(`${n}.${st++} Dimensiones de puertas`,"Las dimensiones, tipo de apertura y sentido de giro de todas las puertas del proyecto (interiores, de acceso principal y secundario) se indican en la planta de arquitectura."));
+  if(e.term.pintura)blocks.push(P(`${n}.${st++} Pinturas`,EE.pintura));
+  if(e.term.quinc)blocks.push(P(`${n}.${st++} Quincallería`,EE.quinc));
+  if(e.term.artef)blocks.push(P(`${n}.${st++} Artefactos sanitarios y grifería`,EE.artef));
+  blocks.push(P(`${n}.${st++} Remates y molduras`,EE.remates));
+  if(e.term.obs)blocks.push(P("Observaciones",esc(e.term.obs)));
+  // 6 INSTALACIONES
+  n++;blocks.push(H2(n+". INSTALACIONES"));let si=1;
+  if(e.inst.elec)blocks.push(P(`${n}.${si++} Instalación eléctrica`,e.inst.elecModo==="proyecto"?EE.elecProyecto:EE.elec));
+  blocks.push(P(`${n}.${si++} Agua potable`,EE.agua[e.inst.agua]));
+  blocks.push(P(`${n}.${si++} Alcantarillado`,EE.alc[e.inst.alc]));
+  if(e.inst.gas)blocks.push(P(`${n}.${si++} Gas`,e.inst.gasModo==="proyecto"?EE.gasProyecto:EE.gas));
+  if(e.inst.acsOn)blocks.push(P(`${n}.${si++} Agua caliente sanitaria`,EE.acs[e.inst.acs]));
+  if(e.inst.obs)blocks.push(P("Observaciones",esc(e.inst.obs)));
+  // 7 POSTERIORES
+  const pos=[];
+  if(e.post.cierre)pos.push(["Cierre perimetral","Cierre perimetral de malla galvanizada tipo ACMA con postes metálicos anclados en poyos de hormigón cada 2,5 m, altura 1,8 m o según planos, con portón de acceso según detalle."]);
+  if(e.post.aseo)pos.push(["Aseo y entrega","Aseo final de la obra: retiro total de escombros, excedentes y elementos de faena; limpieza de vidrios, artefactos, pavimentos y quincallería; y entrega de los recintos operativos con sus llaves rotuladas, manuales de artefactos, certificados de instalaciones (TE1, TC6, sanitaria según corresponda) y garantías al mandante."]);
+  if(pos.length){n++;blocks.push(H2(n+". OBRAS POSTERIORES Y ENTREGA"));pos.forEach((b,i)=>blocks.push(P(`${n}.${i+1} ${b[0]}`,b[1])));}
+  // 8 PRESUPUESTO
+  if(e.presup.incluir){
+    n++;const tt=totales();const hay=partsPorGrupo().length>0;
+    const valor=hay?tt.total:(+e.presup.manual||0);
+    const m2v=(+e.pj.m2>0&&valor>0)?` (${CLP(valor/+e.pj.m2)}/m²)`:"";
+    let ptxt=`El valor total de las obras asciende a <b>${CLP(valor)}</b>${state.costos.iva?" IVA incluido":" neto"}${m2v}`;
+    if(hay)ptxt+=`, conforme a la cubicación y análisis de precios unitarios que forman parte del presente expediente (materiales ${CLP(tt.mat)}, mano de obra ${CLP(tt.mo)}, más gastos generales y utilidad)`;
+    ptxt+=`.${e.presup.plazo?` Plazo estimado de ejecución: <b>${esc(e.presup.plazo)}</b>.`:hay?` Plazo estimado de ejecución: <b>${F(tt.dias,1)} días hábiles</b>.`:""} Presupuesto referencial sujeto a cotizaciones vigentes de materiales al momento de la contratación.`;
+    blocks.push(H2(n+". PRESUPUESTO DE LAS OBRAS"));
+    blocks.push({html:`<p>${ptxt}</p>`,h:Math.ceil(ptxt.length/108)*13+10});
+  }
+  // firmas
+  const firmaImg=e.firmaProp?`<img src="${e.firmaProp}" style="height:72px;max-width:96%;object-fit:contain;margin-bottom:1px">`:`<div style="height:72px"></div>`;
+  const firmas=`<div style="display:flex;justify-content:space-between;margin-top:40px;font-size:10px;text-align:center">
+    <div style="width:44%"><div style="height:74px;display:flex;align-items:flex-end;justify-content:center;overflow:hidden">${firmaImg}</div><div style="border-top:1px solid #333;padding-top:5px"><b>${esc((e.prop.nombre||"PROPIETARIO").toUpperCase())}</b><br>${e.prop.rut?"RUT "+esc(e.prop.rut)+"<br>":""}Propietario</div></div>
+    <div style="width:44%"><div style="height:74px"></div><div style="border-top:1px solid #333;padding-top:5px"><b>ALEJANDRO VERA DONOSO</b><br>Arquitecto PUCV<br>Arquitecto del proyecto</div></div></div>`;
+  blocks.push({html:firmas,h:176});
+  // PORTADA
+  const logoCirc=`<svg viewBox="0 0 320 320" width="215" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto">
+    <defs><path id="eeCirc" d="M160,160 m-118,0 a118,118 0 1,1 236,0 a118,118 0 1,1 -236,0"/></defs>
+    <text font-size="17" letter-spacing="7.5" fill="#9a9a9a" font-family="Helvetica,Arial,sans-serif"><textPath href="#eeCirc">AVERARQ &#8226; ARQUITECTURA &amp; CONSTRUCCI&#211;N &#8226;</textPath></text>
+    <g transform="translate(160,168) scale(0.155) translate(-720,-720)">
+      <polygon fill="#fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></g></svg>`;
+  const portada=`<div style="text-align:center;padding-top:150px">
+    <div style="font-size:22px;font-weight:800;letter-spacing:2px;color:#1a1a1a">ESPECIFICACIONES T&#201;CNICAS</div>
+    <div style="font-size:14px;color:#555;margin-top:4px;letter-spacing:1px">${esc(e.pj.destino).toUpperCase()}</div>
+    <div style="font-size:15px;color:#333;margin-top:26px">${esc(e.prop.dir||$("#nomProyecto").value)}${e.prop.comuna?", "+esc(e.prop.comuna):""}</div>
+    <div style="font-size:10.5px;color:#777;margin-top:12px;letter-spacing:.5px">${e.prop.nombre?`PROPIETARIO: ${esc(e.prop.nombre.toUpperCase())}${e.prop.rut?" · RUT "+esc(e.prop.rut):""}`:""}${e.prop.rol?`${e.prop.nombre?"<br>":""}ROL SII ${esc(e.prop.rol)}`:""}${+e.pj.m2?` · ${F(+e.pj.m2,0)} m²`:""}</div>
+    <div style="margin-top:90px">${logoCirc}</div>
+    <div style="margin-top:110px;font-size:12px;letter-spacing:1px"><b>ALEJANDRO VERA DONOSO</b><br><span style="color:#555">ARQUITECTO PUCV</span></div>
+    <div style="margin-top:16px;font-size:11px;font-weight:700;letter-spacing:1px">${esc((e.prop.comuna||"VALLE DEL ACONCAGUA").toUpperCase())}, ${MES}</div>
+    <div style="margin-top:6px;font-size:9px;color:#999;letter-spacing:2px">DOCUMENTO ${esc(e.rev||"R0")}</div>
+  </div>`;
+  // paginación por bloques
+  const cont=`<div class="pr-cont"><b>AVER<span style="color:#fc4c02">ARQ</span></b><span>EE.TT. &#183; ${esc(e.prop.dir||$("#nomProyecto").value)} &#183; ${fecha}</span></div>`;
+  const PAGE=930;const pages=[];let cur="",used=0;
+  for(const b of blocks){
+    if(used+b.h>PAGE&&cur){pages.push(cur);cur="";used=0;}
+    cur+=b.html;used+=b.h;
+  }
+  if(cur)pages.push(cur);
+  let out=`<div class="pr-page">${portada}${prFoot()}</div>`;
+  out+=pages.map(pg=>`<div class="pr-page"><div class="ee">${cont}${pg}</div>${prFoot()}</div>`).join("");
+  if(e.dj){
+    const dia=hoy.getDate(), mesTx=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"][hoy.getMonth()];
+    const lugar=e.prop.comuna||"Valle del Aconcagua";
+    const fila=(a,b)=>b?`<tr><td style="width:150px;color:#777;font-size:10px;letter-spacing:.5px">${a}</td><td style="font-size:10.5px"><b>${b}</b></td></tr>`:"";
+    const dj=`<div class="ee">
+      ${cont}
+      <div style="text-align:center;margin:26px 0 18px">
+        <div style="font-size:16px;font-weight:800;letter-spacing:2px">DECLARACIÓN JURADA SIMPLE</div>
+        <div style="font-size:10.5px;color:#555;letter-spacing:1px;margin-top:3px">RESPONSABILIDAD DEL ARQUITECTO PATROCINANTE</div>
+      </div>
+      <table style="margin-bottom:14px">
+        ${fila("PROYECTO",esc(e.pj.destino)+(+e.pj.m2?` · ${F(+e.pj.m2,0)} m²`:"")+(nP>1?` · ${nP} pisos`:""))}
+        ${fila("UBICACIÓN",esc(e.prop.dir||"")+(e.prop.comuna?", comuna de "+esc(e.prop.comuna):""))}
+        ${fila("ROL SII",esc(e.prop.rol||""))}
+        ${fila("PROPIETARIO",esc(e.prop.nombre||"")+(e.prop.rut?" · RUT "+esc(e.prop.rut):""))}
+        ${fila("ARQUITECTO",("ALEJANDRO VERA DONOSO")+(e.arq.rut?" · RUT "+esc(e.arq.rut):""))}
+      </table>
+      <p>En ${esc(lugar)}, a ${dia} de ${mesTx} de ${hoy.getFullYear()}, don <b>ALEJANDRO VERA DONOSO</b>${e.arq.rut?`, RUT ${esc(e.arq.rut)}`:""}, arquitecto, en su calidad de arquitecto proyectista y patrocinante del proyecto individualizado en el encabezado, declara bajo juramento lo siguiente:</p>
+      <p><b>Primero.</b> Que los antecedentes del propietario y de la propiedad consignados en el presente expediente —incluyendo la identidad del propietario, la dirección del predio, su rol de avalúo y las superficies del proyecto— son fidedignos y corresponden a la realidad, según los documentos tenidos a la vista.</p>
+      <p><b>Segundo.</b> Que el proyecto ha sido elaborado en conformidad con la Ley General de Urbanismo y Construcciones (D.F.L. N°458), su Ordenanza General (O.G.U.C.) y las disposiciones del Plan Regulador Comunal y de la ordenanza local vigente de la comuna, en lo relativo a uso de suelo, sistema de agrupamiento, coeficientes, rasantes, distanciamientos y demás normas urbanísticas y de edificación que le son aplicables.</p>
+      <p><b>Tercero.</b> Que las presentes Especificaciones Técnicas y los planos que conforman el expediente son fieles al proyecto que se ejecutará, y que el suscrito asume la responsabilidad profesional que le corresponde en su calidad de proyectista, conforme al artículo 17 de la Ley General de Urbanismo y Construcciones y al artículo 1.2.2 de la O.G.U.C.</p>
+      <p><b>Cuarto.</b> Que la presente declaración se otorga para ser acompañada al expediente del proyecto ante la Dirección de Obras Municipales y demás organismos que corresponda, y para todos los efectos legales a que haya lugar.</p>
+      <div style="text-align:center;margin-top:85px;font-size:10px">
+        <div style="display:inline-block;border-top:1px solid #333;padding-top:6px;min-width:260px">
+          <b>ALEJANDRO VERA DONOSO</b><br>${e.arq.rut?"RUT "+esc(e.arq.rut)+"<br>":""}Arquitecto PUCV<br>Arquitecto proyectista y patrocinante</div>
+      </div>
+      <p style="margin-top:30px;font-size:9px;color:#999;text-align:center">Documento ${esc(e.rev||"R0")} · ${fecha} · averarq.cl</p>
+    </div>`;
+    out+=`<div class="pr-page">${dj}${prFoot()}</div>`;
+  }
+  if(e.notas&&notasInt.length){
+    const notasHtml=`<div class="ee">${cont}
+      <div style="text-align:center;margin:20px 0 12px">
+        <div style="font-size:15px;font-weight:800;letter-spacing:2px">NOTAS INTERNAS DEL EXPEDIENTE</div>
+        <div style="font-size:10px;color:#555;letter-spacing:1px;margin-top:2px">PARA USO DEL ARQUITECTO — NO FORMA PARTE DEL DOCUMENTO ENTREGABLE</div>
+      </div>
+      <div class="pr-banner">RETIRAR ESTA PÁGINA ANTES DE ENVIAR AL MANDANTE O INGRESAR A LA D.O.M.</div>
+      ${notasInt.map((no,i)=>`<p><b>${i+1}. ${esc(no.tit)}.</b> ${esc(no.txt)}</p>`).join("")}
+      <p style="margin-top:16px;font-size:9px;color:#999">Documento ${esc(e.rev||"R0")} · ${fecha} · página de trabajo interno, generada por el Cubicador Averarq.</p>
+    </div>`;
+    out+=`<div class="pr-page">${notasHtml}${prFoot()}</div>`;
+  }
+  $("#printArea").innerHTML=out;
+  window.print();
+}
+
+/* ---------- COMPARATIVA DE SISTEMAS (impresión) ---------- */
+function emitirRadiografia(){
+  const r=radioData(); const im=r.inmueble; const fecha=r.fecha;
+  const filas=r.items.map((it,i)=>{
+    const est=RADIO_ESTADOS[it.estado]||RADIO_ESTADOS.regular;
+    const pr=RADIO_PRIO[it.prio]||RADIO_PRIO.media;
+    return `<tr>
+      <td><b>${esc(it.area)}</b></td>
+      <td ${R} style="color:${est.c};font-weight:bold">${est.t}</td>
+      <td ${R} style="color:${pr.c}">${pr.t}</td>
+      <td>${it.obs?esc(it.obs):"<span style='color:#aaa'>Sin observaciones particulares.</span>"}</td></tr>`;
+  }).join("");
+  // resumen de conteo
+  const cuenta={bueno:0,regular:0,malo:0,na:0};
+  r.items.forEach(it=>cuenta[it.estado]=(cuenta[it.estado]||0)+1);
+  const alta=r.items.filter(it=>it.prio==="alta").length;
+  $("#printArea").innerHTML=`<div class="pr-page">`+prHead("RADIOGRAFÍA DE OBRA<br>INFORME DE ESTADO DE CONSTRUCCIÓN EXISTENTE",fecha)+`
+    <div style="display:flex;justify-content:space-between;color:#555;font-size:11px;margin-bottom:14px">
+      <span>${im.nombre?esc(im.nombre):"Inmueble"}</span><span>${fecha}</span></div>
+    <h2>1. IDENTIFICACIÓN DEL INMUEBLE</h2>
+    <table>
+      ${im.dir?`<tr><td style="width:32%"><b>Dirección</b></td><td>${esc(im.dir)}</td></tr>`:""}
+      ${im.comuna?`<tr><td><b>Comuna</b></td><td>${esc(im.comuna)}</td></tr>`:""}
+      ${im.rol?`<tr><td><b>Rol</b></td><td>${esc(im.rol)}</td></tr>`:""}
+      ${im.sup?`<tr><td><b>Superficie aproximada</b></td><td>${esc(im.sup)} m²</td></tr>`:""}
+      ${im.anio?`<tr><td><b>Año aproximado</b></td><td>${esc(im.anio)}</td></tr>`:""}
+      ${im.sistema?`<tr><td><b>Sistema constructivo</b></td><td>${esc(im.sistema)}</td></tr>`:""}
+    </table>
+    <p style="font-size:10.5px;margin-top:8px">El presente informe corresponde a una inspección visual del estado de conservación del inmueble, realizada con el propósito de servir como ${RADIO_PROP[r.proposito]}.</p>
+    <h2>2. EVALUACIÓN POR ÁREA</h2>
+    <table><tr><th style="width:30%">Área evaluada</th><th ${R}>Estado</th><th ${R}>Prioridad</th><th>Observaciones</th></tr>${filas}</table>
+    <div class="pr-tot"><span>Áreas evaluadas: ${r.items.length} · en buen estado: ${cuenta.bueno} · regulares: ${cuenta.regular} · deficientes: ${cuenta.malo}</span><span>${alta} de prioridad alta</span></div>
+    <h2>3. CONCLUSIÓN</h2>
+    <p style="font-size:10.5px;line-height:1.5;text-align:justify">${r.concl?esc(r.concl):"(Sin conclusión redactada.)"}</p>
+    <h2>4. ALCANCE Y LIMITACIONES</h2>
+    <p style="font-size:9.5px;color:#555;line-height:1.45;text-align:justify">Este documento constituye un informe de inspección visual del estado aparente del inmueble a la fecha indicada, basado en observación directa no destructiva. No constituye un cálculo estructural, un ensayo de materiales, ni un peritaje judicial. No cubre elementos ocultos, no visibles o inaccesibles al momento de la inspección. Las recomendaciones son orientativas; la ejecución de cualquier intervención estructural o de instalaciones deberá respaldarse en los proyectos de especialidad correspondientes y sus profesionales responsables.</p>
+    <div style="display:flex;justify-content:flex-end;margin-top:40px;font-size:10px;text-align:center">
+      <div style="width:46%"><div style="border-top:1px solid #333;padding-top:5px"><b>ALEJANDRO VERA DONOSO</b><br>Arquitecto PUCV<br>Averarq</div></div></div>
+    `+prFoot()+`</div>`;
+  window.print();
+}
+
+function emitirComparativa(){
+  const m2=+state.compM2||100;
+  const alc=state.compAlcance||"estructural";
+  const sis=sistemasComparar().map(s=>({...s,calc:comparaCalc(s,m2,alc)}));
+  sis.sort((a,b)=>a.calc.total-b.calc.total);
+  const min=sis[0].calc.total,max=sis[sis.length-1].calc.total;
+  const fecha=new Date().toLocaleDateString("es-CL");
+  let rows="";
+  sis.forEach((s,i)=>{
+    const c=s.calc, difPct=min>0?((c.total-min)/min*100):0;
+    rows+=`<tr>
+      <td><b>${i+1}. ${esc(s.nombre)}</b></td>
+      <td ${R}>${F(c.dias,0)} d</td>
+      <td ${R}>${CLP(Math.round(c.matM2))}</td>
+      <td ${R}>${CLP(Math.round(c.moM2))}</td>
+      <td ${R}><b>${CLP(Math.round(c.directoM2))}</b></td>
+      <td ${R}>${CLP(Math.round(c.total))}</td>
+      <td ${R}>${i===0?"—":"+"+F(difPct,1)+"%"}</td></tr>`;
+  });
+  $("#printArea").innerHTML=`<div class="pr-page">`+prHead("COMPARATIVA DE SISTEMAS CONSTRUCTIVOS",fecha)+`
+    <div style="display:flex;justify-content:space-between;color:#555;font-size:11px;margin-bottom:14px">
+      <span>${esc($("#nomProyecto").value)}</span>
+      <span>Superficie comparada: ${m2} m² de muro · ${alc==="terminado"?"muro terminado":"muro estructural"}</span></div>
+    <h2>COSTO DIRECTO POR SISTEMA</h2>
+    <table><tr><th>Sistema constructivo</th><th ${R}>Plazo<br>(${m2}m²)</th><th ${R}>Mat./m²</th><th ${R}>M.O./m²</th><th ${R}>Directo/m²</th><th ${R}>Total ${m2} m²</th><th ${R}>Dif.</th></tr>${rows}</table>
+    <p style="font-size:10px;color:#666;margin:6px 0 0"><b>Nivel de alcance:</b> ${alc==="terminado"?"muro terminado (incluye revestimiento exterior, yeso-cartón interior y pintura equivalentes en los cuatro sistemas, para comparación homogénea).":"muro estructural sin revestir. Nota: la albañilería a la vista ya viene casi terminada mientras el SIP, madera y Metalcon requieren revestimiento adicional; para una comparación homogénea use el nivel \"terminado\"."}</p>
+    <div class="pr-tot big"><span>Diferencia entre el más caro y el más económico</span><span>${CLP(Math.round(max-min))}</span></div>
+    <h2>CONSIDERACIONES</h2>
+    <p style="font-size:10.5px;line-height:1.5;color:#333;text-align:justify">La comparación considera el <b>costo directo</b> (material más mano de obra) por metro cuadrado de muro, calculado con los precios y jornales del proyecto. La mano de obra se estima según el rendimiento propio de cada sistema: un sistema de montaje rápido como el panel SIP puede resultar más conveniente que uno de material más económico pero de ejecución lenta como la albañilería, precisamente por el menor costo de mano de obra. Los valores no incluyen gastos generales ni utilidad, y corresponden únicamente a los muros; no consideran fundaciones, techumbre ni terminaciones, que pueden variar según el sistema elegido. Esta comparativa es una herramienta de apoyo a la decisión en etapa de anteproyecto y no constituye un presupuesto.</p>
+    <p style="margin-top:10px;font-size:9px;color:#999">Precios de material referenciales sujetos a cotización. Rendimientos estimados según experiencia de obra en el Valle del Aconcagua.</p>
+    `+prFoot()+`</div>`;
+  window.print();
+}
+
+/* ---------- ESTADO DE OBRA (impresión) ---------- */
+function emitirObra(){
+  const parts=state.partidas.map(p=>({p,c:partidaCalc(p)})).filter(x=>x.c.q>0);
+  if(!parts.length){hint("No hay partidas cubicadas para informar.");return;}
+  const t=obraTotales();const o=obraData();
+  const fecha=new Date().toLocaleDateString("es-CL");
+  let rows="";
+  for(const g of partsPorGrupo()){
+    rows+=`<tr><td colspan="6" style="color:#fc4c02;font-weight:bold;letter-spacing:1px;font-size:10px;padding-top:8px">${g.gn.toUpperCase()}</td></tr>`;
+    for(const {p} of g.ps){
+      const oc=obraCalc(p);
+      const col=oc.desvio>=0?"#2e7d32":"#c1451b";
+      rows+=`<tr><td>${esc(p.nombre)}</td>
+        <td ${R}>${F(oc.pct,0)}%</td>
+        <td ${R}>${CLP(oc.c.directo)}</td>
+        <td ${R}>${CLP(oc.valorizado)}</td>
+        <td ${R}>${CLP(oc.gastoReal)}</td>
+        <td ${R} style="color:${col}">${oc.desvio>=0?"+":"−"}${CLP(Math.abs(oc.desvio))}</td></tr>`;
+    }
+  }
+  const desvCol=t.desvio>=0?"#2e7d32":"#c1451b";
+  $("#printArea").innerHTML=`<div class="pr-page">`+prHead("ESTADO DE AVANCE DE OBRA",fecha)+`
+    <div style="display:flex;justify-content:space-between;color:#555;font-size:11px;margin-bottom:12px">
+      <span>${o.info.cliente?"Mandante: "+esc(o.info.cliente):esc($("#nomProyecto").value)}</span>
+      <span>${o.info.inicio?"Inicio de obra: "+esc(o.info.inicio):""}</span></div>
+    <h2>RESUMEN DE AVANCE</h2>
+    <div class="pr-tot"><span>Avance físico de la obra (ponderado)</span><span><b>${F(t.avanceFisico,1)}%</b></span></div>
+    <div class="pr-tot"><span>Ejecutado valorizado a la fecha</span><span>${CLP(t.valorVenta)}</span></div>
+    <div class="pr-tot big"><span>VALORIZACIÓN N° ___ — MONTO A COBRAR</span><span>${CLP(t.valorVenta)}</span></div>
+    <div class="pr-tot"><span>Saldo de contrato por ejecutar</span><span>${CLP(t.ventaTotal-t.valorVenta)}</span></div>
+    <h2>DETALLE POR PARTIDA</h2>
+    <table><tr><th>Partida</th><th ${R}>Avance</th><th ${R}>Presup.</th><th ${R}>Ejecutado</th><th ${R}>Gasto real</th><th ${R}>Desvío</th></tr>${rows}</table>
+    <h2>CONTROL PRESUPUESTARIO (uso interno)</h2>
+    <div class="pr-tot"><span>Costo directo ejecutado (valorizado)</span><span>${CLP(t.valor)}</span></div>
+    <div class="pr-tot"><span>Gasto real acumulado (materiales ${CLP(t.gMat)} + mano de obra ${CLP(t.gMo)})</span><span>${CLP(t.gastoReal)}</span></div>
+    <div class="pr-tot big" style="border-color:${desvCol}"><span>${t.desvio>=0?"MARGEN sobre lo ejecutado":"SOBREGASTO sobre lo ejecutado"}</span><span style="color:${desvCol}">${CLP(Math.abs(t.desvio))}</span></div>
+    <p style="margin-top:12px;font-size:10px;color:#777">Estado de avance referencial a la fecha indicada. La valorización de cobro incluye gastos generales y utilidad conforme al presupuesto contratado. El control presupuestario es de uso interno de la oficina.</p>
+    `+prFoot()+`</div>`;
+  // ===== Página independiente: CURVA DE AVANCE (curva S) =====
+  $("#printArea").innerHTML+=`<div class="pr-page">`+prHead("CURVA DE AVANCE DE OBRA",fecha)+`
+    <div style="display:flex;justify-content:space-between;color:#555;font-size:11px;margin-bottom:16px">
+      <span>${o.info.cliente?"Mandante: "+esc(o.info.cliente):esc($("#nomProyecto").value)}</span>
+      <span>Avance real a la fecha: ${F(t.avanceFisico,1)}%</span></div>
+    <h2>PLANIFICADO vs REAL (uso interno)</h2>
+    <div style="max-width:560px;margin:14px auto">${curvaSVG(o,t.avanceFisico,{w:560,h:340})}</div>
+    <p style="margin-top:14px;font-size:10px;color:#777;max-width:560px;margin-left:auto;margin-right:auto">Curva S de control: la línea negra representa el avance planificado teórico según la duración de obra estimada (${o.durSem} semanas), con la forma característica de arranque lento, aceleración en la fase central de obra gruesa y desaceleración en terminaciones. Los puntos naranjas son las mediciones reales de avance físico ponderado por peso económico de cada partida. Cuando los puntos caen por debajo de la curva, la obra está atrasada respecto al plan; por encima, adelantada.</p>
+    <p style="margin-top:10px;font-size:9px;color:#999;max-width:560px;margin-left:auto;margin-right:auto"><b>Documento de control interno de la oficina.</b> No forma parte del estado de pago ni del expediente entregable al mandante.</p>
+    `+prFoot()+`</div>`;
+  window.print();
+}
+
+/* ---------- INICIO ---------- */
+(function initPanelResize(){
+  const pr=$("#panelResizer"), pn=$("#panel");
+  const saved=parseInt(localStorage.getItem("averarq_panelw")||"",10);
+  if(saved&&saved>=280&&saved<=window.innerWidth*0.8) pn.style.width=saved+"px";
+  let dragging=false,startX=0,startW=0;
+  pr.addEventListener("mousedown",e=>{
+    dragging=true;pr.classList.add("dragging");startX=e.clientX;startW=pn.getBoundingClientRect().width;
+    document.body.style.userSelect="none";e.preventDefault();
+  });
+  window.addEventListener("mousemove",e=>{
+    if(!dragging)return;
+    const w=Math.max(280,Math.min(window.innerWidth*0.8,startW-(e.clientX-startX)));
+    pn.style.width=w+"px";resize();
+  });
+  window.addEventListener("mouseup",()=>{
+    if(!dragging)return;
+    dragging=false;pr.classList.remove("dragging");document.body.style.userSelect="";
+    localStorage.setItem("averarq_panelw",Math.round(pn.getBoundingClientRect().width));
+  });
+})();
+(function init(){
+  resize();updEscala();
+  let sesionRestaurada=false;
+  try{
+    const sv=localStorage.getItem("averarq_cubicador");
+    if(sv&&confirm("Hay una sesión guardada del Cubicador. ¿Restaurarla?")){loadState(JSON.parse(sv));sesionRestaurada=true;}
+  }catch(e){}
+  // Cargos obligatorios en proyecto nuevo (TE1 y otros marcados obligatoria:true)
+  if(!sesionRestaurada){
+    for(const d of defaultPartidas()){
+      if(d.obligatoria && !state.partidas.some(x=>x.nombre===d.nombre)){
+        const c=JSON.parse(JSON.stringify(d));c.id=nid();state.partidas.push(c);
+      }
+    }
+  }
+  if(!hist.length)pushHist();
+  renderTab();setTool("select");
+})();
+</script>
+</body>
+</html>
