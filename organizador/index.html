@@ -736,6 +736,10 @@
             <input id="ep_monto_total" type="number" placeholder="Monto total acordado ($)">
             <input id="ep_cuotas" type="number" placeholder="N° de cuotas del periodo">
           </div>
+          <div class="pago-add-row" style="margin-top:8px;">
+            <input id="ep_fecha_aprob" type="date" title="Fecha de aprobación del presupuesto">
+            <span class="file-name" style="align-self:center; padding-left:4px;">Fecha aprobación del presupuesto (mandante)</span>
+          </div>
           <label class="check-label" style="margin-top:10px;">
             <input type="checkbox" id="ep_ext_toggle" onchange="document.getElementById('ep_ext_fields').style.display=this.checked?'block':'none'">
             <span>Incluir periodo de extensión (trabajo fuera del plazo original)</span>
@@ -1440,6 +1444,7 @@ function generarEstadoPago(){
 
   const montoTotal = Number(document.getElementById('ep_monto_total').value) || (p.total||0);
   const nCuotas = Number(document.getElementById('ep_cuotas').value) || pagos.length || 0;
+  const fechaAprob = document.getElementById('ep_fecha_aprob').value;
   const extOn = document.getElementById('ep_ext_toggle').checked;
   const extMonto = extOn ? (Number(document.getElementById('ep_ext_monto').value)||0) : 0;
   const extPagos = extOn ? (Number(document.getElementById('ep_ext_pagos').value)||0) : 0;
@@ -1485,6 +1490,11 @@ function generarEstadoPago(){
   const deudaTotal = deudaRegular + (extOn?extMonto:0);
 
   const hoy = new Date().toLocaleDateString('es-CL', {day:'numeric', month:'long', year:'numeric'});
+  let fechaAprobTxt = '';
+  if(fechaAprob){
+    const da = new Date(fechaAprob+'T00:00:00');
+    fechaAprobTxt = da.toLocaleDateString('es-CL', {day:'numeric', month:'long', year:'numeric'});
+  }
 
   const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
   <title>Estado de Pago - ${p.nombre}</title>
@@ -1549,6 +1559,7 @@ function generarEstadoPago(){
     <div class="prop">
       <div><b>PROPIETARIO:</b> ${p.nombre}</div>
       <div><b>PROYECTO:</b> ${p.estado||'—'}</div>
+      ${fechaAprobTxt ? `<div><b>PRESUPUESTO APROBADO POR EL MANDANTE:</b> ${fechaAprobTxt}</div>` : ''}
     </div>
 
     ${extOn ? `<div class="nota-ext">* Se considera periodo de extensión el trabajo continuo realizado fuera del plazo contractual originalmente establecido, producto de la prolongación de las obras, el cual requiere el mismo nivel de seguimiento, dedicación y constancia profesional.</div>`:''}
