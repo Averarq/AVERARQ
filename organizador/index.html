@@ -728,6 +728,27 @@
           <button class="btn-primary" style="width:100%; margin-top:8px;" onclick="addPago()">+ Registrar abono</button>
         </div>
       </div>
+
+      <div class="field" style="border-top:1px solid #3a3c3b; padding-top:18px; margin-top:20px;">
+        <label>📄 Estado de pago (documento formal)</label>
+        <div class="ep-config">
+          <div class="pago-add-row">
+            <input id="ep_monto_total" type="number" placeholder="Monto total acordado ($)">
+            <input id="ep_cuotas" type="number" placeholder="N° de cuotas del periodo">
+          </div>
+          <label class="check-label" style="margin-top:10px;">
+            <input type="checkbox" id="ep_ext_toggle" onchange="document.getElementById('ep_ext_fields').style.display=this.checked?'block':'none'">
+            <span>Incluir periodo de extensión (trabajo fuera del plazo original)</span>
+          </label>
+          <div id="ep_ext_fields" style="display:none; margin-top:10px;">
+            <div class="pago-add-row">
+              <input id="ep_ext_monto" type="number" placeholder="Monto extensión ($)">
+              <input id="ep_ext_pagos" type="number" placeholder="N° pagos extensión">
+            </div>
+          </div>
+          <button class="btn-ghost" style="width:100%; margin-top:12px;" onclick="generarEstadoPago()">Generar estado de pago (PDF)</button>
+        </div>
+      </div>
     </div>
 
     <div class="modal-actions">
@@ -1407,6 +1428,141 @@ function renderProjNotes(notas){
   const list = document.getElementById('projNotesList');
   list.innerHTML = notas.length ? notas.slice().reverse().map(n=>`<div class="note"><div class="date">${n.fecha}</div>${n.texto}</div>`).join('') : '<div style="font-size:12px;color:var(--gris);">Sin notas todavía.</div>';
 }
+/* ---------- ESTADO DE PAGO (documento formal PDF) ---------- */
+const AV_LOGO_EP = document.querySelector('.logo-mark-img') ? document.querySelector('.logo-mark-img').src : '';
+
+function fmtCLP(n){ return '$ ' + Number(n||0).toLocaleString('es-CL'); }
+
+function generarEstadoPago(){
+  if(!editingProjId){ alert('Guarda el proyecto primero.'); return; }
+  const p = proyectos.find(x=>x.id===editingProjId);
+  const pagos = (p.pagos||[]).slice().sort((a,b)=> (a.fecha||'').localeCompare(b.fecha||''));
+
+  const montoTotal = Number(document.getElementById('ep_monto_total').value) || (p.total||0);
+  const nCuotas = Number(document.getElementById('ep_cuotas').value) || pagos.length || 0;
+  const extOn = document.getElementById('ep_ext_toggle').checked;
+  const extMonto = extOn ? (Number(document.getElementById('ep_ext_monto').value)||0) : 0;
+  const extPagos = extOn ? (Number(document.getElementById('ep_ext_pagos').value)||0) : 0;
+
+  const totalAbonado = pagos.reduce((s,x)=>s+Number(x.monto||0),0);
+  const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  function fechaBonita(f){
+    if(!f) return {mes:'—', dia:'—'};
+    const d=new Date(f+'T00:00:00');
+    return { mes: MESES[d.getMonth()].charAt(0).toUpperCase()+MESES[d.getMonth()].slice(1), dia: d.getDate() };
+  }
+
+  // Filas de cuotas: los abonos registrados = SALDADO
+  let filas = pagos.map(pg=>{
+    const fb = fechaBonita(pg.fecha);
+    return `<tr>
+      <td>${fb.mes}</td><td class="c">${fb.dia}</td>
+      <td class="r">${fmtCLP(pg.monto)}</td>
+      <td class="est saldado">SALDADO</td></tr>`;
+  }).join('');
+
+  // Cuotas pendientes (si el N° de cuotas declarado supera los abonos hechos)
+  const pendientes = Math.max(0, nCuotas - pagos.length);
+  const cuotaRef = nCuotas>0 ? Math.round(montoTotal/nCuotas) : 0;
+  for(let i=0;i<pendientes;i++){
+    filas += `<tr>
+      <td>—</td><td class="c">—</td>
+      <td class="r">${cuotaRef?fmtCLP(cuotaRef):'—'}</td>
+      <td class="est pendiente">PENDIENTE</td></tr>`;
+  }
+
+  const totalRegular = montoTotal;
+  const deudaRegular = Math.max(0, totalRegular - totalAbonado);
+
+  let bloqueExt = '';
+  if(extOn && extMonto>0){
+    bloqueExt = `
+      <tr class="sep"><td colspan="4"></td></tr>
+      <tr><td colspan="2"><b>EXTENSIÓN (${extPagos||1} pago${extPagos>1?'s':''})</b></td>
+          <td class="r">${fmtCLP(extMonto)}</td>
+          <td class="est pendiente">PENDIENTE</td></tr>`;
+  }
+  const deudaTotal = deudaRegular + (extOn?extMonto:0);
+
+  const hoy = new Date().toLocaleDateString('es-CL', {day:'numeric', month:'long', year:'numeric'});
+
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+  <title>Estado de Pago - ${p.nombre}</title>
+  <style>
+    @page{ size:A4; margin:18mm; }
+    *{ margin:0; padding:0; box-sizing:border-box; font-family:'Helvetica Neue',Arial,sans-serif; }
+    body{ color:#212322; font-size:12px; }
+    .head{ display:flex; align-items:center; justify-content:space-between; border-bottom:3px solid #FC4C02; padding-bottom:14px; margin-bottom:22px; }
+    .head .brand{ display:flex; align-items:center; gap:12px; }
+    .head img{ height:46px; }
+    .head .bt{ font-size:22px; font-weight:800; letter-spacing:1px; }
+    .head .bt span{ color:#FC4C02; }
+    .head .doc-meta{ text-align:right; font-size:11px; color:#555; }
+    h1{ font-size:15px; text-align:center; background:#d9f2e0; padding:8px; letter-spacing:2px; margin-bottom:0; border:1px solid #bbb; border-bottom:none; }
+    table{ width:100%; border-collapse:collapse; }
+    th,td{ border:1px solid #bbb; padding:7px 10px; }
+    th{ background:#f0f0ee; text-align:left; font-size:10px; letter-spacing:1px; text-transform:uppercase; }
+    td.c{ text-align:center; } td.r{ text-align:right; font-variant-numeric:tabular-nums; }
+    .est{ font-weight:700; font-size:11px; }
+    .saldado{ background:#cfe9d5; color:#1f7a3d; }
+    .pendiente{ background:#f8d0d0; color:#b03030; }
+    .atrasado{ background:#fce9c0; color:#9a6a10; }
+    tr.sep td{ border:none; height:10px; }
+    .resumen{ margin-top:20px; }
+    .resumen td{ border:none; padding:4px 10px; font-size:12px; }
+    .resumen .lbl{ font-weight:600; }
+    .resumen .val{ text-align:right; font-variant-numeric:tabular-nums; }
+    .resumen .destaca{ font-weight:800; border-top:2px solid #212322; }
+    .prop{ margin-top:26px; font-size:12px; line-height:1.7; }
+    .prop b{ font-weight:700; }
+    .nota-ext{ margin-top:22px; background:#fce4ec; border-left:4px solid #FC4C02; padding:12px 14px; font-size:10.5px; font-style:italic; color:#333; line-height:1.5; }
+    .foot{ margin-top:30px; text-align:center; font-size:9px; color:#999; border-top:1px solid #ddd; padding-top:8px; }
+  </style></head><body>
+    <div class="head">
+      <div class="brand">
+        ${AV_LOGO_EP?`<img src="${AV_LOGO_EP}">`:''}
+        <div class="bt">AVER<span>ARQ</span></div>
+      </div>
+      <div class="doc-meta">
+        <div><b>ESTADO DE PAGO</b></div>
+        <div>Emitido: ${hoy}</div>
+      </div>
+    </div>
+
+    <h1>ESTADO DE PAGO</h1>
+    <table>
+      <thead><tr><th>Mes</th><th style="text-align:center">Día</th><th style="text-align:right">Monto</th><th>Estado</th></tr></thead>
+      <tbody>
+        ${filas || '<tr><td colspan="4" style="text-align:center;color:#999">Sin abonos registrados</td></tr>'}
+        ${bloqueExt}
+      </tbody>
+    </table>
+
+    <table class="resumen">
+      <tr><td class="lbl">Monto acumulado (${pagos.length} pago${pagos.length!==1?'s':''})</td><td class="val">${fmtCLP(totalAbonado)}</td></tr>
+      <tr><td class="lbl">Monto total periodo regular</td><td class="val">${fmtCLP(totalRegular)}</td></tr>
+      <tr><td class="lbl">Saldo pendiente regular</td><td class="val" style="color:#b03030;font-weight:700">${fmtCLP(deudaRegular)}</td></tr>
+      ${extOn && extMonto>0 ? `<tr><td class="lbl">Extensión (${extPagos||1} pago${extPagos>1?'s':''})</td><td class="val">${fmtCLP(extMonto)}</td></tr>`:''}
+      <tr class="destaca"><td class="lbl">DEUDA TOTAL ${extOn?'REGULAR + EXTENSIÓN':''}</td><td class="val" style="color:#b03030">${fmtCLP(deudaTotal)}</td></tr>
+    </table>
+
+    <div class="prop">
+      <div><b>PROPIETARIO:</b> ${p.nombre}</div>
+      <div><b>PROYECTO:</b> ${p.estado||'—'}</div>
+    </div>
+
+    ${extOn ? `<div class="nota-ext">* Se considera periodo de extensión el trabajo continuo realizado fuera del plazo contractual originalmente establecido, producto de la prolongación de las obras, el cual requiere el mismo nivel de seguimiento, dedicación y constancia profesional.</div>`:''}
+
+    <div class="foot">Documento generado por Averarq · Arquitectura · Valle del Aconcagua · averarq.cl</div>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  if(!w){ alert('Permite las ventanas emergentes para generar el PDF.'); return; }
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>{ w.focus(); w.print(); }, 400);
+}
+
 function addProjNote(){
   const input = document.getElementById('projNewNote');
   if(!input.value.trim()) return;
