@@ -573,13 +573,16 @@
     </div>
     <div class="doc-config" id="calConfig">
       <div class="field">
-        <label>Correo o ID del calendario de Google</label>
-        <input id="cal_id" placeholder="tucorreo@gmail.com">
+        <label>Dirección secreta en formato iCal</label>
+        <input id="cal_id" placeholder="https://calendar.google.com/calendar/ical/.../private-.../basic.ics">
       </div>
       <div class="cal-help">
-        Para que se vea, el calendario debe estar compartido públicamente:
-        Google Calendar → ⚙️ Configuración → tu calendario → "Permisos de acceso" →
-        activa "Hacer disponible al público" (o al menos "Ver todos los detalles del evento").
+        <b>Cómo obtenerla</b> (mantiene tu calendario privado):<br>
+        Google Calendar → ⚙️ Configuración → elige tu calendario en la lista de la izquierda →
+        baja hasta <b>"Integrar calendario"</b> → copia la <b>"Dirección secreta en formato iCal"</b>
+        y pégala aquí.<br><br>
+        <span style="color:var(--gris)">También funciona con solo tu correo si el calendario está
+        compartido públicamente, pero la dirección secreta es más segura.</span>
       </div>
       <button class="btn-primary" onclick="guardarConfigCal()">Conectar calendario</button>
       <div id="cal_error" class="cfg-error"></div>
@@ -1220,6 +1223,14 @@ function calEmbedUrl(calendarId){
   return `https://calendar.google.com/calendar/embed?src=${src}&ctz=America%2FSantiago&mode=AGENDA&showTitle=0&showPrint=0&showTabs=0&showCalendars=0&showTz=0&showNav=1&bgcolor=%23212322`;
 }
 
+// De una dirección secreta extrae el ID del calendario (para el respaldo del iframe)
+function calIdDesdeUrl(v){
+  const m = String(v).match(/\/ical\/([^/]+)\//);
+  if(m) { try { return decodeURIComponent(m[1]); } catch(e){ return m[1]; } }
+  return v;
+}
+function calEsUrl(v){ return /^https?:\/\//i.test(String(v||'').trim()); }
+
 function guardarConfigCal(){
   const id = document.getElementById('cal_id').value.trim();
   const errBox = document.getElementById('cal_error');
@@ -1406,7 +1417,7 @@ function renderCalendario(){
     agenda.innerHTML = '';
     agenda.style.display = 'none';
     frame.style.display = 'block';
-    if(frame.src.indexOf('calendar.google.com') < 0) frame.src = calEmbedUrl(calConfig.id);
+    if(frame.src.indexOf('calendar.google.com') < 0) frame.src = calEmbedUrl(calIdDesdeUrl(calConfig.id));
     return;
   }
 
@@ -1414,14 +1425,28 @@ function renderCalendario(){
   frame.style.display = 'none';
   agenda.innerHTML = '<div class="cal-loading">Cargando calendario...</div>';
 
-  fetch(cloudUrl('/api/calendario?src=' + encodeURIComponent(calConfig.id)), { headers: cloudHeaders() })
-    .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
+  const q = calEsUrl(calConfig.id)
+    ? 'ics=' + encodeURIComponent(calConfig.id)
+    : 'src=' + encodeURIComponent(calConfig.id);
+
+  fetch(cloudUrl('/api/calendario?' + q), { headers: cloudHeaders() })
+    .then(r=>{
+      if(!r.ok){
+        return r.json().catch(()=>null).then(info=>{
+          const det = info && info.intentos
+            ? ' · Google respondió: ' + info.intentos.map(i=>i.status||i.error).join(' / ')
+            : '';
+          throw new Error('HTTP '+r.status+det);
+        });
+      }
+      return r.text();
+    })
     .then(txt=> renderAgenda(parseICS(txt)))
     .catch(err=>{
       // Si falla, caemos al iframe oscurecido en vez de dejar el bloque vacío
       agenda.innerHTML = `<div class="cal-empty">No se pudo leer la agenda (${err.message}).<br>Mostrando el calendario de Google.</div>`;
       frame.style.display = 'block';
-      if(frame.src.indexOf('calendar.google.com') < 0) frame.src = calEmbedUrl(calConfig.id);
+      if(frame.src.indexOf('calendar.google.com') < 0) frame.src = calEmbedUrl(calIdDesdeUrl(calConfig.id));
     });
 }
 
