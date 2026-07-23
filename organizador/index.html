@@ -177,8 +177,22 @@
   .proj-card.p-baja{ border-left-color:var(--gris); }
   .pc-main{ display:flex; align-items:center; gap:16px; flex:1; cursor:pointer; min-width:0; }
   .proj-card .pc-name{ font-weight:700; font-size:15px; min-width:190px; }
-  .proj-card .pc-estado{ font-size:12px; color:var(--neutro); flex:1; }
-  .proj-card .pc-pago{ font-size:12px; color:var(--neutro); min-width:110px; text-align:right; }
+  .proj-card .pc-estado{ font-size:12px; color:var(--neutro); }
+  .proj-card .pc-pago{ font-size:12px; color:var(--neutro); min-width:110px; text-align:right; margin-left:auto; }
+
+  /* Indicador de avance del expediente, junto al nombre */
+  .pc-exp-wrap{
+    display:flex; align-items:center; gap:8px; flex-shrink:0;
+    background:var(--ink); border-radius:20px; padding:5px 12px 5px 10px;
+    border:1px solid #3a3c3b;
+  }
+  .pc-exp-ico{ font-size:12px; line-height:1; opacity:.85; }
+  .pc-exp-bar{ width:62px; height:6px; background:#3a3c3b; border-radius:6px; overflow:hidden; flex-shrink:0; }
+  .pc-exp-fill{ height:100%; background:var(--orange); border-radius:6px; transition:width .3s; }
+  .pc-exp-pct{ font-size:13px; font-weight:800; color:var(--orange); min-width:34px; text-align:right; }
+  .pc-exp-wrap.full{ border-color:rgba(63,174,106,.5); }
+  .pc-exp-wrap.full .pc-exp-fill{ background:var(--verde); }
+  .pc-exp-wrap.full .pc-exp-pct{ color:var(--verde); }
   .pc-actions{ display:flex; gap:6px; flex-shrink:0; }
   .pc-btn{ background:var(--ink); border:1px solid #3a3c3b; border-radius:7px; width:34px; height:34px; font-size:14px; cursor:pointer; transition:all .12s; }
   .pc-edit:hover{ border-color:var(--orange); color:var(--orange); }
@@ -481,7 +495,10 @@
     .pc-main{ flex-wrap:wrap; gap:4px; width:100%; }
     .proj-card .pc-name{ min-width:0; width:100%; font-size:15px; }
     .proj-card .pc-estado{ flex:1 1 100%; }
-    .proj-card .pc-pago{ min-width:0; text-align:left; flex:1; }
+    .proj-card .pc-pago{ min-width:0; text-align:left; flex:1; margin-left:0; }
+    .pc-exp-wrap{ margin-top:2px; padding:4px 10px 4px 8px; }
+    .pc-exp-bar{ width:52px; }
+    .pc-exp-pct{ font-size:12px; }
     .pc-actions{ margin-left:auto; }
     .proj-toolbar{ padding:16px 14px 0; gap:12px; }
     .proj-toolbar .proj-stats{ order:1; width:100%; justify-content:space-around; }
@@ -1627,15 +1644,19 @@ function renderProjList(){
       <div class="pc-main" onclick="openProjModal('${p.id}')">
         <div class="pc-name">${p.nombre}</div>
         <div class="pc-estado">${p.estado}${fechaTxt? ' · '+fechaTxt : ''}</div>
+        ${(function(){
+          if(!p.expediente) return '';
+          const e = expEstado(p);
+          const full = e.pct === 100;
+          return `<div class="pc-exp-wrap ${full?'full':''}" title="Avance del expediente D.O.M. — Documentos ${e.docsPct??0}% · Planos ${e.planosPct??0}%">
+            <span class="pc-exp-ico">🏛</span>
+            <div class="pc-exp-bar"><div class="pc-exp-fill" style="width:${e.pct}%"></div></div>
+            <span class="pc-exp-pct">${e.pct}%</span>
+          </div>`;
+        })()}
       </div>
       ${checkbox}
       <div class="pc-pago">${pagoTexto(p)}</div>
-      ${(function(){
-        const e = expEstado(p);
-        if(!p.expediente) return '';
-        if(!e.dHechos && !e.pHechos) return '';
-        return `<span class="pc-exp ${e.pct===100?'full':''}" title="Avance del expediente D.O.M.">🏛 ${e.pct}%</span>`;
-      })()}
       <div class="pc-actions">
         <button class="pc-btn pc-edit" onclick="openProjModal('${p.id}')" title="Editar">✎</button>
         <button class="pc-btn pc-del-btn" onclick="deleteProjDirect('${p.id}')" title="Eliminar">🗑</button>
