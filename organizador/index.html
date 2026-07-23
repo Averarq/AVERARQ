@@ -317,6 +317,65 @@
   .cal-foot a{ color:var(--orange); text-decoration:none; font-weight:600; }
   .cal-foot a:hover{ text-decoration:underline; }
 
+  /* ---------- EXPEDIENTE D.O.M. ---------- */
+  .exp-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin:14px 0 10px; }
+  .exp-title{ font-size:14px; font-weight:700; }
+  .exp-sub{ font-size:12px; color:var(--neutro); margin-top:3px; }
+  .exp-bar{ height:7px; background:var(--ink); border-radius:6px; overflow:hidden; margin-bottom:14px; }
+  .exp-bar-fill{ height:100%; background:var(--orange); border-radius:6px; width:0; transition:width .3s; }
+  .exp-list{ display:flex; flex-direction:column; gap:7px; }
+  .exp-item{
+    display:flex; align-items:flex-start; gap:11px; background:var(--ink);
+    border-radius:9px; padding:11px 13px; border-left:3px solid #3a3c3b; transition:border-color .15s, opacity .15s;
+  }
+  .exp-item.done{ border-left-color:var(--verde); }
+  .exp-item.na{ opacity:.45; border-left-color:var(--gris); }
+  .exp-chk{ width:19px; height:19px; accent-color:var(--verde); cursor:pointer; flex-shrink:0; margin-top:1px; }
+  .exp-body{ flex:1; min-width:0; }
+  .exp-num{ color:var(--orange); font-weight:800; font-size:12px; margin-right:6px; }
+  .exp-label{ font-size:13.5px; font-weight:600; line-height:1.35; }
+  .exp-item.done .exp-label{ text-decoration:line-through; color:var(--neutro); }
+  .exp-hint{ font-size:11px; color:var(--gris); margin-top:3px; line-height:1.4; }
+  .exp-nota{
+    width:100%; margin-top:7px; background:var(--grafito2); border:1px solid #3a3c3b;
+    border-radius:6px; padding:6px 9px; color:var(--cream); font-family:'Outfit'; font-size:12px;
+  }
+  .exp-nota:focus{ outline:none; border-color:var(--orange); }
+  .exp-na-btn{
+    background:transparent; border:1px solid #3a3c3b; color:var(--gris); border-radius:6px;
+    font-size:10px; font-weight:700; padding:4px 8px; flex-shrink:0; letter-spacing:.4px;
+  }
+  .exp-na-btn:hover{ border-color:var(--orange); color:var(--cream); }
+  .exp-item.na .exp-na-btn{ border-color:var(--orange); color:var(--orange); }
+  .pc-exp{ font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px; background:#3a3c3b; color:var(--neutro); flex-shrink:0; }
+  .pc-exp.full{ background:rgba(63,174,106,.18); color:var(--verde); }
+
+  /* Conjunto planimétrico con sub-checklist */
+  .exp-item.planim{ border-left-color:var(--orange); background:var(--grafito2); }
+  .exp-peso{
+    font-size:9.5px; font-weight:700; letter-spacing:.5px; text-transform:uppercase;
+    background:rgba(252,76,2,.16); color:var(--orange); padding:3px 8px; border-radius:20px; margin-left:8px;
+  }
+  .exp-mini-bar{ height:5px; background:var(--ink); border-radius:5px; overflow:hidden; margin:9px 0 10px; }
+  .exp-mini-fill{ height:100%; background:var(--orange); border-radius:5px; transition:width .3s; }
+  .exp-subs{ display:flex; flex-direction:column; gap:4px; }
+  .exp-sub-item{
+    display:flex; align-items:center; gap:9px; padding:6px 9px; border-radius:7px; background:var(--ink);
+  }
+  .exp-sub-item.na{ opacity:.42; }
+  .exp-sub-label{ flex:1; font-size:12.5px; min-width:0; }
+  .exp-sub-item.done .exp-sub-label{ text-decoration:line-through; color:var(--neutro); }
+  .exp-chk.sm{ width:16px; height:16px; margin-top:0; }
+  .exp-na-btn.sm{ padding:2px 7px; font-size:9.5px; line-height:1.4; }
+  .exp-na-btn.del:hover{ border-color:var(--rojo); color:var(--rojo); }
+  .exp-add-row{ display:flex; gap:6px; margin-top:9px; }
+  .exp-add-row .exp-nota{ flex:1; }
+  .exp-add-btn{
+    background:var(--orange); color:var(--ink); border-radius:6px; width:34px; flex-shrink:0;
+    font-size:17px; font-weight:700; line-height:1;
+  }
+  .exp-add-btn:hover{ background:#ff5c14; }
+
   /* ---------- GENERAL POLISH ---------- */
   .tab-btn, .view-btn, .subtab-btn{ transition:background .15s, color .15s; }
   .btn-primary, .btn-ghost, .btn-danger{ transition:background .15s, color .15s, border-color .15s; }
@@ -774,6 +833,7 @@
       <button class="subtab-btn active" data-subtab="datos" onclick="switchProjTab('datos')">📋 Datos generales</button>
       <button class="subtab-btn" data-subtab="avance" onclick="switchProjTab('avance')">📈 Avance</button>
       <button class="subtab-btn" data-subtab="abonos" onclick="switchProjTab('abonos')">💰 Abonos</button>
+      <button class="subtab-btn" data-subtab="expediente" onclick="switchProjTab('expediente')">🏛 Expediente</button>
     </nav>
 
     <div class="subtab-panel active" id="panel-datos">
@@ -882,6 +942,18 @@
           <button class="btn-ghost" style="width:100%; margin-top:12px;" onclick="generarEstadoPago()">Generar estado de pago (PDF)</button>
         </div>
       </div>
+    </div>
+
+    <div class="subtab-panel" id="panel-expediente">
+      <div class="exp-head">
+        <div>
+          <div class="exp-title">Documentación para la D.O.M.</div>
+          <div class="exp-sub" id="expResumen"></div>
+        </div>
+        <button class="btn-ghost" onclick="imprimirExpediente()" title="Imprimir listado de documentos">🖨 Listado</button>
+      </div>
+      <div class="exp-bar"><div class="exp-bar-fill" id="expBarFill"></div></div>
+      <div class="exp-list" id="expList"></div>
     </div>
 
     <div class="modal-actions">
@@ -1558,6 +1630,12 @@ function renderProjList(){
       </div>
       ${checkbox}
       <div class="pc-pago">${pagoTexto(p)}</div>
+      ${(function(){
+        const e = expEstado(p);
+        if(!p.expediente) return '';
+        if(!e.dHechos && !e.pHechos) return '';
+        return `<span class="pc-exp ${e.pct===100?'full':''}" title="Avance del expediente D.O.M.">🏛 ${e.pct}%</span>`;
+      })()}
       <div class="pc-actions">
         <button class="pc-btn pc-edit" onclick="openProjModal('${p.id}')" title="Editar">✎</button>
         <button class="pc-btn pc-del-btn" onclick="deleteProjDirect('${p.id}')" title="Eliminar">🗑</button>
@@ -1754,6 +1832,7 @@ function openProjModal(id){
 function switchProjTab(tab){
   document.querySelectorAll('.subtab-btn').forEach(b=>b.classList.toggle('active', b.dataset.subtab===tab));
   document.querySelectorAll('.subtab-panel').forEach(p=>p.classList.toggle('active', p.id==='panel-'+tab));
+  if(tab==='expediente') renderExpediente();
 }
 function closeProjModal(){ document.getElementById('projOverlay').classList.remove('open'); editingProjId=null; }
 
@@ -1900,6 +1979,309 @@ function generarEstadoPago(){
   if(!w){ alert('Permite las ventanas emergentes para generar el PDF.'); return; }
   w.document.write(html);
   w.document.close();
+  setTimeout(()=>{ w.focus(); w.print(); }, 400);
+}
+
+/* ---------- EXPEDIENTE D.O.M. (checklist de documentación) ---------- */
+const DOM_DOCS = [
+  {id:'listado',   n:'0',  label:'Listado de documentos'},
+  {id:'form_minvu',n:'1',  label:'Formulario de ingreso MINVU'},
+  {id:'cip',       n:'2',  label:'Certificado de Informaciones Previas (CIP)'},
+  {id:'decl_arq',  n:'3',  label:'Declaración profesional del arquitecto'},
+  {id:'dominio',   n:'4',  label:'Antecedentes de la propiedad',
+                   hint:'Dominio vigente o escritura'},
+  {id:'avaluo',    n:'5',  label:'Certificado de avalúo fiscal detallado (SII)'},
+  {id:'seim',      n:'6',  label:'Certificado SEIM para IMIV', cond:true,
+                   hint:'Según envergadura del proyecto'},
+  {id:'zonif',     n:'7',  label:'Certificado de zonificación', cond:true,
+                   hint:'Según proyecto'},
+  {id:'accesib',   n:'8',  label:'Memoria de accesibilidad universal', cond:true,
+                   hint:'No aplica en proyectos habitacionales'},
+  {id:'eett',      n:'9',  label:'Especificaciones técnicas'},
+  {id:'planim',    n:'10', label:'Conjunto planimétrico',
+                   hint:'Ubicación, emplazamiento, plantas de arquitectura, elevaciones, cortes, detalles, planta de cubiertas'},
+];
+
+/* Láminas del conjunto planimétrico (sub-checklist) */
+const PLANOS_SUBS = [
+  {id:'ubicacion',     label:'Plano de ubicación'},
+  {id:'emplazamiento', label:'Plano de emplazamiento'},
+  {id:'plantas',       label:'Plantas de arquitectura'},
+  {id:'elevaciones',   label:'Elevaciones'},
+  {id:'cortes',        label:'Cortes'},
+  {id:'cubiertas',     label:'Planta de cubiertas'},
+  {id:'detalles',      label:'Detalles constructivos'},
+];
+// Ponderación: los planos valen la mitad del expediente
+const PESO_PLANOS = 0.5;
+
+function expedienteData(p){
+  if(!p.expediente) p.expediente = {};
+  return p.expediente;
+}
+// Devuelve el array de láminas del proyecto (lo crea la primera vez)
+function expSubs(p){
+  const e = expedienteData(p);
+  if(!e.planim) e.planim = {};
+  if(!Array.isArray(e.planim.subs)){
+    e.planim.subs = PLANOS_SUBS.map(s=>({ id:s.id, label:s.label, done:false, na:false }));
+  }
+  return e.planim.subs;
+}
+
+function expEstado(p){
+  const e = p.expediente || {};
+
+  // Documentos (todos menos el conjunto planimétrico)
+  let dTotal = 0, dHechos = 0;
+  DOM_DOCS.forEach(d=>{
+    if(d.id === 'planim') return;
+    const it = e[d.id] || {};
+    if(it.na) return;
+    dTotal++;
+    if(it.done) dHechos++;
+  });
+
+  // Planos
+  const pl = e.planim || {};
+  let pTotal = 0, pHechos = 0;
+  if(!pl.na && Array.isArray(pl.subs)){
+    pl.subs.forEach(s=>{
+      if(s.na) return;
+      pTotal++;
+      if(s.done) pHechos++;
+    });
+  }
+
+  const docsPct   = dTotal ? (dHechos/dTotal*100) : null;
+  const planosPct = pTotal ? (pHechos/pTotal*100) : null;
+
+  // Ponderado 50/50; si un bloque no aplica, el otro vale el 100%
+  let pct;
+  if(docsPct === null && planosPct === null) pct = 0;
+  else if(docsPct === null)   pct = planosPct;
+  else if(planosPct === null) pct = docsPct;
+  else pct = docsPct*(1-PESO_PLANOS) + planosPct*PESO_PLANOS;
+
+  return {
+    pct: Math.round(pct),
+    docsPct: docsPct===null ? null : Math.round(docsPct),
+    planosPct: planosPct===null ? null : Math.round(planosPct),
+    dTotal, dHechos, pTotal, pHechos
+  };
+}
+
+function renderExpediente(){
+  if(!editingProjId) return;
+  const p = proyectos.find(x=>x.id===editingProjId);
+  if(!p) return;
+  const e = expedienteData(p);
+  expSubs(p);                       // asegura que existan las láminas
+  const est = expEstado(p);
+
+  document.getElementById('expResumen').innerHTML =
+    `<b style="color:var(--cream)">${est.pct}%</b> del expediente · ` +
+    `Documentos ${est.docsPct===null?'—':est.docsPct+'%'} (${est.dHechos}/${est.dTotal}) · ` +
+    `Planos ${est.planosPct===null?'—':est.planosPct+'%'} (${est.pHechos}/${est.pTotal})`;
+  document.getElementById('expBarFill').style.width = est.pct + '%';
+
+  const html = DOM_DOCS.map(d=>{
+    const it = e[d.id] || {};
+
+    // El conjunto planimétrico se dibuja con su propio sub-checklist
+    if(d.id === 'planim'){
+      const subs = e.planim.subs;
+      const cls = it.na ? 'na' : (est.planosPct === 100 ? 'done' : '');
+      const filas = subs.map((s,ix)=>`
+        <div class="exp-sub-item ${s.na?'na':(s.done?'done':'')}">
+          <input type="checkbox" class="exp-chk sm" ${s.done?'checked':''} ${s.na?'disabled':''}
+                 onchange="expSubToggle(${ix}, this.checked)">
+          <span class="exp-sub-label">${(s.label||'').replace(/</g,'&lt;')}</span>
+          <button class="exp-na-btn sm" onclick="expSubNA(${ix})" title="No aplica">${s.na?'N/A':'·'}</button>
+          <button class="exp-na-btn sm del" onclick="expSubDel(${ix})" title="Quitar lámina">✕</button>
+        </div>`).join('');
+      return `<div class="exp-item ${cls} planim">
+        <div class="exp-body">
+          <div class="exp-label">
+            <span class="exp-num">${d.n}</span>${d.label}
+            <span class="exp-peso">50% del expediente</span>
+          </div>
+          <div class="exp-mini-bar"><div class="exp-mini-fill" style="width:${est.planosPct||0}%"></div></div>
+          <div class="exp-subs">${filas}</div>
+          <div class="exp-add-row">
+            <input id="expNuevaLamina" class="exp-nota" style="margin-top:0"
+                   placeholder="Agregar otra lámina (ej: escantillón, plano de estructura)"
+                   onkeydown="if(event.key==='Enter'){event.preventDefault();expSubAdd();}">
+            <button class="exp-add-btn" onclick="expSubAdd()">+</button>
+          </div>
+          <input class="exp-nota" placeholder="Nota del conjunto planimétrico…"
+                 value="${(it.nota||'').replace(/"/g,'&quot;')}"
+                 onchange="expNota('planim', this.value)">
+        </div>
+      </div>`;
+    }
+
+    const cls = it.na ? 'na' : (it.done ? 'done' : '');
+    return `<div class="exp-item ${cls}">
+      <input type="checkbox" class="exp-chk" ${it.done?'checked':''} ${it.na?'disabled':''}
+             onchange="expToggle('${d.id}', this.checked)">
+      <div class="exp-body">
+        <div class="exp-label"><span class="exp-num">${d.n}</span>${d.label}</div>
+        ${d.hint?`<div class="exp-hint">${d.hint}</div>`:''}
+        <input class="exp-nota" placeholder="Nota: solicitado, folio, fecha…"
+               value="${(it.nota||'').replace(/"/g,'&quot;')}"
+               onchange="expNota('${d.id}', this.value)">
+      </div>
+      ${d.cond?`<button class="exp-na-btn" onclick="expNA('${d.id}')">${it.na?'NO APLICA':'N/A'}</button>`:''}
+    </div>`;
+  }).join('');
+
+  document.getElementById('expList').innerHTML = html;
+}
+
+/* --- Acciones sobre las láminas --- */
+function expSubToggle(ix, checked){
+  const p = proyectos.find(x=>x.id===editingProjId);
+  const subs = expSubs(p);
+  subs[ix].done = checked;
+  saveProyectos(); renderExpediente(); renderProyectos();
+}
+function expSubNA(ix){
+  const p = proyectos.find(x=>x.id===editingProjId);
+  const subs = expSubs(p);
+  subs[ix].na = !subs[ix].na;
+  if(subs[ix].na) subs[ix].done = false;
+  saveProyectos(); renderExpediente(); renderProyectos();
+}
+function expSubDel(ix){
+  const p = proyectos.find(x=>x.id===editingProjId);
+  const subs = expSubs(p);
+  if(!confirm(`¿Quitar la lámina "${subs[ix].label}" de este proyecto?`)) return;
+  subs.splice(ix,1);
+  saveProyectos(); renderExpediente(); renderProyectos();
+}
+function expSubAdd(){
+  const inp = document.getElementById('expNuevaLamina');
+  const val = (inp.value||'').trim();
+  if(!val) return;
+  const p = proyectos.find(x=>x.id===editingProjId);
+  const subs = expSubs(p);
+  subs.push({ id:'x'+Date.now(), label:val, done:false, na:false });
+  inp.value='';
+  saveProyectos(); renderExpediente(); renderProyectos();
+}
+
+function expToggle(docId, checked){
+  const p = proyectos.find(x=>x.id===editingProjId);
+  const e = expedienteData(p);
+  e[docId] = e[docId] || {};
+  e[docId].done = checked;
+  if(checked) e[docId].fecha = new Date().toISOString().slice(0,10);
+  saveProyectos(); renderExpediente(); renderProyectos();
+}
+function expNA(docId){
+  const p = proyectos.find(x=>x.id===editingProjId);
+  const e = expedienteData(p);
+  e[docId] = e[docId] || {};
+  e[docId].na = !e[docId].na;
+  if(e[docId].na) e[docId].done = false;
+  saveProyectos(); renderExpediente(); renderProyectos();
+}
+function expNota(docId, val){
+  const p = proyectos.find(x=>x.id===editingProjId);
+  const e = expedienteData(p);
+  e[docId] = e[docId] || {};
+  e[docId].nota = val;
+  saveProyectos();
+}
+
+function imprimirExpediente(){
+  const p = proyectos.find(x=>x.id===editingProjId);
+  if(!p) return;
+  const e = expedienteData(p);
+  const est = expEstado(p);
+  const hoy = new Date().toLocaleDateString('es-CL',{day:'numeric',month:'long',year:'numeric'});
+
+  const filas = DOM_DOCS.map(d=>{
+    const it = e[d.id] || {};
+    if(d.id === 'planim'){
+      const subs = expSubs(p);
+      const sub = subs.map(s=>{
+        const st = s.na ? 'No aplica' : (s.done ? 'Listo' : 'Pendiente');
+        const c  = s.na ? 'na' : (s.done ? 'ok' : 'pend');
+        return `<tr class="${c} sub">
+          <td class="c">·</td>
+          <td style="padding-left:22px">${(s.label||'').replace(/</g,'&lt;')}</td>
+          <td></td>
+          <td class="est ${c}">${st}</td></tr>`;
+      }).join('');
+      const cls = it.na ? 'na' : (est.planosPct===100 ? 'ok' : 'pend');
+      return `<tr class="${cls}">
+        <td class="c">${d.n}</td>
+        <td><b>${d.label}</b> <span class="peso">50% del expediente</span>
+            <div class="sub">Avance de láminas: ${est.pHechos} de ${est.pTotal}</div></td>
+        <td>${(it.nota||'').replace(/</g,'&lt;')}</td>
+        <td class="est ${cls}">${est.planosPct===null?'—':est.planosPct+'%'}</td></tr>` + sub;
+    }
+    const estado = it.na ? 'No aplica' : (it.done ? 'Listo' : 'Pendiente');
+    const cls = it.na ? 'na' : (it.done ? 'ok' : 'pend');
+    return `<tr class="${cls}">
+      <td class="c">${d.n}</td>
+      <td>${d.label}${d.hint?`<div class="sub">${d.hint}</div>`:''}</td>
+      <td>${(it.nota||'').replace(/</g,'&lt;')}</td>
+      <td class="est ${cls}">${estado}</td></tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+  <title>Listado de documentos - ${p.nombre}</title><style>
+    @page{ size:A4; margin:18mm; }
+    *{margin:0;padding:0;box-sizing:border-box;font-family:'Helvetica Neue',Arial,sans-serif;}
+    body{color:#212322;font-size:12px;}
+    .head{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #FC4C02;padding-bottom:14px;margin-bottom:20px;}
+    .brand{display:flex;align-items:center;gap:12px;}
+    .head img{height:46px;}
+    .bt{font-size:22px;font-weight:800;letter-spacing:1px;}
+    .bt span{color:#FC4C02;}
+    .meta{text-align:right;font-size:11px;color:#555;}
+    h1{font-size:15px;letter-spacing:2px;background:#f0f0ee;border:1px solid #bbb;padding:8px;text-align:center;}
+    table{width:100%;border-collapse:collapse;}
+    th,td{border:1px solid #bbb;padding:7px 9px;vertical-align:top;}
+    th{background:#f0f0ee;font-size:10px;letter-spacing:1px;text-transform:uppercase;text-align:left;}
+    td.c{text-align:center;font-weight:700;color:#FC4C02;width:34px;}
+    .sub{font-size:10px;color:#777;margin-top:2px;}
+    .est{font-weight:700;font-size:11px;width:82px;text-align:center;}
+    .est.ok{background:#cfe9d5;color:#1f7a3d;}
+    .est.pend{background:#f8d0d0;color:#b03030;}
+    .est.na{background:#eee;color:#888;}
+    .peso{font-size:9px;background:#ffe0d0;color:#c1451b;padding:2px 6px;border-radius:10px;font-weight:700;}
+    tr.sub td{background:#fafafa;font-size:11px;}
+    .resumen{margin-top:16px;font-size:12px;font-weight:700;}
+    .resumen .det{font-weight:400;color:#666;font-size:11px;margin-top:3px;}
+    .prop{margin-top:22px;font-size:12px;line-height:1.7;}
+    .foot{margin-top:28px;text-align:center;font-size:9px;color:#999;border-top:1px solid #ddd;padding-top:8px;}
+  </style></head><body>
+    <div class="head">
+      <div class="brand">${AV_LOGO_EP?`<img src="${AV_LOGO_EP}">`:''}<div class="bt">AVER<span>ARQ</span></div></div>
+      <div class="meta"><div><b>LISTADO DE DOCUMENTOS</b></div><div>Expediente D.O.M. · ${hoy}</div></div>
+    </div>
+    <h1>DOCUMENTACIÓN DEL EXPEDIENTE</h1>
+    <table>
+      <thead><tr><th>N°</th><th>Documento</th><th>Observaciones</th><th style="text-align:center">Estado</th></tr></thead>
+      <tbody>${filas}</tbody>
+    </table>
+    <div class="resumen">Avance del expediente: ${est.pct}%
+      <div class="det">Documentos ${est.docsPct===null?'—':est.docsPct+'%'} (${est.dHechos}/${est.dTotal}) · Conjunto planimétrico ${est.planosPct===null?'—':est.planosPct+'%'} (${est.pHechos}/${est.pTotal} láminas) · ponderación 50/50</div>
+    </div>
+    <div class="prop">
+      <div><b>PROYECTO:</b> ${p.nombre}</div>
+      <div><b>TIPO:</b> ${p.estado||'—'}</div>
+    </div>
+    <div class="foot">Documento generado por Averarq · Arquitectura · Valle del Aconcagua · averarq.cl</div>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  if(!w){ alert('Permite las ventanas emergentes para imprimir el listado.'); return; }
+  w.document.write(html); w.document.close();
   setTimeout(()=>{ w.focus(); w.print(); }, 400);
 }
 
