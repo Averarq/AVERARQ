@@ -279,6 +279,43 @@
   .cal-help{ font-size:12px; color:var(--neutro); line-height:1.6; margin-top:10px; background:var(--ink); border-radius:8px; padding:12px 14px; }
   .cal-frame-wrap{ background:var(--grafito2); border-radius:14px; padding:10px; }
   .cal-frame{ width:100%; height:520px; border-radius:10px; }
+  /* Fallback: si se usa el iframe de Google, al menos se oscurece */
+  .cal-frame-dark{ filter:invert(0.92) hue-rotate(180deg); background:var(--grafito2); }
+
+  /* ---------- AGENDA PROPIA (línea gráfica Averarq) ---------- */
+  .cal-agenda{ padding:6px 4px; }
+  .cal-loading{ padding:28px; text-align:center; color:var(--gris); font-size:13px; }
+  .cal-empty{ padding:28px; text-align:center; color:var(--gris); font-size:13px; }
+  .cal-day-group{ margin-bottom:6px; }
+  .cal-day-head{
+    display:flex; align-items:baseline; gap:10px; padding:12px 12px 8px;
+    border-bottom:1px solid #3a3c3b; margin-bottom:6px;
+  }
+  .cal-day-num{ font-family:'Outfit'; font-weight:800; font-size:22px; color:var(--orange); line-height:1; }
+  .cal-day-txt{ font-size:11px; letter-spacing:1.4px; text-transform:uppercase; color:var(--neutro); }
+  .cal-day-rel{ margin-left:auto; font-size:11px; color:var(--gris); }
+  .cal-ev{
+    display:flex; align-items:flex-start; gap:12px; padding:10px 12px; border-radius:9px;
+    transition:background .12s;
+  }
+  .cal-ev:hover{ background:var(--grafito3); }
+  .cal-ev-bar{ width:3px; align-self:stretch; border-radius:3px; background:var(--orange); flex-shrink:0; min-height:30px; }
+  .cal-ev-hora{ font-size:12px; color:var(--neutro); min-width:74px; font-variant-numeric:tabular-nums; padding-top:1px; }
+  .cal-ev-body{ flex:1; min-width:0; }
+  .cal-ev-tit{ font-size:14px; font-weight:600; line-height:1.35; }
+  .cal-ev-lugar{ font-size:11.5px; color:var(--gris); margin-top:2px; }
+  .cal-ev.hoy .cal-ev-bar{ background:var(--verde); }
+  .cal-badge-hoy{
+    background:rgba(63,174,106,.16); color:var(--verde); font-size:9.5px; font-weight:700;
+    padding:2px 7px; border-radius:20px; letter-spacing:.6px; text-transform:uppercase;
+  }
+  .cal-foot{
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;
+    padding:12px 12px 4px; margin-top:6px; border-top:1px solid #3a3c3b;
+    font-size:11px; color:var(--gris);
+  }
+  .cal-foot a{ color:var(--orange); text-decoration:none; font-weight:600; }
+  .cal-foot a:hover{ text-decoration:underline; }
 
   /* ---------- GENERAL POLISH ---------- */
   .tab-btn, .view-btn, .subtab-btn{ transition:background .15s, color .15s; }
@@ -548,7 +585,8 @@
       <div id="cal_error" class="cfg-error"></div>
     </div>
     <div class="cal-frame-wrap" id="calFrameWrap" style="display:none;">
-      <iframe id="calFrame" class="cal-frame" frameborder="0" scrolling="no"></iframe>
+      <div id="calAgenda" class="cal-agenda"></div>
+      <iframe id="calFrame" class="cal-frame cal-frame-dark" frameborder="0" scrolling="no" style="display:none;"></iframe>
     </div>
   </div>
 </div>
@@ -1171,7 +1209,10 @@ function renderResumen(){
   `).join('');
 }
 
-/* ---------- GOOGLE CALENDAR (embed público) ---------- */
+/* ---------- CALENDARIO (agenda propia con línea gráfica Averarq) ----------
+   Si hay backend conectado, leemos el feed ICS del calendario público a través
+   del Worker (evita el bloqueo CORS) y dibujamos la agenda nosotros mismos.
+   Si no hay backend, se usa el iframe de Google oscurecido como respaldo.      */
 let calConfig = JSON.parse(localStorage.getItem('averarq_cal_config') || 'null');
 
 function calEmbedUrl(calendarId){
@@ -1196,17 +1237,192 @@ function cambiarConfigCal(){
   if(calConfig) document.getElementById('cal_id').value = calConfig.id;
 }
 
-function renderCalendario(){
-  if(!calConfig){
-    document.getElementById('calConfig').style.display = 'block';
-    document.getElementById('calFrameWrap').style.display = 'none';
-    document.getElementById('calCfgBtn').style.display = 'none';
+/* --- Parser ICS --- */
+function icsUnfold(text){
+  return text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').replace(/\n[ \t]/g,'');
+}
+function icsUnescape(s){
+  return String(s||'').replace(/\\n/gi,' ').replace(/\\,/g,',').replace(/\\;/g,';').replace(/\\\\/g,'\\');
+}
+function icsParseDate(val, isUTC){
+  const m = String(val).match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})(Z)?)?$/);
+  if(!m) return null;
+  const [,y,mo,d,h,mi,s,z] = m;
+  const allDay = !h;
+  if(z || isUTC) return { date:new Date(Date.UTC(+y,+mo-1,+d,+(h||0),+(mi||0),+(s||0))), allDay };
+  return { date:new Date(+y,+mo-1,+d,+(h||0),+(mi||0),+(s||0)), allDay };
+}
+function parseICS(text, horizonDays){
+  horizonDays = horizonDays || 120;
+  const now = new Date(); now.setHours(0,0,0,0);
+  const limit = new Date(now.getTime() + horizonDays*86400000);
+  const lines = icsUnfold(text).split('\n');
+  const eventos = []; let cur = null;
+
+  for(const line of lines){
+    if(line.startsWith('BEGIN:VEVENT')){ cur = {}; continue; }
+    if(line.startsWith('END:VEVENT')){ if(cur && cur.start) eventos.push(cur); cur = null; continue; }
+    if(!cur) continue;
+    const idx = line.indexOf(':'); if(idx < 0) continue;
+    const rawKey = line.slice(0,idx), val = line.slice(idx+1);
+    const key = rawKey.split(';')[0].toUpperCase();
+    const params = rawKey.split(';').slice(1).join(';');
+    if(key === 'DTSTART'){
+      const p = icsParseDate(val, /TZID=UTC/i.test(params));
+      if(p){ cur.start = p.date; cur.allDay = p.allDay || /VALUE=DATE\b/i.test(params); }
+    } else if(key === 'SUMMARY'){ cur.titulo = icsUnescape(val); }
+    else if(key === 'LOCATION'){ cur.lugar = icsUnescape(val); }
+    else if(key === 'RRULE'){ cur.rrule = val; }
+    else if(key === 'EXDATE'){
+      const p = icsParseDate(val.split(',')[0]);
+      cur.exdates = cur.exdates||[]; if(p) cur.exdates.push(p.date.toDateString());
+    }
+  }
+
+  const out = [];
+  for(const ev of eventos){
+    if(!ev.rrule){
+      if(ev.start >= now && ev.start <= limit) out.push(ev);
+      continue;
+    }
+    const rr = {};
+    ev.rrule.split(';').forEach(p=>{ const [k,v]=p.split('='); if(k) rr[k.toUpperCase()]=v; });
+    const freq = (rr.FREQ||'').toUpperCase();
+    const interval = parseInt(rr.INTERVAL||'1',10) || 1;
+    const count = rr.COUNT ? parseInt(rr.COUNT,10) : null;
+    let until = null;
+    if(rr.UNTIL){ const u = icsParseDate(rr.UNTIL); if(u) until = u.date; }
+    const byday = rr.BYDAY ? rr.BYDAY.split(',').map(d=>d.trim().slice(-2).toUpperCase()) : null;
+    const DAYMAP = {SU:0,MO:1,TU:2,WE:3,TH:4,FR:5,SA:6};
+
+    let cursor = new Date(ev.start); let emitted = 0, guard = 0;
+    while(guard++ < 800){
+      if(until && cursor > until) break;
+      if(count && emitted >= count) break;
+      if(cursor > limit) break;
+      const skip = ev.exdates && ev.exdates.includes(cursor.toDateString());
+      if(cursor >= now && !skip) out.push({ ...ev, start:new Date(cursor), recurrente:true });
+      if(!skip) emitted++;
+      if(freq === 'DAILY'){ cursor.setDate(cursor.getDate()+interval); }
+      else if(freq === 'WEEKLY'){
+        if(byday && byday.length > 1){
+          let found = false;
+          for(let i=1;i<=7;i++){
+            const nxt = new Date(cursor); nxt.setDate(nxt.getDate()+i);
+            if(byday.includes(Object.keys(DAYMAP).find(k=>DAYMAP[k]===nxt.getDay()))){ cursor = nxt; found = true; break; }
+          }
+          if(!found) cursor.setDate(cursor.getDate()+7*interval);
+        } else cursor.setDate(cursor.getDate()+7*interval);
+      }
+      else if(freq === 'MONTHLY'){ cursor.setMonth(cursor.getMonth()+interval); }
+      else if(freq === 'YEARLY'){ cursor.setFullYear(cursor.getFullYear()+interval); }
+      else break;
+    }
+  }
+  out.sort((a,b)=> a.start - b.start);
+  return out.slice(0, 40);
+}
+
+/* --- Render de la agenda --- */
+const CAL_DIAS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+const CAL_MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+function calRelativo(fecha){
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const f = new Date(fecha); f.setHours(0,0,0,0);
+  const dias = Math.round((f - hoy)/86400000);
+  if(dias === 0) return 'Hoy';
+  if(dias === 1) return 'Mañana';
+  if(dias < 7) return `En ${dias} días`;
+  if(dias < 14) return 'Próxima semana';
+  return `En ${Math.round(dias/7)} semanas`;
+}
+
+function renderAgenda(eventos){
+  const cont = document.getElementById('calAgenda');
+  if(!eventos.length){
+    cont.innerHTML = '<div class="cal-empty">No hay eventos próximos en tu calendario.</div>';
     return;
   }
-  document.getElementById('calConfig').style.display = 'none';
-  document.getElementById('calFrameWrap').style.display = 'block';
-  document.getElementById('calCfgBtn').style.display = 'inline-block';
-  document.getElementById('calFrame').src = calEmbedUrl(calConfig.id);
+  const hoyStr = new Date().toDateString();
+  const grupos = {};
+  eventos.forEach(ev=>{
+    const k = ev.start.toDateString();
+    (grupos[k] = grupos[k] || []).push(ev);
+  });
+
+  let html = '';
+  Object.keys(grupos).forEach(k=>{
+    const f = new Date(k);
+    const esHoy = k === hoyStr;
+    html += `<div class="cal-day-group">
+      <div class="cal-day-head">
+        <span class="cal-day-num">${f.getDate()}</span>
+        <span class="cal-day-txt">${CAL_MESES[f.getMonth()]} · ${CAL_DIAS[f.getDay()]}</span>
+        <span class="cal-day-rel">${esHoy?'<span class="cal-badge-hoy">Hoy</span>':calRelativo(f)}</span>
+      </div>`;
+    grupos[k].forEach(ev=>{
+      const hora = ev.allDay ? 'Todo el día'
+        : ev.start.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit',hour12:false}) + ' hrs';
+      html += `<div class="cal-ev${esHoy?' hoy':''}">
+        <div class="cal-ev-bar"></div>
+        <div class="cal-ev-hora">${hora}</div>
+        <div class="cal-ev-body">
+          <div class="cal-ev-tit">${(ev.titulo||'(sin título)').replace(/</g,'&lt;')}</div>
+          ${ev.lugar?`<div class="cal-ev-lugar">📍 ${ev.lugar.replace(/</g,'&lt;')}</div>`:''}
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+
+  const gcal = 'https://calendar.google.com/calendar/r';
+  html += `<div class="cal-foot">
+    <span>${eventos.length} evento${eventos.length!==1?'s':''} próximo${eventos.length!==1?'s':''}</span>
+    <a href="${gcal}" target="_blank" rel="noopener">Abrir Google Calendar ↗</a>
+  </div>`;
+  cont.innerHTML = html;
+}
+
+function renderCalendario(){
+  const cfgBox = document.getElementById('calConfig');
+  const wrap = document.getElementById('calFrameWrap');
+  const btn = document.getElementById('calCfgBtn');
+  if(!calConfig){
+    cfgBox.style.display = 'block';
+    wrap.style.display = 'none';
+    btn.style.display = 'none';
+    return;
+  }
+  cfgBox.style.display = 'none';
+  wrap.style.display = 'block';
+  btn.style.display = 'inline-block';
+
+  const agenda = document.getElementById('calAgenda');
+  const frame = document.getElementById('calFrame');
+
+  // Sin backend: respaldo con el iframe de Google oscurecido
+  if(!cloudConfig){
+    agenda.innerHTML = '';
+    agenda.style.display = 'none';
+    frame.style.display = 'block';
+    if(frame.src.indexOf('calendar.google.com') < 0) frame.src = calEmbedUrl(calConfig.id);
+    return;
+  }
+
+  agenda.style.display = 'block';
+  frame.style.display = 'none';
+  agenda.innerHTML = '<div class="cal-loading">Cargando calendario...</div>';
+
+  fetch(cloudUrl('/api/calendario?src=' + encodeURIComponent(calConfig.id)), { headers: cloudHeaders() })
+    .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
+    .then(txt=> renderAgenda(parseICS(txt)))
+    .catch(err=>{
+      // Si falla, caemos al iframe oscurecido en vez de dejar el bloque vacío
+      agenda.innerHTML = `<div class="cal-empty">No se pudo leer la agenda (${err.message}).<br>Mostrando el calendario de Google.</div>`;
+      frame.style.display = 'block';
+      if(frame.src.indexOf('calendar.google.com') < 0) frame.src = calEmbedUrl(calConfig.id);
+    });
 }
 
 /* ============================================================
