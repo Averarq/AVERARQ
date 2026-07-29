@@ -101,6 +101,12 @@
   .pago-stat .l{ font-size:11px; color:var(--gris); text-transform:uppercase; letter-spacing:.5px; margin-top:3px; }
   .pago-item{ display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid rgba(255,255,255,.05); font-size:13.5px; }
   .pago-item .pm{ font-size:16px; } .pago-item .pmonto{ font-weight:700; } .pago-item .pfecha{ margin-left:auto; color:var(--gris); font-size:12px; }
+  .cf-titulo{ font-family:'Outfit'; font-size:14px; font-weight:700; margin:20px 0 10px; color:var(--neutro); }
+  .cuota-fut{ display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid rgba(255,255,255,.05); font-size:13.5px; border-left:3px solid var(--naranja); padding-left:12px; border-radius:0 6px 6px 0; }
+  .cuota-fut.venc{ border-left-color:var(--rojo); }
+  .cf-ico{ font-size:15px; } .cf-monto{ font-weight:700; }
+  .cf-rel{ margin-left:auto; color:var(--naranja); font-size:12px; font-weight:600; }
+  .cf-rel.venc{ color:var(--rojo); }
 
   footer{ text-align:center; padding:30px 20px; color:var(--gris); font-size:12px; border-top:1px solid var(--grafito3); margin-top:20px; }
   footer a{ color:var(--naranja); text-decoration:none; }
@@ -195,6 +201,24 @@
         ).join("")
       : '<div class="vacio">Aún no hay pagos registrados.</div>';
 
+    // Cuotas futuras
+    const hoyCf = new Date(); hoyCf.setHours(0,0,0,0);
+    const cuotasHtml = (p.cuotasFuturas||[]).length
+      ? p.cuotasFuturas.map(c=>{
+          let rel='', venc=false;
+          if(c.fecha){
+            const f=new Date(c.fecha+'T00:00:00'); const dias=Math.round((f-hoyCf)/86400000);
+            if(dias<0){ rel='Vencida'; venc=true; } else if(dias===0) rel='Vence hoy';
+            else if(dias===1) rel='Mañana'; else if(dias<31) rel='En '+dias+' días';
+            else rel='En '+Math.round(dias/30)+' mes(es)';
+          }
+          return '<div class="cuota-fut'+(venc?' venc':'')+'"><span class="cf-ico">📅</span>'+
+            '<span class="cf-monto">'+money(c.monto)+'</span>'+
+            '<span style="color:var(--gris);font-size:12px">'+(c.fecha||'')+(c.nota?" · "+esc(c.nota):"")+'</span>'+
+            '<span class="cf-rel'+(venc?' venc':'')+'">'+rel+'</span></div>';
+        }).join("")
+      : '';
+
     v.innerHTML = `
       <div class="proj-hero">
         <div class="eyebrow">Proyecto</div>
@@ -234,6 +258,7 @@
           <div class="pago-stat"><div class="n rojo">${money(p.saldo)}</div><div class="l">Saldo pendiente</div></div>
         </div>
         ${pagosHtml}
+        ${cuotasHtml ? '<h3 class="cf-titulo">📅 Próximas cuotas pactadas</h3>'+cuotasHtml : ''}
       </div>
     `;
     window.scrollTo(0,0);
