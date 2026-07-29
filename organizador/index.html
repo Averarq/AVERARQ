@@ -193,6 +193,11 @@
   .pc-exp-wrap.full{ border-color:rgba(63,174,106,.5); }
   .pc-exp-wrap.full .pc-exp-fill{ background:var(--verde); }
   .pc-exp-wrap.full .pc-exp-pct{ color:var(--verde); }
+
+  /* Código del portal del cliente */
+  .cliente-cod-row{ display:flex; gap:8px; align-items:center; }
+  .cliente-cod-row input{ flex:1; font-family:'Outfit'; font-weight:700; letter-spacing:2px; color:var(--orange); text-align:center; }
+  .cliente-cod-hint{ font-size:11px; color:var(--gris); margin-top:7px; line-height:1.4; }
   .pc-actions{ display:flex; gap:6px; flex-shrink:0; }
   .pc-btn{ background:var(--ink); border:1px solid #3a3c3b; border-radius:7px; width:34px; height:34px; font-size:14px; cursor:pointer; transition:all .12s; }
   .pc-edit:hover{ border-color:var(--orange); color:var(--orange); }
@@ -891,6 +896,20 @@
           <input type="checkbox" id="p_fechaCompletada">
           <span>✅ Ya se cumplió / realizó (no marcar como vencido)</span>
         </label>
+      </div>
+
+      <div class="field" style="border-top:1px solid #3a3c3b; padding-top:16px; margin-top:6px;">
+        <label>🔗 Portal del cliente (seguimiento)</label>
+        <div class="cliente-cod-row">
+          <input id="p_codigoCliente" placeholder="Escribe uno o presiona Generar" maxlength="24"
+                 oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'')"
+                 onchange="validarCodigoManual()">
+          <button type="button" class="btn-ghost" onclick="generarCodigoCliente()">Generar</button>
+          <button type="button" class="btn-ghost" id="btnCopiarCod" onclick="copiarAccesoCliente()" style="display:none;">Copiar acceso</button>
+        </div>
+        <div class="cliente-cod-hint" id="clienteCodHint">
+          Genera un código único para que tu cliente vea el avance de su proyecto en averarq.cl/seguimiento
+        </div>
       </div>
     </div>
 
@@ -1838,11 +1857,13 @@ function openProjModal(id){
     document.getElementById('p_fecha').value = p.fecha || '';
     document.getElementById('p_fechaLabel').value = p.fechaLabel || '';
     document.getElementById('p_fechaCompletada').checked = !!p.fechaCompletada;
+    mostrarCodigoCliente(p.codigoCliente || '');
     renderProjNotes(p.notas||[]);
   } else {
     ['p_nombre','p_estado','p_total','p_pagoLabel','p_fecha','p_fechaLabel'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('p_prioridad').value='media';
     document.getElementById('p_fechaCompletada').checked = false;
+    mostrarCodigoCliente('');
     renderProjNotes([]);
     renderPagosList(null);
   }
@@ -2460,6 +2481,12 @@ function checkStorageSize(){
 function saveProj(){
   const nombre = document.getElementById('p_nombre').value.trim();
   if(!nombre){ alert('Ingresa un nombre.'); return; }
+  const codigoCliente = document.getElementById('p_codigoCliente').value.trim().toUpperCase();
+  // No permitir códigos duplicados entre proyectos
+  if(codigoCliente){
+    const dup = proyectos.some(p => p.id!==editingProjId && (p.codigoCliente||'').toUpperCase()===codigoCliente);
+    if(dup){ alert('Ese código de cliente ya lo usa otro proyecto. Cámbialo antes de guardar.'); switchProjTab('datos'); return; }
+  }
   const data = {
     nombre, estado:document.getElementById('p_estado').value,
     prioridad:document.getElementById('p_prioridad').value,
@@ -2468,6 +2495,7 @@ function saveProj(){
     fecha:document.getElementById('p_fecha').value,
     fechaLabel:document.getElementById('p_fechaLabel').value,
     fechaCompletada:document.getElementById('p_fechaCompletada').checked,
+    codigoCliente,
   };
   if(editingProjId){
     Object.assign(proyectos.find(x=>x.id===editingProjId), data);
@@ -2475,6 +2503,70 @@ function saveProj(){
     proyectos.push({id:crypto.randomUUID(), ...data, notas:[], pagos:[]});
   }
   saveProyectos(); renderProyectos(); closeProjModal();
+}
+
+/* ---------- Código del portal del cliente ---------- */
+function mostrarCodigoCliente(cod){
+  document.getElementById('p_codigoCliente').value = cod || '';
+  document.getElementById('btnCopiarCod').style.display = cod ? 'inline-block' : 'none';
+  document.getElementById('clienteCodHint').innerHTML = cod
+    ? `El cliente entra en <b>averarq.cl/seguimiento</b> con este código y ve el avance, documentos y pagos de su proyecto.`
+    : `Genera un código único para que tu cliente vea el avance de su proyecto en averarq.cl/seguimiento`;
+}
+function generarCodigoCliente(){
+  const actual = document.getElementById('p_codigoCliente').value.trim();
+  if(actual && !confirm('Ya existe un código. Si generas uno nuevo, el anterior dejará de funcionar. ¿Continuar?')) return;
+  // Formato AVQ-XXXX sin caracteres ambiguos (sin O, 0, I, 1, L)
+  const alfabeto = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  let existentes = new Set(proyectos.map(p=>(p.codigoCliente||'').toUpperCase()));
+  let cod;
+  do {
+    let s = '';
+    for(let i=0;i<4;i++) s += alfabeto[Math.floor(Math.random()*alfabeto.length)];
+    cod = 'AVQ-' + s;
+  } while(existentes.has(cod));
+  mostrarCodigoCliente(cod);
+  // guardar de inmediato si el proyecto ya existe
+  if(editingProjId){
+    proyectos.find(x=>x.id===editingProjId).codigoCliente = cod;
+    saveProyectos();
+  }
+}
+function copiarAccesoCliente(){
+  const cod = document.getElementById('p_codigoCliente').value.trim();
+  if(!cod) return;
+  const texto = `Hola! Puedes seguir el avance de tu proyecto con Averarq aquí:\nhttps://averarq.cl/seguimiento\nTu código de acceso: ${cod}`;
+  navigator.clipboard.writeText(texto).then(()=>{
+    const b = document.getElementById('btnCopiarCod');
+    const orig = b.textContent; b.textContent = '¡Copiado!';
+    setTimeout(()=>b.textContent=orig, 1500);
+  }).catch(()=>alert('Acceso del cliente:\n\n'+texto));
+}
+
+// Valida un código escrito a mano: no vacío, sin duplicados, formato limpio
+function validarCodigoManual(){
+  const inp = document.getElementById('p_codigoCliente');
+  const hint = document.getElementById('clienteCodHint');
+  let cod = inp.value.trim().toUpperCase();
+  inp.value = cod;
+  if(!cod){ mostrarCodigoCliente(''); return; }
+  // ¿lo usa otro proyecto?
+  const dup = proyectos.some(p => p.id!==editingProjId && (p.codigoCliente||'').toUpperCase()===cod);
+  if(dup){
+    hint.innerHTML = '<span style="color:var(--rojo)">⚠️ Ese código ya lo usa otro proyecto. Elige uno distinto.</span>';
+    document.getElementById('btnCopiarCod').style.display = 'none';
+    inp.style.borderColor = 'var(--rojo)';
+    return false;
+  }
+  inp.style.borderColor = '';
+  document.getElementById('btnCopiarCod').style.display = 'inline-block';
+  hint.innerHTML = `El cliente entra en <b>averarq.cl/seguimiento</b> con este código y ve el avance, documentos y pagos de su proyecto.`;
+  // guardar de inmediato si el proyecto ya existe
+  if(editingProjId){
+    proyectos.find(x=>x.id===editingProjId).codigoCliente = cod;
+    saveProyectos();
+  }
+  return true;
 }
 function deleteProj(){
   if(!editingProjId) return;
