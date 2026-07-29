@@ -141,14 +141,14 @@
 
   // permite entrar directo con ?c=CODIGO
   const params = new URLSearchParams(location.search);
-  if(params.get("c")){ .value = params.get("c").toUpperCase(); }
+  if(params.get("c")){ $("#codigo").value = params.get("c").toUpperCase(); }
 
-  .addEventListener("keydown", e=>{ if(e.key==="Enter") entrar(); });
-  .addEventListener("input", e=>{ e.target.value = e.target.value.toUpperCase(); });
+  $("#codigo").addEventListener("keydown", e=>{ if(e.key==="Enter") entrar(); });
+  $("#codigo").addEventListener("input", e=>{ e.target.value = e.target.value.toUpperCase(); });
 
   async function entrar(){
-    const cod = .value.trim().toUpperCase();
-    const err = ;
+    const cod = $("#codigo").value.trim().toUpperCase();
+    const err = $("#err");
     err.textContent = "";
     if(!cod){ err.textContent = "Ingresa tu código."; return; }
     err.textContent = "Buscando tu proyecto...";
@@ -166,8 +166,8 @@
   }
 
   function render(p, cod){
-    .classList.add("hidden");
-    const v = ;
+    $("#loginView").classList.add("hidden");
+    const v = $("#panelView");
     v.classList.remove("hidden");
 
     const a = p.avance || {pct:0};
