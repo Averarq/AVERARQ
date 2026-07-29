@@ -232,6 +232,18 @@
   .pago-item .pi-del:hover{ color:var(--rojo); }
   .pago-item .pi-thumb{ width:34px; height:34px; border-radius:6px; object-fit:cover; flex-shrink:0; }
 
+  .cuotas-list{ display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+  .cuota-item{ display:flex; align-items:center; gap:10px; background:var(--ink); border-radius:8px; padding:9px 11px; font-size:13px; border-left:3px solid var(--orange); }
+  .cuota-item.vencida{ border-left-color:var(--rojo); }
+  .cuota-ico{ font-size:15px; flex-shrink:0; }
+  .cuota-info{ flex:1; }
+  .cuota-monto{ font-weight:700; }
+  .cuota-meta{ font-size:11px; color:var(--gris); }
+  .cuota-rel{ font-size:11px; color:var(--orange); font-weight:600; flex-shrink:0; }
+  .cuota-rel.vencida{ color:var(--rojo); }
+  .cuota-del{ background:none; color:var(--gris); font-size:16px; flex-shrink:0; }
+  .cuota-del:hover{ color:var(--rojo); }
+
   .pago-add{ margin-top:12px; background:var(--ink); border-radius:10px; padding:12px; }
   .pago-add-row{ display:flex; gap:8px; margin-bottom:8px; }
   .pago-add-row:last-child{ margin-bottom:0; }
@@ -856,6 +868,7 @@
       <button class="subtab-btn" data-subtab="avance" onclick="switchProjTab('avance')">📈 Avance</button>
       <button class="subtab-btn" data-subtab="abonos" onclick="switchProjTab('abonos')">💰 Abonos</button>
       <button class="subtab-btn" data-subtab="expediente" onclick="switchProjTab('expediente')">🏛 Expediente</button>
+      <button class="subtab-btn" data-subtab="docs" onclick="switchProjTab('docs')">📁 Documentos</button>
     </nav>
 
     <div class="subtab-panel active" id="panel-datos">
@@ -939,6 +952,7 @@
             <select id="pg_metodo">
               <option value="Transferencia">🏦 Transferencia</option>
               <option value="Efectivo">💵 Efectivo</option>
+              <option value="Cheque">🧾 Cheque</option>
               <option value="Otro">📎 Otro</option>
             </select>
           </div>
@@ -951,6 +965,19 @@
             <span id="pg_fileName" class="file-name"></span>
           </div>
           <button class="btn-primary" style="width:100%; margin-top:8px;" onclick="addPago()">+ Registrar abono</button>
+        </div>
+      </div>
+
+      <div class="field" style="border-top:1px solid #3a3c3b; padding-top:18px; margin-top:20px;">
+        <label>📅 Cuotas futuras pactadas <span id="cuotasResumen" class="pago-resumen"></span></label>
+        <div class="cuotas-list" id="cuotasList"></div>
+        <div class="pago-add">
+          <div class="pago-add-row">
+            <input id="cf_monto" type="number" placeholder="Monto ($)">
+            <input id="cf_fecha" type="date">
+            <input id="cf_nota" placeholder="Nota (opcional)">
+          </div>
+          <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="addCuotaFutura()">+ Agregar cuota futura</button>
         </div>
       </div>
 
@@ -990,6 +1017,37 @@
       </div>
       <div class="exp-bar"><div class="exp-bar-fill" id="expBarFill"></div></div>
       <div class="exp-list" id="expList"></div>
+    </div>
+
+    <div class="subtab-panel" id="panel-docs">
+      <div class="field">
+        <label>📁 Documentos del proyecto <span id="projDocsResumen" class="pago-resumen"></span></label>
+        <div id="projDocsCloudWarn" style="display:none; font-size:12px; color:var(--gris); padding:8px 0;">
+          Conéctate a la nube (pestaña Documentos del panel principal) para subir y ver documentos de este proyecto.
+        </div>
+        <div class="proj-docs-list" id="projDocsList"></div>
+        <div class="pago-add" id="projDocsUpload">
+          <div class="pago-add-row">
+            <input id="pd_nombre" placeholder="Nombre del documento (ej: CIP folio 4512)">
+            <select id="pd_categoria">
+              <option value="Certificado">Certificado</option>
+              <option value="Plano">Plano / Lámina</option>
+              <option value="Render">Render</option>
+              <option value="Foto">Foto / Drone</option>
+              <option value="Escritura">Escritura / Legal</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+          <div class="pago-add-row">
+            <label class="file-btn">
+              📎 Elegir archivo
+              <input id="pd_file" type="file" style="display:none" onchange="document.getElementById('pd_fileName').textContent=this.files[0]?this.files[0].name:''">
+            </label>
+            <span id="pd_fileName" class="file-name"></span>
+          </div>
+          <button class="btn-primary" style="width:100%; margin-top:8px;" onclick="subirDocProyecto()">+ Subir documento</button>
+        </div>
+      </div>
     </div>
 
     <div class="modal-actions">
@@ -1618,7 +1676,7 @@ function pagoTexto(p){
   if(p.pagoLabel) return p.pagoLabel;
   const pct = pagoPct(p);
   if(pct===null) return '—';
-  return '$'+p.pagado.toLocaleString('es-CL')+' / $'+p.total.toLocaleString('es-CL')+' ('+pct+'%)';
+  return '$'+(p.pagado||0).toLocaleString('es-CL')+' / $'+(p.total||0).toLocaleString('es-CL')+' ('+pct+'%)';
 }
 function daysUntil(dateStr){ if(!dateStr) return null; const d=new Date(dateStr+'T00:00:00'), t=new Date('2026-07-19T00:00:00'); return Math.round((d-t)/(1000*60*60*24)); }
 
@@ -1854,6 +1912,7 @@ function openProjModal(id){
     document.getElementById('p_total').value = p.total || '';
     document.getElementById('p_pagoLabel').value = p.pagoLabel || '';
     renderPagosList(p);
+    renderCuotasList(p);
     document.getElementById('p_fecha').value = p.fecha || '';
     document.getElementById('p_fechaLabel').value = p.fechaLabel || '';
     document.getElementById('p_fechaCompletada').checked = !!p.fechaCompletada;
@@ -1866,6 +1925,7 @@ function openProjModal(id){
     mostrarCodigoCliente('');
     renderProjNotes([]);
     renderPagosList(null);
+    renderCuotasList(null);
   }
   clearPagoForm();
   switchProjTab('datos');
@@ -1875,6 +1935,7 @@ function switchProjTab(tab){
   document.querySelectorAll('.subtab-btn').forEach(b=>b.classList.toggle('active', b.dataset.subtab===tab));
   document.querySelectorAll('.subtab-panel').forEach(p=>p.classList.toggle('active', p.id==='panel-'+tab));
   if(tab==='expediente') renderExpediente();
+  if(tab==='docs') renderProjDocs();
 }
 function closeProjModal(){ document.getElementById('projOverlay').classList.remove('open'); editingProjId=null; }
 
@@ -2468,6 +2529,171 @@ function removePago(pagoId){
   saveProyectos();
   renderPagosList(p);
   renderProyectos();
+}
+
+/* ---------- CUOTAS FUTURAS PACTADAS ---------- */
+function money(n){ return '$' + Number(n||0).toLocaleString('es-CL'); }
+function renderCuotasList(p){
+  const list = document.getElementById('cuotasList');
+  const resumen = document.getElementById('cuotasResumen');
+  if(!p || !list){ if(list) list.innerHTML=''; if(resumen) resumen.textContent=''; return; }
+  const cuotas = (p.cuotasFuturas||[]).slice().sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+  if(!cuotas.length){
+    list.innerHTML = '<div style="color:var(--gris);font-size:12px;padding:6px 2px">Sin cuotas futuras registradas.</div>';
+    resumen.textContent = '';
+    return;
+  }
+  const totalPactado = cuotas.reduce((s,c)=>s+Number(c.monto||0),0);
+  resumen.textContent = `${cuotas.length} cuota${cuotas.length!==1?'s':''} · ${money(totalPactado)}`;
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  list.innerHTML = cuotas.map(c=>{
+    const f = c.fecha ? new Date(c.fecha+'T00:00:00') : null;
+    let rel = '', vencida = false;
+    if(f){
+      const dias = Math.round((f-hoy)/86400000);
+      if(dias < 0){ rel = `Venció hace ${Math.abs(dias)} d`; vencida = true; }
+      else if(dias === 0) rel = 'Vence hoy';
+      else if(dias === 1) rel = 'Mañana';
+      else if(dias < 31) rel = `En ${dias} días`;
+      else rel = `En ${Math.round(dias/30)} mes(es)`;
+    }
+    return `<div class="cuota-item ${vencida?'vencida':''}">
+      <span class="cuota-ico">📅</span>
+      <div class="cuota-info">
+        <div class="cuota-monto">${money(c.monto)}</div>
+        <div class="cuota-meta">${c.fecha||'sin fecha'}${c.nota? ' · '+c.nota.replace(/</g,'&lt;'):''}</div>
+      </div>
+      <span class="cuota-rel ${vencida?'vencida':''}">${rel}</span>
+      <button class="cuota-del" onclick="removeCuotaFutura('${c.id}')" title="Eliminar">&times;</button>
+    </div>`;
+  }).join('');
+}
+
+function addCuotaFutura(){
+  if(!editingProjId){ alert('Guarda el proyecto primero.'); return; }
+  const monto = Number(document.getElementById('cf_monto').value);
+  if(!monto || monto<=0){ alert('Ingresa un monto válido.'); return; }
+  const fecha = document.getElementById('cf_fecha').value;
+  if(!fecha){ alert('Ingresa la fecha pactada de la cuota.'); return; }
+  const nota = document.getElementById('cf_nota').value;
+  const p = proyectos.find(x=>x.id===editingProjId);
+  p.cuotasFuturas = p.cuotasFuturas || [];
+  p.cuotasFuturas.push({id:crypto.randomUUID(), monto, fecha, nota});
+  saveProyectos();
+  renderCuotasList(p);
+  document.getElementById('cf_monto').value='';
+  document.getElementById('cf_fecha').value='';
+  document.getElementById('cf_nota').value='';
+}
+
+function removeCuotaFutura(cuotaId){
+  if(!editingProjId) return;
+  const p = proyectos.find(x=>x.id===editingProjId);
+  p.cuotasFuturas = (p.cuotasFuturas||[]).filter(c=>c.id!==cuotaId);
+  saveProyectos();
+  renderCuotasList(p);
+}
+
+/* ---------- DOCUMENTOS POR PROYECTO ---------- */
+function renderProjDocs(){
+  if(!editingProjId) return;
+  const p = proyectos.find(x=>x.id===editingProjId);
+  const list = document.getElementById('projDocsList');
+  const warn = document.getElementById('projDocsCloudWarn');
+  const upload = document.getElementById('projDocsUpload');
+  const resumen = document.getElementById('projDocsResumen');
+
+  if(!cloudConfig){
+    warn.style.display = 'block';
+    upload.style.display = 'none';
+    list.innerHTML = '';
+    resumen.textContent = '';
+    return;
+  }
+  warn.style.display = 'none';
+  upload.style.display = 'block';
+  list.innerHTML = '<div style="color:var(--gris);font-size:12px;padding:6px 2px">Cargando documentos...</div>';
+
+  fetch(cloudUrl('/api/documentos'), { headers: cloudHeaders() })
+    .then(r=>r.json())
+    .then(data=>{
+      const docs = (data.documentos||[]).filter(d=>d.proyectoId===editingProjId);
+      resumen.textContent = docs.length ? `${docs.length} documento${docs.length!==1?'s':''}` : '';
+      if(!docs.length){
+        list.innerHTML = '<div style="color:var(--gris);font-size:12px;padding:6px 2px">Aún no hay documentos en este proyecto.</div>';
+        return;
+      }
+      list.innerHTML = docs.map(d=>{
+        const kb = d.size ? (d.size>1048576 ? (d.size/1048576).toFixed(1)+' MB' : Math.round(d.size/1024)+' KB') : '';
+        return `<div class="pago-item">
+          <span class="pi-metodo">${docIcono(d.type,d.fileName)}</span>
+          <div class="pi-info">
+            <div class="pi-monto">${(d.nombre||d.fileName).replace(/</g,'&lt;')}</div>
+            <div class="pi-meta">${d.categoria?d.categoria+' · ':''}${d.fecha||''}${kb?' · '+kb:''}</div>
+          </div>
+          <a class="pi-link" href="#" onclick="descargarDocProyecto(event,'${d.id}','${(d.fileName||'').replace(/'/g,'')}')">Descargar</a>
+          <button class="pi-del" onclick="borrarDocProyecto('${d.id}')" title="Eliminar">&times;</button>
+        </div>`;
+      }).join('');
+    })
+    .catch(err=>{ list.innerHTML = '<div style="color:var(--rojo);font-size:12px;padding:6px 2px">Error al cargar: '+err.message+'</div>'; });
+}
+
+function docIcono(type, name){
+  const t = (type||'')+(name||'');
+  if(/pdf/i.test(t)) return '📄';
+  if(/(jpg|jpeg|png|webp|gif|image)/i.test(t)) return '🖼️';
+  if(/(dwg|dxf)/i.test(t)) return '📐';
+  if(/(zip|rar)/i.test(t)) return '🗜️';
+  return '📎';
+}
+
+function subirDocProyecto(){
+  if(!editingProjId){ alert('Guarda el proyecto primero.'); return; }
+  if(!cloudConfig){ alert('Conéctate a la nube primero.'); return; }
+  const file = document.getElementById('pd_file').files[0];
+  if(!file){ alert('Elige un archivo.'); return; }
+  const p = proyectos.find(x=>x.id===editingProjId);
+  const nombre = document.getElementById('pd_nombre').value.trim() || file.name;
+  const categoria = document.getElementById('pd_categoria').value;
+
+  const btn = document.querySelector('#projDocsUpload .btn-primary');
+  btn.disabled = true; btn.textContent = 'Subiendo...';
+  const fd = new FormData();
+  fd.append('nombre', nombre);
+  fd.append('categoria', categoria);
+  fd.append('proyectoId', editingProjId);
+  fd.append('proyectoNombre', p.nombre);
+  fd.append('file', file);
+  fetch(cloudUrl('/api/documentos'), { method:'POST', headers: cloudHeaders(), body: fd })
+    .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(()=>{
+      document.getElementById('pd_nombre').value='';
+      document.getElementById('pd_file').value='';
+      document.getElementById('pd_fileName').textContent='';
+      renderProjDocs();
+    })
+    .catch(err=> alert('No se pudo subir: '+err.message))
+    .finally(()=>{ btn.disabled=false; btn.textContent='+ Subir documento'; });
+}
+
+function descargarDocProyecto(ev, docId, fileName){
+  ev.preventDefault();
+  fetch(cloudUrl('/api/documentos/'+docId+'/file'), { headers: cloudHeaders() })
+    .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.blob(); })
+    .then(blob=>{
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = fileName; a.click();
+      URL.revokeObjectURL(a.href);
+    })
+    .catch(err=> alert('No se pudo descargar: '+err.message));
+}
+
+function borrarDocProyecto(docId){
+  if(!confirm('¿Eliminar este documento? También desaparecerá del portal del cliente.')) return;
+  fetch(cloudUrl('/api/documentos/'+docId), { method:'DELETE', headers: cloudHeaders() })
+    .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); renderProjDocs(); })
+    .catch(err=> alert('No se pudo eliminar: '+err.message));
 }
 
 function checkStorageSize(){
