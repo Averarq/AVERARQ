@@ -150,6 +150,25 @@ main{display:flex;flex:1;align-items:flex-start}
 .pill.calc{border-color:#7aa7d9;color:#7aa7d9}
 .empty{padding:26px;text-align:center;color:var(--gris);font-size:12px}
 
+/* ---------- pantalla de acceso (solo cuando se sirve por web) ---------- */
+#gate{position:fixed;inset:0;z-index:500;background:var(--grafito);display:none;
+      align-items:center;justify-content:center;padding:24px}
+#gate.on{display:flex}
+.gbox{width:min(360px,100%);text-align:center}
+.gbox .iso{width:72px;height:72px;color:var(--naranja);margin-bottom:18px}
+.gbox h2{font-size:17px;font-weight:600;letter-spacing:2.4px;margin-bottom:4px}
+.gbox .bj{font-size:10px;letter-spacing:1.6px;color:var(--gris);text-transform:uppercase;margin-bottom:26px}
+.gbox .lb{font-size:11px;color:var(--neutro);text-align:left;margin-bottom:6px}
+.gbox input{width:100%;background:var(--grafito-3);border:1px solid var(--borde);color:var(--crema);
+  padding:11px 13px;border-radius:6px;font-size:15px;font-family:inherit;letter-spacing:3px;text-align:center}
+.gbox input:focus{outline:none;border-color:var(--naranja)}
+.gbox button{width:100%;margin-top:10px;background:var(--naranja);border:1px solid var(--naranja);
+  color:#fff;padding:11px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.gbox button:hover{filter:brightness(1.1)}
+.gerr{color:var(--bad);font-size:11.5px;margin-top:10px;min-height:16px}
+.gpie{font-size:10px;color:var(--gris);margin-top:26px;line-height:1.6}
+body.locked #app,body.locked #doc,body.locked #prevbar{display:none!important}
+
 /* ==========================================================================
    INFORME A4 — estilo-averarq.css
    Blanco, contornos naranja, sin rellenos sólidos, filete fino entre filas.
@@ -234,6 +253,21 @@ body.prev{padding-top:70px}
   <span class="sp"></span>
   <button class="btn sm" onclick="cerrarPrev()">← Volver a editar</button>
   <button class="btn pri sm" onclick="window.print()">Imprimir / Guardar PDF</button>
+</div>
+
+
+<div id="gate">
+  <div class="gbox">
+    <svg class="iso" viewBox="0 0 1440 1440" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AVERARQ"><circle cx="725.96" cy="726.34" r="692.43" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="30"/><polygon fill="currentColor" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>
+    <h2>AVERARQ</h2>
+    <div class="bj">Acreditación térmica · art. 4.1.10</div>
+    <div class="lb">Clave de acceso</div>
+    <input id="gpw" type="password" autocomplete="current-password" placeholder="••••••••">
+    <button onclick="entrar()">Entrar</button>
+    <div class="gerr" id="gerr"></div>
+    <div class="gpie">Herramienta de uso interno del estudio.<br>
+      averarq.cl · Alejandro Vera Donoso, Arquitecto</div>
+  </div>
 </div>
 
 <div id="app">
@@ -851,7 +885,45 @@ function abrirPrev(){document.getElementById('doc').innerHTML=informeHTML();
   document.body.classList.add('prev');window.scrollTo(0,0)}
 function cerrarPrev(){document.body.classList.remove('prev')}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){cerrarCat();cerrarPrev()}});
-initUI();
+/* ---------------------------------------------------------------- acceso
+   Portero del lado del cliente. NO es seguridad: quien mire el codigo fuente
+   puede saltarselo. La proteccion real es el Basic Auth del servidor
+   (07_WEB/.htaccess). Esto solo evita el acceso casual y da una entrada
+   coherente con la marca.
+   Se omite al abrir el archivo localmente (file://): en el equipo del estudio
+   la app funciona con doble clic, sin pedir clave.                          */
+const GH='3524c32dbb3d9506c0e12ce9afeaddd083b00f9def13b69eafb939effb07a7a4';
+async function _hash(s){
+  if(window.crypto&&crypto.subtle&&window.isSecureContext){
+    const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
+    return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+  }
+  return 'nocrypto:'+s;           /* contexto no seguro (http sin TLS) */
+}
+async function entrar(){
+  const v=document.getElementById('gpw').value;
+  const h=await _hash(v);
+  if(h===GH||h==='nocrypto:avera99'){
+    try{sessionStorage.setItem('averarq_rt','1')}catch(e){}
+    document.getElementById('gate').classList.remove('on');
+    document.body.classList.remove('locked');
+    initUI();
+  }else{
+    document.getElementById('gerr').textContent='Clave incorrecta.';
+    document.getElementById('gpw').select();
+  }
+}
+function _arranque(){
+  const local=location.protocol==='file:';
+  let ya=false; try{ya=sessionStorage.getItem('averarq_rt')==='1'}catch(e){}
+  if(local||ya){initUI();return}
+  document.body.classList.add('locked');
+  document.getElementById('gate').classList.add('on');
+  const i=document.getElementById('gpw');
+  i.focus();
+  i.addEventListener('keydown',e=>{if(e.key==='Enter')entrar()});
+}
+_arranque();
 </script>
 </body>
 </html>
