@@ -423,25 +423,32 @@
     font-family:'Outfit'; font-size:13px; flex:1;
   }
   .doc-grid{
-    display:grid; grid-template-columns:repeat(auto-fill, minmax(230px,1fr)); gap:14px;
+    display:block;
     padding:20px 32px 34px;
   }
+  .doc-folder{ margin-bottom:12px; background:var(--grafito2); border-radius:12px; overflow:hidden; border:1px solid #3a3c3b; }
+  .doc-folder-head{ display:flex; align-items:center; gap:11px; padding:14px 18px; cursor:pointer; user-select:none; transition:background .12s; }
+  .doc-folder-head:hover{ background:var(--grafito3); }
+  .doc-folder-arrow{ color:var(--orange); font-size:13px; width:14px; }
+  .doc-folder-ico{ font-size:18px; }
+  .doc-folder-name{ font-weight:700; font-size:15px; flex:1; }
+  .doc-folder-count{ font-size:12px; font-weight:700; color:var(--neutro); background:var(--ink); padding:3px 11px; border-radius:20px; }
+  .doc-folder-body{ padding:4px 18px 18px; }
+  .doc-grid-inner{ display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:14px; }
   .doc-card{
-    background:var(--grafito2); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:8px;
+    background:var(--ink); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:8px; border:1px solid #3a3c3b;
   }
-  .doc-card:hover{ background:var(--grafito3); }
+  .doc-card:hover{ border-color:#4a4c4b; }
   .doc-icon{ font-size:28px; }
   .doc-name{ font-weight:700; font-size:14px; line-height:1.3; }
   .doc-meta{ font-size:11px; color:var(--neutro); }
   .doc-badges{ display:flex; gap:6px; flex-wrap:wrap; }
-  .doc-actions{ display:flex; gap:8px; margin-top:4px; }
-  .doc-actions a, .doc-actions button{
-    flex:1; text-align:center; font-size:12px; font-weight:700; padding:8px; border-radius:7px; text-decoration:none;
-  }
-  .doc-dl{ background:var(--orange); color:var(--ink); }
-  .doc-del{ background:transparent; color:var(--gris); border:1px solid #3a3c3b; }
+  .doc-actions{ display:flex; gap:6px; margin-top:4px; align-items:stretch; }
+  .doc-dl{ flex:1; text-align:center; font-size:12px; font-weight:700; padding:8px; border-radius:7px; text-decoration:none; background:var(--orange); color:var(--ink); }
+  .doc-edit, .doc-del{ font-size:13px; font-weight:700; padding:8px 10px; border-radius:7px; background:transparent; color:var(--gris); border:1px solid #3a3c3b; flex-shrink:0; }
+  .doc-edit:hover{ color:var(--orange); border-color:var(--orange); }
   .doc-del:hover{ color:var(--rojo); border-color:var(--rojo); }
-  .doc-empty{ padding:40px; text-align:center; color:var(--gris); font-size:13px; grid-column:1/-1; }
+  .doc-empty{ padding:40px; text-align:center; color:var(--gris); font-size:13px; }
 
   /* ---------- CHARTS (SVG) ---------- */
   .bar-row{ display:flex; align-items:center; gap:14px; margin-bottom:14px; }
@@ -2632,6 +2639,7 @@ function renderProjDocs(){
             <div class="pi-meta">${d.categoria?d.categoria+' · ':''}${d.fecha||''}${kb?' · '+kb:''}</div>
           </div>
           <a class="pi-link" href="#" onclick="descargarDocProyecto(event,'${d.id}','${(d.fileName||'').replace(/'/g,'')}')">Descargar</a>
+          <button class="pi-del" onclick="editarDocProyecto('${d.id}','${(d.nombre||'').replace(/'/g,"\\'")}','${d.categoria||''}')" title="Editar" style="color:var(--orange)">✎</button>
           <button class="pi-del" onclick="borrarDocProyecto('${d.id}')" title="Eliminar">&times;</button>
         </div>`;
       }).join('');
@@ -2694,6 +2702,21 @@ function borrarDocProyecto(docId){
   fetch(cloudUrl('/api/documentos/'+docId), { method:'DELETE', headers: cloudHeaders() })
     .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); renderProjDocs(); })
     .catch(err=> alert('No se pudo eliminar: '+err.message));
+}
+
+function editarDocProyecto(docId, nombreActual, catActual){
+  const nuevoNombre = prompt('Nombre del documento:', nombreActual || '');
+  if(nuevoNombre===null) return;
+  const cats = ['Certificado','Plano','Render','Foto','Escritura','Patente','Comprobante','Otro'];
+  const nuevaCat = prompt('Categoría ('+cats.join(', ')+'):', catActual || 'Otro');
+  if(nuevaCat===null) return;
+  fetch(cloudUrl('/api/documentos/'+docId), {
+    method:'PATCH',
+    headers:{ ...cloudHeaders(), 'Content-Type':'application/json' },
+    body: JSON.stringify({ nombre:nuevoNombre.trim()||nombreActual, categoria:nuevaCat.trim() })
+  })
+    .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); renderProjDocs(); })
+    .catch(err=> alert('No se pudo actualizar: '+err.message));
 }
 
 function checkStorageSize(){
@@ -2933,18 +2956,39 @@ function renderDocumentos(){
         grid.innerHTML = '<div class="doc-empty">No hay documentos que coincidan con el filtro.</div>';
         return;
       }
-      grid.innerHTML = filtered.slice().reverse().map(d=>{
-        return `<div class="doc-card">
-          <div class="doc-icon">${docIcon(d.type)}</div>
-          <div class="doc-name">${d.nombre}</div>
-          <div class="doc-badges">
-            ${d.categoria?`<span class="tag tipo">${d.categoria}</span>`:''}
-            ${d.proyectoNombre?`<span class="tag fuente">${d.proyectoNombre.split('—')[0].trim()}</span>`:''}
+
+      // Agrupar por proyecto; los sin proyecto van a "Documentos Averarq"
+      const grupos = {};
+      filtered.forEach(d=>{
+        const key = d.proyectoId || '__averarq__';
+        const nombre = d.proyectoId
+          ? (d.proyectoNombre ? d.proyectoNombre.split('—')[0].trim() : 'Proyecto')
+          : 'Documentos Averarq';
+        if(!grupos[key]) grupos[key] = { nombre, docs:[] };
+        grupos[key].docs.push(d);
+      });
+
+      // Ordenar: Documentos Averarq al final, resto alfabético
+      const keys = Object.keys(grupos).sort((a,b)=>{
+        if(a==='__averarq__') return 1;
+        if(b==='__averarq__') return -1;
+        return grupos[a].nombre.localeCompare(grupos[b].nombre);
+      });
+
+      grid.innerHTML = keys.map(key=>{
+        const g = grupos[key];
+        const abierta = docCarpetasAbiertas[key] !== false; // por defecto abiertas
+        const cards = g.docs.slice().reverse().map(d=>cardDoc(d)).join('');
+        const ico = key==='__averarq__' ? '🏛️' : '📁';
+        return `<div class="doc-folder ${abierta?'open':''}">
+          <div class="doc-folder-head" onclick="toggleDocCarpeta('${key}')">
+            <span class="doc-folder-arrow">${abierta?'▾':'▸'}</span>
+            <span class="doc-folder-ico">${ico}</span>
+            <span class="doc-folder-name">${g.nombre}</span>
+            <span class="doc-folder-count">${g.docs.length}</span>
           </div>
-          <div class="doc-meta">${d.fecha} · ${fmtSize(d.size)}</div>
-          <div class="doc-actions">
-            <a class="doc-dl" href="#" onclick="descargarDocumento(event,'${d.id}','${d.fileName}')">Descargar</a>
-            <button class="doc-del" onclick="deleteDocumento('${d.id}')">Eliminar</button>
+          <div class="doc-folder-body" style="${abierta?'':'display:none'}">
+            <div class="doc-grid-inner">${cards}</div>
           </div>
         </div>`;
       }).join('');
@@ -2952,6 +2996,47 @@ function renderDocumentos(){
     .catch(err=>{
       grid.innerHTML = `<div class="doc-empty">No se pudo cargar: ${err.message}<br><button class="btn-ghost" style="margin-top:10px;" onclick="cambiarConfigDocs()">Revisar configuración del servidor</button></div>`;
     });
+}
+
+let docCarpetasAbiertas = {};
+function toggleDocCarpeta(key){
+  docCarpetasAbiertas[key] = docCarpetasAbiertas[key] === false ? true : false;
+  renderDocumentos();
+}
+
+function cardDoc(d){
+  return `<div class="doc-card">
+    <div class="doc-icon">${docIcon(d.type)}</div>
+    <div class="doc-name">${(d.nombre||'').replace(/</g,'&lt;')}</div>
+    <div class="doc-badges">
+      ${d.categoria?`<span class="tag tipo">${d.categoria}</span>`:''}
+    </div>
+    <div class="doc-meta">${d.fecha} · ${fmtSize(d.size)}</div>
+    <div class="doc-actions">
+      <a class="doc-dl" href="#" onclick="descargarDocumento(event,'${d.id}','${(d.fileName||'').replace(/'/g,'')}')">Descargar</a>
+      <button class="doc-edit" onclick="editarDocumento('${d.id}')" title="Editar nombre y categoría">✎</button>
+      <button class="doc-del" onclick="deleteDocumento('${d.id}')">🗑</button>
+    </div>
+  </div>`;
+}
+
+function editarDocumento(id){
+  const d = documentos.find(x=>x.id===id);
+  if(!d) return;
+  const nuevoNombre = prompt('Nombre del documento:', d.nombre || '');
+  if(nuevoNombre===null) return; // canceló
+  const cats = ['Certificado','Plano','Render','Foto','Escritura','Patente','Comprobante','Otro'];
+  const catActual = cats.indexOf(d.categoria) >= 0 ? d.categoria : 'Otro';
+  const nuevaCat = prompt('Categoría ('+cats.join(', ')+'):', catActual);
+  if(nuevaCat===null) return;
+  fetch(docApiUrl('/api/documentos/'+id), {
+    method:'PATCH',
+    headers:{ ...docAuthHeaders(), 'Content-Type':'application/json' },
+    body: JSON.stringify({ nombre:nuevoNombre.trim()||d.nombre, categoria:nuevaCat.trim() })
+  })
+    .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(()=> renderDocumentos())
+    .catch(err=> alert('No se pudo actualizar: '+err.message));
 }
 
 function descargarDocumento(ev, id, fileName){
