@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v2.82</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v2.83</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -218,21 +218,19 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 </script>
 
 <div id="topbar">
-  <div id="logo">
+  <a id="logo" href="https://averarq.cl" title="Ir a averarq.cl" style="text-decoration:none;color:inherit;cursor:pointer">
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v2.82</span></div>
+    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v2.83</span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <div class="sep"></div>
   <button class="btn" id="btnPDF">📄 Cargar PDF</button>
-  <button class="btn" id="btnCSV">📥 CSV SketchUp</button>
   <button class="btn" id="btnLimpiar" title="Borra trazados y cantidades manuales; mantiene PDF, escala y APUs">🧹 Limpiar</button>
-  <button class="btn" id="btnAbrir">📂 Abrir</button>
-  <button class="btn" id="btnGuardar">💾 Guardar</button>
-  <button class="btn" id="btnGuardar" title="Descargar el proyecto como archivo .avproj">💾 Guardar</button>
   <button class="btn" id="btnAbrir" title="Abrir un proyecto .avproj">📂 Abrir</button>
+  <button class="btn" id="btnGuardar" title="Descargar el proyecto como archivo .avproj">💾 Guardar</button>
   <input type="file" id="fileProyecto" accept=".avproj,.json" style="display:none">
+  <a class="btn" id="btnHub" href="https://averarq.cl/av" title="Ir al hub Averarq" style="text-decoration:none">🧭 Hub</a>
   <button class="btn primary" id="btnInforme">🖨 Informe</button>
   <input type="file" id="filePDF" accept="application/pdf" hidden>
   <input type="file" id="fileCSV" accept=".csv,text/csv" hidden>
@@ -306,11 +304,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v2.82 =================
+/* ================= GESTOR AVERARQ v2.83 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v2.82";
+const GESTOR_VERSION="v2.83";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -2124,8 +2122,8 @@ function bindTab(){
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");}
 
 /* ---------- CSV SKETCHUP ---------- */
-$("#btnCSV").onclick=()=>$("#fileCSV").click();
-$("#fileCSV").onchange=e=>{
+if($("#btnCSV"))$("#btnCSV").onclick=()=>$("#fileCSV").click();
+if($("#fileCSV"))$("#fileCSV").onchange=e=>{
   const f=e.target.files[0];if(!f)return;
   const rd=new FileReader();
   rd.onload=()=>{
