@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v2.81</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v2.82</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -176,7 +176,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 </div>
 <script>
 (function(){
-  var HASH="7417467164c62896c28ccce1a58507721783161d66102679c6f3335fda8f3690";
+  var HASH="380ddb7ee592ff1b3d4390136df36e6ec9f2eec2ea8f705c859d937c26eb0c7b";
   async function sha256(s){
     var buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));
     return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
@@ -222,10 +222,9 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v2.81</span></div>
+    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v2.82</span></div>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <div class="sep"></div>
-  <button class="btn" id="btnHub" title="Volver al panel" onclick="location.href='../av/'">← Hub</button>
   <button class="btn" id="btnPDF">📄 Cargar PDF</button>
   <button class="btn" id="btnCSV">📥 CSV SketchUp</button>
   <button class="btn" id="btnLimpiar" title="Borra trazados y cantidades manuales; mantiene PDF, escala y APUs">🧹 Limpiar</button>
@@ -307,11 +306,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v2.81 =================
+/* ================= GESTOR AVERARQ v2.82 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v2.81";
+const GESTOR_VERSION="v2.82";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -336,7 +335,7 @@ function defaultSipDB(){return{
 };}
 function defaultServ(){return{
   tipo:"completo", m2:100, uf:39400, ing:false, det:1, tarifaMan:0, nombreMan:"", montoMan:0, verM2:true,
-  items:[], dcto:0, gop:0, boleta:true, abonoPct:28.5, cuotas:6, pagoModo:"cuotas", hitoPie:40, hitoIngreso:30, hitoRecep:30, acompModo:"auto", acompLibre:"", dctoConcepto:"",
+  items:[], dcto:0, gop:0, boleta:true, abonoPct:28.5, cuotas:6, pagoModo:"cuotas", hitoPie:40, hitoIngreso:30, hitoRecep:30, acompModo:"auto", acompLibre:"", dctoConcepto:"", moneda:"CLP", usd:950,
   plazo:"4 a 6 meses de trabajo continuo"
 };}
 function defaultMinvuDB(){return{
@@ -1430,6 +1429,15 @@ function acompTexto(){
   if(s.acompModo==="gestion")return ACOMP_GESTION;
   return (s.tipo==="regu"||s.tipo==="comercial")? ACOMP_GESTION : ACOMP_DISENO;
 }
+// Formateo de moneda del presupuesto de honorarios (CLP o USD según state.serv.moneda)
+function MON(clp){
+  const s=state.serv;
+  if(s.moneda==="USD"){
+    const v=(+clp||0)/(+s.usd||1);
+    return "US$ "+v.toLocaleString("en-US",{minimumFractionDigits:0,maximumFractionDigits:0});
+  }
+  return CLP(clp);
+}
 function servTot(){
   const s=state.serv;
   const sub=s.items.reduce((a,i)=>a+(+i.v||0),0);
@@ -1504,6 +1512,13 @@ function htmlHonorarios(){
       <label>G. operativos %</label><input type="number" style="width:56px" value="${s.gop}" data-sv="gop"></div>
     ${(+s.dcto>0)?`<div class="row"><label style="width:auto">Concepto descuento</label><input type="text" class="grow" value="${esc(s.dctoConcepto)}" placeholder="ej: por localía · por servicio completo · cliente frecuente" data-sv-txt="dctoConcepto"></div>`:""}
     <div class="row"><label><input type="checkbox" style="width:auto" ${s.boleta?"checked":""} data-sv="boleta"> Impuesto boleta 15,25% (total = neto ÷ 0,8475)</label></div>
+    <div class="row"><label style="width:auto">Moneda</label>
+      <select data-sv="moneda" style="width:70px">
+        <option value="CLP" ${s.moneda==="CLP"?"selected":""}>CLP $</option>
+        <option value="USD" ${s.moneda==="USD"?"selected":""}>USD</option>
+      </select>
+      ${s.moneda==="USD"?`<label style="width:auto">Valor USD $</label><input type="number" style="width:72px" value="${s.usd}" data-sv="usd"><button class="btn mini" id="svUSD">Dólar hoy</button>`:""}</div>
+    ${s.moneda==="USD"?`<div class="row"><span class="small" style="color:var(--muted)">Los valores se ingresan y calculan igual; el presupuesto se muestra en USD al tipo de cambio indicado.</span></div>`:""}
     <div class="row"><label style="width:auto">Forma de pago</label>
       <select data-sv="pagoModo" class="grow">
         <option value="cuotas" ${s.pagoModo==="cuotas"?"selected":""}>Abono + cuotas iguales</option>
@@ -2016,7 +2031,7 @@ function bindTab(){
   }));
   $$("#tabContent [data-sv]").forEach(i=>i.addEventListener("change",()=>{
     const k=i.dataset.sv;const s=state.serv;
-    s[k]=(i.type==="checkbox")?i.checked:((k==="tipo"||k==="nombreMan"||k==="acompModo"||k==="pagoModo")?i.value:parseFloat(i.value)||0);
+    s[k]=(i.type==="checkbox")?i.checked:((k==="tipo"||k==="nombreMan"||k==="acompModo"||k==="pagoModo"||k==="moneda")?i.value:parseFloat(i.value)||0);
     refreshUI();
   }));
   $$("#tabContent [data-sv-item]").forEach(i=>i.addEventListener("change",()=>{
@@ -2036,6 +2051,13 @@ function bindTab(){
     try{const r=await fetch("https://mindicador.cl/api/uf");const d=await r.json();
       state.serv.uf=Math.round(d.serie[0].valor);hint("UF actualizada: "+CLP(state.serv.uf));}
     catch(e){hint("No se pudo obtener la UF (sin conexión). Edítala a mano.");}
+    refreshUI();
+  };
+  const svUSD=$("#svUSD");if(svUSD)svUSD.onclick=async()=>{
+    svUSD.textContent="…";
+    try{const r=await fetch("https://mindicador.cl/api/dolar");const d=await r.json();
+      state.serv.usd=Math.round(d.serie[0].valor);hint("Dólar actualizado: "+CLP(state.serv.usd)+" por USD");}
+    catch(e){hint("No se pudo obtener el dólar (sin conexión). Edítalo a mano.");}
     refreshUI();
   };
   const svEm=$("#svEmitir");if(svEm)svEm.onclick=emitirHon;
@@ -2163,6 +2185,8 @@ function loadState(s){
   if(state.serv.acompModo===undefined)state.serv.acompModo="auto";
   if(state.serv.acompLibre===undefined)state.serv.acompLibre="";
   if(state.serv.dctoConcepto===undefined)state.serv.dctoConcepto="";
+  if(state.serv.moneda===undefined)state.serv.moneda="CLP";
+  if(state.serv.usd===undefined)state.serv.usd=950;
   if(!state.bioDB)state.bioDB=defaultBioDB();
   if(!state.matDB)state.matDB=defaultMatDB();
   if(!state.minvuDB)state.minvuDB=defaultMinvuDB();
@@ -2367,34 +2391,34 @@ function emitirHon(){
   const s=state.serv,t=servTot();
   const fecha=new Date().toLocaleDateString("es-CL");
   if(!s.items.length){hint("Agregue o calcule al menos un ítem.");return;}
-  const rows=s.items.map(i=>`<tr><td>${esc(i.d)}</td><td ${R}>${CLP(i.v)}</td><td ${R}>${esc(i.t||"—")}</td></tr>`).join("");
+  const rows=s.items.map(i=>`<tr><td>${esc(i.d)}</td><td ${R}>${MON(i.v)}</td><td ${R}>${esc(i.t||"—")}</td></tr>`).join("");
   const jt=(SERV_TXT[s.tipo]||SERV_TXT.completo).justif;
   $("#printArea").innerHTML=`<div class="pr-page pr-fit">`+prHead("PRESUPUESTO DE HONORARIOS<br>SERVICIOS PROFESIONALES DE ARQUITECTURA",fecha)+`
     <p style="font-size:11px;margin-bottom:10px">${jt}</p>
     <h2>VALOR POR ÍTEM</h2>
     <table><tr><th>Servicio</th><th ${R}>Valor neto</th><th ${R}>Plazo</th></tr>${rows}</table>
     <h2>RESUMEN</h2>
-    ${t.dcto?`<div class="pr-tot"><span>Subtotal</span><span>${CLP(t.sub)}</span></div>
-    <div class="pr-tot"><span>Descuento ${s.dcto}%${s.dctoConcepto?` <span style="font-weight:400;color:#777">(${esc(s.dctoConcepto)})</span>`:""}</span><span>− ${CLP(t.dcto)}</span></div>`:""}
-    ${t.gop?`<div class="pr-tot"><span>Gastos operativos ${s.gop}%</span><span>${CLP(t.gop)}</span></div>`:""}
-    <div class="pr-tot"><span>Honorarios profesionales netos</span><span>${CLP(t.neto)}</span></div>
-    ${s.boleta?`<div class="pr-tot"><span>Impuesto boleta de honorarios (15,25%)</span><span>${CLP(t.imp)}</span></div>`:""}
-    <div class="pr-tot big"><span>VALOR TOTAL REFERENCIAL DEL SERVICIO</span><span>${CLP(t.total)}</span></div>
+    ${t.dcto?`<div class="pr-tot"><span>Subtotal</span><span>${MON(t.sub)}</span></div>
+    <div class="pr-tot"><span>Descuento ${s.dcto}%${s.dctoConcepto?` <span style="font-weight:400;color:#777">(${esc(s.dctoConcepto)})</span>`:""}</span><span>− ${MON(t.dcto)}</span></div>`:""}
+    ${t.gop?`<div class="pr-tot"><span>Gastos operativos ${s.gop}%</span><span>${MON(t.gop)}</span></div>`:""}
+    <div class="pr-tot"><span>Honorarios profesionales netos</span><span>${MON(t.neto)}</span></div>
+    ${s.boleta?`<div class="pr-tot"><span>Impuesto boleta de honorarios (15,25%)</span><span>${MON(t.imp)}</span></div>`:""}
+    <div class="pr-tot big"><span>VALOR TOTAL REFERENCIAL DEL SERVICIO</span><span>${MON(t.total)}</span></div>
     <h2>PLAZO Y ACOMPAÑAMIENTO</h2>
     <p style="font-size:11px">Duración estimada del servicio: <b>${esc(s.plazo||"a convenir")}</b>. ${acompTexto()}</p>
     <h2>PROPUESTA DE FORMA DE PAGO</h2>
     ${s.pagoModo==="hitos"?`
     <p style="font-size:11px">Con el fin de asociar el pago al avance real de la gestión, se propone dividir los honorarios en tres pagos vinculados a los hitos de tramitación del encargo:</p>
-    <div class="pr-tot"><span>Pie al inicio (${s.hitoPie}%)</span><span><b>${CLP(t.hPie)} netos</b>${s.boleta?` · <b>${CLP(t.hPieB)}</b> c/ impuesto`:""}</span></div>
-    <div class="pr-tot"><span>Al ingreso del expediente a la D.O.M. (${s.hitoIngreso}%)</span><span><b>${CLP(t.hIng)} netos</b>${s.boleta?` · <b>${CLP(t.hIngB)}</b> c/ impuesto`:""}</span></div>
-    <div class="pr-tot"><span>A la recepción / aprobación de la D.O.M. (${s.hitoRecep}%)</span><span><b>${CLP(t.hRec)} netos</b>${s.boleta?` · <b>${CLP(t.hRecB)}</b> c/ impuesto`:""}</span></div>`:`
+    <div class="pr-tot"><span>Pie al inicio (${s.hitoPie}%)</span><span><b>${MON(t.hPie)} netos</b>${s.boleta?` · <b>${MON(t.hPieB)}</b> c/ impuesto`:""}</span></div>
+    <div class="pr-tot"><span>Al ingreso del expediente a la D.O.M. (${s.hitoIngreso}%)</span><span><b>${MON(t.hIng)} netos</b>${s.boleta?` · <b>${MON(t.hIngB)}</b> c/ impuesto`:""}</span></div>
+    <div class="pr-tot"><span>A la recepción / aprobación de la D.O.M. (${s.hitoRecep}%)</span><span><b>${MON(t.hRec)} netos</b>${s.boleta?` · <b>${MON(t.hRecB)}</b> c/ impuesto`:""}</span></div>`:`
     <p style="font-size:11px">Con el fin de facilitar la planificación financiera del proyecto, se propone dividir los honorarios en un abono inicial y ${t.n} cuotas asociadas al avance progresivo del encargo.</p>
-    <div class="pr-tot"><span>Abono inicial (${s.abonoPct}%)</span><span><b>${CLP(t.abono)} netos</b>${s.boleta?` · <b>${CLP(t.abonoB)}</b> c/ impuesto`:""}</span></div>
-    <div class="pr-tot"><span>${t.n} cuotas</span><span><b>${CLP(t.cuota)} netas c/u</b>${s.boleta?` · <b>${CLP(t.cuotaB)}</b> c/ impuesto aprox.`:""}</span></div>`}
+    <div class="pr-tot"><span>Abono inicial (${s.abonoPct}%)</span><span><b>${MON(t.abono)} netos</b>${s.boleta?` · <b>${MON(t.abonoB)}</b> c/ impuesto`:""}</span></div>
+    <div class="pr-tot"><span>${t.n} cuotas</span><span><b>${MON(t.cuota)} netas c/u</b>${s.boleta?` · <b>${MON(t.cuotaB)}</b> c/ impuesto aprox.`:""}</span></div>`}
     <p style="margin-top:12px;font-size:10px;color:#555">Se reafirma el compromiso y el profesionalismo con que se abordará el encargo, garantizando la calidad del trabajo y el cumplimiento de los plazos estipulados, de principio a fin.</p>
     <p style="margin-top:8px;font-size:10px;color:#777">VALIDEZ DEL PRESUPUESTO: este presupuesto tiene una validez de 1 MES desde su emisión.</p>
     <div style="margin-top:18px;font-size:11px">Saluda atentamente,<br><b>Alejandro Vera Donoso</b><br>Arquitecto PUCV · ${fecha}</div>
-    <p style="margin-top:10px;font-size:8.5px;color:#999;border-top:1px solid #eee;padding-top:5px">Nota: los valores expresados en UF se calcularon considerando un valor de referencia de <b>${CLP(s.uf)}</b> por UF a la fecha de emisión. El valor final en pesos podrá ajustarse según la UF vigente al momento de la contratación.</p>
+    ${s.moneda==="USD"?`<p style="margin-top:10px;font-size:8.5px;color:#999;border-top:1px solid #eee;padding-top:5px">Nota: los valores se expresan en dólares de los Estados Unidos (USD), considerando un tipo de cambio de referencia de <b>${CLP(s.usd)}</b> por USD a la fecha de emisión. El valor final podrá ajustarse según el tipo de cambio vigente al momento del pago.</p>`:`<p style="margin-top:10px;font-size:8.5px;color:#999;border-top:1px solid #eee;padding-top:5px">Nota: los valores expresados en UF se calcularon considerando un valor de referencia de <b>${CLP(s.uf)}</b> por UF a la fecha de emisión. El valor final en pesos podrá ajustarse según la UF vigente al momento de la contratación.</p>`}
     `+prFoot()+`</div>`;
   window.print();
 }
