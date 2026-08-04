@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v2.83</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v2.85</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -176,7 +176,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 </div>
 <script>
 (function(){
-  var HASH="380ddb7ee592ff1b3d4390136df36e6ec9f2eec2ea8f705c859d937c26eb0c7b";
+  var HASH="7417467164c62896c28ccce1a58507721783161d66102679c6f3335fda8f3690";
   async function sha256(s){
     var buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));
     return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
@@ -222,7 +222,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v2.83</span></a>
+    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v2.85</span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <div class="sep"></div>
   <button class="btn" id="btnPDF">📄 Cargar PDF</button>
@@ -304,11 +304,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v2.83 =================
+/* ================= GESTOR AVERARQ v2.85 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v2.83";
+const GESTOR_VERSION="v2.85";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -466,7 +466,7 @@ function defaultBioDB(){return{
 function defaultEETT(){return{
   prop:{nombre:"",rut:"",dir:"",comuna:"",rol:""},
   arq:{rut:""},rev:"R0",dj:true,notas:true,firmaProp:"",
-  pj:{destino:"Habitacional — vivienda unifamiliar",m2:"",pisos:1,sistema:"sip",desc:"",det:[]},
+  pj:{destino:"Habitacional — vivienda unifamiliar",m2:"",pisos:1,sistema:"sip",desc:"",det:[],volumenes:[]},
   og:{fund:true,radier:true,tech:"cerchas",cubierta:"zinc",obs:""},
   aisl:{muros:"auto",tech:"lana100",vapor:true,obs:"",espesorMuro:80,escuadria:"2x3"},
   term:{revExt:"auto",revInt:"yeso",cielo:"volcanita",pav:"ceramica",ventanas:"pvc",puertas:"terciado",puertaPpal:"seguridad",tieneSec:false,puertaSec:"metalica",pintura:true,quinc:true,artef:true,obs:"",ventanasCat:[]},
@@ -1613,6 +1613,20 @@ function htmlEETT(){
     }).join("")+`<p class="small">Si un piso no indica m² o sistema, se asume reparto en partes iguales y el sistema general.</p>`:""}
     <div class="row"><label style="width:64px">Descripción</label>${eeTxt("pj.desc",e.pj.desc,"breve descripción del proyecto (opcional)")}</div>
   </div>
+  ${(e.pj.volumenes||[]).map((v,i)=>`
+  <div class="card" style="border-left:3px solid var(--naranja)">
+    <div class="row"><b class="small" style="letter-spacing:1px;color:var(--txt2)">VOLUMEN ${i+2}</b>
+      <input type="text" class="grow" placeholder="nombre del volumen (ej: Casa B · Quincho)" value="${esc(v.nombre||"")}" data-rvol="${i}.nombre" style="max-width:220px">
+      <button class="btn mini" data-rvoldel="${i}">✕</button></div>
+    <div class="row"><label style="width:64px">Destino</label>
+      <select data-rvol="${i}.destino" class="grow">${'<option>Habitacional — vivienda unifamiliar</option><option>Habitacional — segunda vivienda</option><option>Comercial</option><option>Equipamiento</option><option>Bodega / taller</option><option>Quincho / obra menor</option>'.replace('<option>'+(v.destino||'Habitacional — vivienda unifamiliar'),'<option selected>'+(v.destino||'Habitacional — vivienda unifamiliar'))}</select></div>
+    <div class="row"><label style="width:64px">Sup. m²</label><input type="number" style="width:70px" value="${v.m2||""}" data-rvol="${i}.m2">
+      <label>Pisos</label><input type="number" min="1" max="4" style="width:50px" value="${v.pisos||1}" data-rvol="${i}.pisos"></div>
+    <div class="row"><label style="width:64px">Sistema</label>
+      <select data-rvol="${i}.sistema" class="grow">${'<option value="sip">Paneles SIP</option><option value="alba">Albañilería confinada</option><option value="madera">Tabiquería de madera</option><option value="metalcon">Metalcon (acero galvanizado)</option>'.replace('value="'+(v.sistema||"sip")+'"','value="'+(v.sistema||"sip")+'" selected')}</select></div>
+    <div class="row"><label style="width:64px">Descripción</label><input type="text" class="grow" placeholder="breve descripción (opcional)" value="${esc(v.desc||"")}" data-rvol="${i}.desc"></div>
+  </div>`).join("")}
+  <div class="row" style="margin-bottom:8px"><button class="btn mini" id="rvolAdd">+ agregar volumen</button><span class="small" style="color:var(--muted)">para proyectos con más de una edificación (ej: dos casas, casa + quincho independiente)</span></div>
   <h3>PRELIMINARES Y OBRA GRUESA</h3>
   <div class="card">
     <div class="row">${eeChk("prelim.faena",e.prelim.faena,"Instalación de faena")} ${eeChk("prelim.trazado",e.prelim.trazado,"Trazado y niveles")}</div>
@@ -2074,6 +2088,20 @@ function bindTab(){
     state.eett.pj.det[+ix][k]=(k==="m2")?(parseFloat(i.value)||""):i.value;
     autosave();
   }));
+  // Volúmenes adicionales del proyecto
+  $$("#tabContent [data-rvol]").forEach(i=>i.addEventListener("change",()=>{
+    const [ix,k]=i.dataset.rvol.split(".");
+    const v=state.eett.pj.volumenes[+ix]; if(!v)return;
+    v[k]=(k==="m2"||k==="pisos")?(parseFloat(i.value)||(k==="pisos"?1:"")):i.value;
+    autosave();
+  }));
+  $$("#tabContent [data-rvoldel]").forEach(b=>b.onclick=()=>{
+    state.eett.pj.volumenes.splice(+b.dataset.rvoldel,1);renderTab();autosave();
+  });
+  const rvAdd=$("#rvolAdd");if(rvAdd)rvAdd.onclick=()=>{
+    state.eett.pj.volumenes.push({nombre:"",destino:"Habitacional — segunda vivienda",m2:"",pisos:1,sistema:"madera",desc:""});
+    renderTab();autosave();
+  };
   const eeEm=$("#eeEmitir");if(eeEm)eeEm.onclick=emitirEETT;
   $$("#tabContent [data-obra]").forEach(i=>i.addEventListener("change",()=>{
     const a=obraPartida(state.partidas.find(x=>x.id===i.dataset.obra));
@@ -2208,6 +2236,7 @@ function loadState(s){
   if(state.eett.inst.elecModo===undefined)state.eett.inst.elecModo="estandar";
   if(state.eett.inst.gasModo===undefined)state.eett.inst.gasModo="estandar";
   if(state.eett.inst.acsOn===undefined)state.eett.inst.acsOn=true;
+  if(!Array.isArray(state.eett.pj.volumenes))state.eett.pj.volumenes=[];
   state.partidas.forEach(p=>{if(!p.grupo)p.grupo=grupoAuto(p);});activePid=state.partidas[0]?.id;selShape=null;drawPts=[];
   $("#nomProyecto").value=state.proyecto||"";
   let mx=1;JSON.stringify(state).replace(/"p(\d+)"/g,(m,n)=>{mx=Math.max(mx,+n+1);return m;});uid=mx;
@@ -2660,6 +2689,17 @@ function emitirEETT(){
   n++;blocks.push(H2(n+". GENERALIDADES"));
   let gen=`Las presentes Especificaciones Técnicas norman la ejecución de las obras de <b>${esc(e.pj.destino)}</b>${+e.pj.m2?` de <b>${F(+e.pj.m2,0)} m²</b>`:""}${nP>1?` distribuidos en ${nP} pisos (${pisos.map((p,i)=>`piso ${i+1}: ${F(p.m2,0)} m² en ${SIS_NOM[p.sistema]}`).join("; ")})`:""}${e.prop.dir?`, ubicadas en ${esc(e.prop.dir)}`:""}${e.prop.comuna?`, comuna de ${esc(e.prop.comuna)}`:""}${e.prop.rol?` (Rol SII ${esc(e.prop.rol)})`:""}${e.prop.nombre?`, de propiedad de ${esc(e.prop.nombre)}`:""}${e.prop.rut?`, RUT ${esc(e.prop.rut)}`:""}. ${e.pj.desc?esc(e.pj.desc)+". ":""}Las obras se ejecutarán en total conformidad con los planos de arquitectura y de estructura del proyecto, la Ordenanza General de Urbanismo y Construcciones (O.G.U.C.), las Normas Chilenas aplicables y las reglas del arte de la buena construcción. En caso de discrepancia entre documentos, prevalecerá lo indicado por el arquitecto. Toda modificación de materialidad o partida deberá ser aprobada por escrito por el arquitecto antes de su ejecución. Los materiales serán nuevos, de primera calidad y se almacenarán protegidos; toda mención de marca admite equivalente técnico aprobado. La empresa constructora o contratista mantendrá la obra limpia y ordenada, y dará cumplimiento a la normativa laboral y de prevención de riesgos vigente.`;
   blocks.push({html:`<p>${gen}</p>`,h:Math.ceil(gen.length/108)*13+10});
+  // Volúmenes adicionales (proyecto con más de una edificación)
+  const vols=(e.pj.volumenes||[]).filter(v=>v.m2||v.nombre||v.desc);
+  if(vols.length){
+    let vtxt=`El proyecto contempla <b>${vols.length+1} volúmenes independientes</b>. El volumen principal corresponde a lo descrito precedentemente. Adicionalmente se consideran: `;
+    vtxt+=vols.map((v,i)=>{
+      const nom=v.nombre?esc(v.nombre):`Volumen ${i+2}`;
+      const sis=SIS_NOM[v.sistema]||v.sistema||"";
+      return `<b>${nom}</b> (${esc(v.destino||"")}${v.m2?`, ${F(+v.m2,0)} m²`:""}${(+v.pisos>1)?`, ${v.pisos} pisos`:""}${sis?`, en ${sis}`:""}${v.desc?`; ${esc(v.desc)}`:""})`;
+    }).join("; ")+". Cada volumen se ejecutará conforme a la materialidad indicada; las especificaciones de terminaciones e instalaciones que siguen aplican a todos los volúmenes, salvo indicación expresa en contrario en los planos respectivos.";
+    blocks.push({html:`<p>${vtxt}</p>`,h:Math.ceil(vtxt.length/108)*13+10});
+  }
   // 2 PRELIMINARES
   const pre=[];
   if(e.prelim.faena)pre.push(P("2.1 Instalación de faena","Se contempla instalación de faena con bodega cerrada para materiales y herramientas, servicios provisorios de agua y electricidad, servicio higiénico para el personal, y cierre provisorio del área de trabajo que impida el acceso de terceros. Al término de la obra la faena se retira íntegramente."));
