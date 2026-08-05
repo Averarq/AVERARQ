@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v2.85</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v2.86</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -222,7 +222,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v2.85</span></a>
+    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v2.86</span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <div class="sep"></div>
   <button class="btn" id="btnPDF">📄 Cargar PDF</button>
@@ -304,11 +304,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v2.85 =================
+/* ================= GESTOR AVERARQ v2.86 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v2.85";
+const GESTOR_VERSION="v2.86";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -323,6 +323,8 @@ try{
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
 const CLP=n=>"$ "+Math.round(n).toLocaleString("es-CL");
 const F=(n,d=2)=>(+n).toLocaleString("es-CL",{minimumFractionDigits:d,maximumFractionDigits:d});
+// Superficie exacta para EETT/expedientes: muestra hasta 2 decimales, sin ceros artificiales (126,68 → "126,68"; 120 → "120"). Nunca redondea al entero.
+const FS=n=>(+n).toLocaleString("es-CL",{minimumFractionDigits:0,maximumFractionDigits:2});
 let uid=1; const nid=()=>"p"+(uid++);
 
 /* ---------- ESTADO ---------- */
@@ -2687,7 +2689,7 @@ function emitirEETT(){
   const multiSis=nP>1&&new Set(pisos.map(p=>p.sistema)).size>1;
   // 1 GENERALIDADES
   n++;blocks.push(H2(n+". GENERALIDADES"));
-  let gen=`Las presentes Especificaciones Técnicas norman la ejecución de las obras de <b>${esc(e.pj.destino)}</b>${+e.pj.m2?` de <b>${F(+e.pj.m2,0)} m²</b>`:""}${nP>1?` distribuidos en ${nP} pisos (${pisos.map((p,i)=>`piso ${i+1}: ${F(p.m2,0)} m² en ${SIS_NOM[p.sistema]}`).join("; ")})`:""}${e.prop.dir?`, ubicadas en ${esc(e.prop.dir)}`:""}${e.prop.comuna?`, comuna de ${esc(e.prop.comuna)}`:""}${e.prop.rol?` (Rol SII ${esc(e.prop.rol)})`:""}${e.prop.nombre?`, de propiedad de ${esc(e.prop.nombre)}`:""}${e.prop.rut?`, RUT ${esc(e.prop.rut)}`:""}. ${e.pj.desc?esc(e.pj.desc)+". ":""}Las obras se ejecutarán en total conformidad con los planos de arquitectura y de estructura del proyecto, la Ordenanza General de Urbanismo y Construcciones (O.G.U.C.), las Normas Chilenas aplicables y las reglas del arte de la buena construcción. En caso de discrepancia entre documentos, prevalecerá lo indicado por el arquitecto. Toda modificación de materialidad o partida deberá ser aprobada por escrito por el arquitecto antes de su ejecución. Los materiales serán nuevos, de primera calidad y se almacenarán protegidos; toda mención de marca admite equivalente técnico aprobado. La empresa constructora o contratista mantendrá la obra limpia y ordenada, y dará cumplimiento a la normativa laboral y de prevención de riesgos vigente.`;
+  let gen=`Las presentes Especificaciones Técnicas norman la ejecución de las obras de <b>${esc(e.pj.destino)}</b>${+e.pj.m2?` de <b>${FS(+e.pj.m2)} m²</b>`:""}${nP>1?` distribuidos en ${nP} pisos (${pisos.map((p,i)=>`piso ${i+1}: ${FS(p.m2)} m² en ${SIS_NOM[p.sistema]}`).join("; ")})`:""}${e.prop.dir?`, ubicadas en ${esc(e.prop.dir)}`:""}${e.prop.comuna?`, comuna de ${esc(e.prop.comuna)}`:""}${e.prop.rol?` (Rol SII ${esc(e.prop.rol)})`:""}${e.prop.nombre?`, de propiedad de ${esc(e.prop.nombre)}`:""}${e.prop.rut?`, RUT ${esc(e.prop.rut)}`:""}. ${e.pj.desc?esc(e.pj.desc)+". ":""}Las obras se ejecutarán en total conformidad con los planos de arquitectura y de estructura del proyecto, la Ordenanza General de Urbanismo y Construcciones (O.G.U.C.), las Normas Chilenas aplicables y las reglas del arte de la buena construcción. En caso de discrepancia entre documentos, prevalecerá lo indicado por el arquitecto. Toda modificación de materialidad o partida deberá ser aprobada por escrito por el arquitecto antes de su ejecución. Los materiales serán nuevos, de primera calidad y se almacenarán protegidos; toda mención de marca admite equivalente técnico aprobado. La empresa constructora o contratista mantendrá la obra limpia y ordenada, y dará cumplimiento a la normativa laboral y de prevención de riesgos vigente.`;
   blocks.push({html:`<p>${gen}</p>`,h:Math.ceil(gen.length/108)*13+10});
   // Volúmenes adicionales (proyecto con más de una edificación)
   const vols=(e.pj.volumenes||[]).filter(v=>v.m2||v.nombre||v.desc);
@@ -2696,7 +2698,7 @@ function emitirEETT(){
     vtxt+=vols.map((v,i)=>{
       const nom=v.nombre?esc(v.nombre):`Volumen ${i+2}`;
       const sis=SIS_NOM[v.sistema]||v.sistema||"";
-      return `<b>${nom}</b> (${esc(v.destino||"")}${v.m2?`, ${F(+v.m2,0)} m²`:""}${(+v.pisos>1)?`, ${v.pisos} pisos`:""}${sis?`, en ${sis}`:""}${v.desc?`; ${esc(v.desc)}`:""})`;
+      return `<b>${nom}</b> (${esc(v.destino||"")}${v.m2?`, ${FS(+v.m2)} m²`:""}${(+v.pisos>1)?`, ${v.pisos} pisos`:""}${sis?`, en ${sis}`:""}${v.desc?`; ${esc(v.desc)}`:""})`;
     }).join("; ")+". Cada volumen se ejecutará conforme a la materialidad indicada; las especificaciones de terminaciones e instalaciones que siguen aplican a todos los volúmenes, salvo indicación expresa en contrario en los planos respectivos.";
     blocks.push({html:`<p>${vtxt}</p>`,h:Math.ceil(vtxt.length/108)*13+10});
   }
@@ -2711,7 +2713,7 @@ function emitirEETT(){
   if(e.og.fund)blocks.push(P(`${n}.${s++} Fundaciones`,EE.fund));
   if(e.og.radier)blocks.push(P(`${n}.${s++} Radier`,EE.radier));
   if(multiSis||nP>1){
-    pisos.forEach((p,i)=>{blocks.push(P(`${n}.${s++} Estructura de muros — piso ${i+1} (${SIS_NOM[p.sistema]}, ${F(p.m2,0)} m²)`,EE.muros[p.sistema]));});
+    pisos.forEach((p,i)=>{blocks.push(P(`${n}.${s++} Estructura de muros — piso ${i+1} (${SIS_NOM[p.sistema]}, ${FS(p.m2)} m²)`,EE.muros[p.sistema]));});
     blocks.push(P(`${n}.${s++} Estructura de entrepiso`,EE.entrepiso));
   }else{
     blocks.push(P(`${n}.${s++} Estructura de muros (${SIS_NOM[e.pj.sistema]})`,EE.muros[e.pj.sistema]));
@@ -2833,7 +2835,7 @@ function emitirEETT(){
     <div style="font-size:22px;font-weight:800;letter-spacing:2px;color:#1a1a1a">ESPECIFICACIONES T&#201;CNICAS</div>
     <div style="font-size:14px;color:#555;margin-top:4px;letter-spacing:1px">${esc(e.pj.destino).toUpperCase()}</div>
     <div style="font-size:15px;color:#333;margin-top:26px">${esc(e.prop.dir||$("#nomProyecto").value)}${e.prop.comuna?", "+esc(e.prop.comuna):""}</div>
-    <div style="font-size:10.5px;color:#777;margin-top:12px;letter-spacing:.5px">${e.prop.nombre?`PROPIETARIO: ${esc(e.prop.nombre.toUpperCase())}${e.prop.rut?" · RUT "+esc(e.prop.rut):""}`:""}${e.prop.rol?`${e.prop.nombre?"<br>":""}ROL SII ${esc(e.prop.rol)}`:""}${+e.pj.m2?` · ${F(+e.pj.m2,0)} m²`:""}</div>
+    <div style="font-size:10.5px;color:#777;margin-top:12px;letter-spacing:.5px">${e.prop.nombre?`PROPIETARIO: ${esc(e.prop.nombre.toUpperCase())}${e.prop.rut?" · RUT "+esc(e.prop.rut):""}`:""}${e.prop.rol?`${e.prop.nombre?"<br>":""}ROL SII ${esc(e.prop.rol)}`:""}${+e.pj.m2?` · ${FS(+e.pj.m2)} m²`:""}</div>
     <div style="margin-top:90px">${logoCirc}</div>
     <div style="margin-top:110px;font-size:12px;letter-spacing:1px"><b>ALEJANDRO VERA DONOSO</b><br><span style="color:#555">ARQUITECTO PUCV</span></div>
     <div style="margin-top:16px;font-size:11px;font-weight:700;letter-spacing:1px">${esc((e.prop.comuna||"VALLE DEL ACONCAGUA").toUpperCase())}, ${MES}</div>
@@ -2860,7 +2862,7 @@ function emitirEETT(){
         <div style="font-size:10.5px;color:#555;letter-spacing:1px;margin-top:3px">RESPONSABILIDAD DEL ARQUITECTO PATROCINANTE</div>
       </div>
       <table style="margin-bottom:14px">
-        ${fila("PROYECTO",esc(e.pj.destino)+(+e.pj.m2?` · ${F(+e.pj.m2,0)} m²`:"")+(nP>1?` · ${nP} pisos`:""))}
+        ${fila("PROYECTO",esc(e.pj.destino)+(+e.pj.m2?` · ${FS(+e.pj.m2)} m²`:"")+(nP>1?` · ${nP} pisos`:""))}
         ${fila("UBICACIÓN",esc(e.prop.dir||"")+(e.prop.comuna?", comuna de "+esc(e.prop.comuna):""))}
         ${fila("ROL SII",esc(e.prop.rol||""))}
         ${fila("PROPIETARIO",esc(e.prop.nombre||"")+(e.prop.rut?" · RUT "+esc(e.prop.rut):""))}
