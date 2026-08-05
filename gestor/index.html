@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v2.86</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v2.90</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -156,6 +156,8 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 .av-knock{animation:avKnock .5s cubic-bezier(.36,.07,.19,.97) both}
 .av-out{animation:avFade .45s ease .5s forwards}
 .av-bye{animation:avBye .4s ease forwards}
+@keyframes avUnfold{0%{opacity:0;transform:translateY(-6px)}100%{opacity:1;transform:translateY(0)}}
+.av-unfold{animation:avUnfold .28s ease-out;overflow:hidden}
 #avLogin input:focus{outline:none;border-color:#FC4C02;box-shadow:0 0 0 2px rgba(252,76,2,.25)}
 </style>
 <div id="avLogin" style="position:fixed;inset:0;z-index:99999;background:#111311;display:flex;align-items:center;justify-content:center;font-family:'Outfit',system-ui,sans-serif">
@@ -222,7 +224,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v2.86</span></a>
+    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v2.90</span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <div class="sep"></div>
   <button class="btn" id="btnPDF">📄 Cargar PDF</button>
@@ -304,11 +306,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v2.86 =================
+/* ================= GESTOR AVERARQ v2.90 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v2.86";
+const GESTOR_VERSION="v2.90";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -467,7 +469,7 @@ function defaultBioDB(){return{
   ]};}
 function defaultEETT(){return{
   prop:{nombre:"",rut:"",dir:"",comuna:"",rol:""},
-  arq:{rut:""},rev:"R0",dj:true,notas:true,firmaProp:"",
+  arq:{rut:""},rev:"R0",dj:true,notas:true,firmaProp:"", listaDoc:false, docs:[],
   pj:{destino:"Habitacional — vivienda unifamiliar",m2:"",pisos:1,sistema:"sip",desc:"",det:[],volumenes:[]},
   og:{fund:true,radier:true,tech:"cerchas",cubierta:"zinc",obs:""},
   aisl:{muros:"auto",tech:"lana100",vapor:true,obs:"",espesorMuro:80,escuadria:"2x3"},
@@ -1556,10 +1558,30 @@ function htmlHonorarios(){
   <div class="row" style="margin-top:12px"><button class="btn primary grow" id="svEmitir">🖨 Emitir presupuesto de honorarios</button></div>`;
 }
 function eeSel(path,opts,val){return `<select data-ee="${path}" class="grow">${opts.map(o=>`<option value="${o[0]}" ${o[0]===val?"selected":""}>${o[1]}</option>`).join("")}</select>`;}
+function DOCS_TIPICOS(){
+  return [
+    {t:"Formulario de ingreso MINVU 2-3.1: Permiso de Edificación — Obra Nueva",on:true},
+    {t:"Certificado de Informaciones Previas (CIP)",on:true},
+    {t:"Patente del arquitecto responsable",on:true},
+    {t:"Avalúo fiscal detallado a la fecha, con vigencia",on:true},
+    {t:"Declaración profesional de cumplimiento normativo según O.G.U.C.",on:true},
+    {t:"Resolución de permiso de intervención en Zona Típica (CMN)",on:false},
+    {t:"Certificado de ingreso en línea INE",on:true},
+    {t:"Certificado SEIM",on:true},
+    {t:"Certificado de línea oficial emitido por Vialidad",on:false},
+    {t:"Escritura de la propiedad",on:true},
+    {t:"Certificado de dotación de servicios sanitarios (APR)",on:false},
+    {t:"Certificado de factibilidad y dotación de servicio eléctrico",on:true},
+    {t:"Certificado de aprobación de proyecto sanitario (SEREMI de Salud)",on:false},
+    {t:"Especificaciones Técnicas (EETT)",on:true},
+    {t:"Conjunto planimétrico: plantas de arquitectura, ubicación, esquema y cuadro de superficies, cortes, elevaciones y secciones",on:true}
+  ];
+}
 function eeChk(path,val,lbl){return `<label style="font-size:11px;color:var(--txt)"><input type="checkbox" style="width:auto" data-ee="${path}" ${val?"checked":""}> ${lbl}</label>`;}
 function eeTxt(path,val,ph){return `<input type="text" class="grow" data-ee="${path}" value="${esc(val||"")}" placeholder="${ph||""}">`;}
 function htmlEETT(){
   const e=state.eett;
+  if(!Array.isArray(e.docs)||!e.docs.length)e.docs=DOCS_TIPICOS();
   return `<h3>GENERADOR DE ESPECIFICACIONES TÉCNICAS</h3>
   <p class="small" style="margin-bottom:8px">Completa el formulario y emite una EETT profesional lista para expediente D.O.M. o para entregar al mandante. Los textos se redactan según lo marcado, con las soluciones constructivas Averarq.</p>
   <h3>PROPIETARIO Y PROPIEDAD</h3>
@@ -1594,6 +1616,15 @@ function htmlEETT(){
       <label>Rev.</label><input type="text" style="width:46px" data-ee="rev" value="${esc(e.rev)}"></div>
     <div class="row">${eeChk("dj",e.dj,"Incluir Declaración Jurada del arquitecto al final del documento")}</div>
     <div class="row">${eeChk("notas",e.notas,"Incluir página de notas internas / verificaciones pendientes (no entregable)")}</div>
+    <div class="row"><label style="font-size:11px;color:var(--txt);cursor:pointer"><input type="checkbox" style="width:auto" data-ee="listaDoc" ${e.listaDoc?"checked":""}> Incluir Listado de documentos del expediente al final <span style="color:var(--naranja);font-weight:700">${e.listaDoc?"▾":"▸"}</span></label></div>
+    ${e.listaDoc?`<div class="card av-unfold" style="border-left:3px solid var(--naranja);margin-top:4px">
+      <div class="row"><b class="small" style="letter-spacing:1px;color:var(--txt2)">LISTADO DE DOCUMENTOS</b><span class="small" style="color:var(--muted)">marca los que van en este expediente</span></div>
+      ${(e.docs||[]).map((d,i)=>`<div class="row" style="gap:6px">
+        <input type="checkbox" style="width:auto" ${d.on?"checked":""} data-docchk="${i}">
+        <input type="text" class="grow" value="${esc(d.t)}" data-doctxt="${i}" style="font-size:12px${d.on?"":";opacity:.5"}">
+        <button class="btn mini" data-docdel="${i}">✕</button></div>`).join("")}
+      <div class="row" style="margin-top:4px"><button class="btn mini" id="docAdd">+ agregar documento</button></div>
+    </div>`:""}
     <div class="row"><label style="width:120px">Firma propietario</label>
       <input type="file" id="firmaPropFile" accept="image/png,image/jpeg" style="max-width:170px">
       ${e.firmaProp?`<img src="${e.firmaProp}" style="height:34px;margin-left:8px;background:#fff;border:1px solid var(--line);border-radius:4px;padding:2px"><button class="btn mini" id="firmaPropDel" style="margin-left:6px">quitar</button>`:`<span class="small" style="color:var(--muted)">PNG con fondo transparente ideal</span>`}</div>
@@ -2082,7 +2113,7 @@ function bindTab(){
     const k=path[0];
     o[k]=(i.type==="checkbox")?i.checked:(i.type==="number"?(parseFloat(i.value)||0):i.value);
     autosave();
-    if(full==="pj.pisos")renderTab();
+    if(full==="pj.pisos"||full==="listaDoc")renderTab();
   }));
   $$("#tabContent [data-eefloor]").forEach(i=>i.addEventListener("change",()=>{
     const [ix,k]=i.dataset.eefloor.split(".");
@@ -2103,6 +2134,19 @@ function bindTab(){
   const rvAdd=$("#rvolAdd");if(rvAdd)rvAdd.onclick=()=>{
     state.eett.pj.volumenes.push({nombre:"",destino:"Habitacional — segunda vivienda",m2:"",pisos:1,sistema:"madera",desc:""});
     renderTab();autosave();
+  };
+  // Listado de documentos del expediente
+  $$("#tabContent [data-docchk]").forEach(c=>c.addEventListener("change",()=>{
+    state.eett.docs[+c.dataset.docchk].on=c.checked;renderTab();autosave();
+  }));
+  $$("#tabContent [data-doctxt]").forEach(i=>i.addEventListener("change",()=>{
+    state.eett.docs[+i.dataset.doctxt].t=i.value;autosave();
+  }));
+  $$("#tabContent [data-docdel]").forEach(b=>b.onclick=()=>{
+    state.eett.docs.splice(+b.dataset.docdel,1);renderTab();autosave();
+  });
+  const docAdd=$("#docAdd");if(docAdd)docAdd.onclick=()=>{
+    state.eett.docs.push({t:"Nuevo documento",on:true});renderTab();autosave();
   };
   const eeEm=$("#eeEmitir");if(eeEm)eeEm.onclick=emitirEETT;
   $$("#tabContent [data-obra]").forEach(i=>i.addEventListener("change",()=>{
@@ -2233,6 +2277,8 @@ function loadState(s){
   if(!state.eett.arq)state.eett.arq={rut:""};
   if(state.eett.rev===undefined)state.eett.rev="R0";
   if(state.eett.dj===undefined)state.eett.dj=true;
+  if(state.eett.listaDoc===undefined)state.eett.listaDoc=false;
+  if(!Array.isArray(state.eett.docs)||!state.eett.docs.length)state.eett.docs=DOCS_TIPICOS();
   if(state.eett.notas===undefined)state.eett.notas=true;
   if(state.eett.firmaProp===undefined)state.eett.firmaProp="";
   if(state.eett.inst.elecModo===undefined)state.eett.inst.elecModo="estandar";
@@ -2880,6 +2926,27 @@ function emitirEETT(){
       <p style="margin-top:30px;font-size:9px;color:#999;text-align:center">Documento ${esc(e.rev||"R0")} · ${fecha} · averarq.cl</p>
     </div>`;
     out+=`<div class="pr-page">${dj}${prFoot()}</div>`;
+  }
+  if(e.listaDoc){
+    const marcados=(e.docs||[]).filter(d=>d.on&&d.t.trim());
+    if(marcados.length){
+      const listaHtml=`<div class="ee">${cont}
+        <div style="text-align:center;margin:22px 0 16px">
+          <div style="font-size:16px;font-weight:800;letter-spacing:2px">LISTADO DE DOCUMENTOS</div>
+          <div style="font-size:10.5px;color:#555;letter-spacing:1px;margin-top:3px">ANTECEDENTES QUE CONFORMAN EL EXPEDIENTE</div>
+        </div>
+        <table style="margin-bottom:14px">
+          ${e.prop.dir?`<tr><td style="width:150px;color:#777;font-size:10px;letter-spacing:.5px">UBICACIÓN</td><td style="font-size:10.5px"><b>${esc(e.prop.dir)}${e.prop.comuna?", comuna de "+esc(e.prop.comuna):""}</b></td></tr>`:""}
+          ${e.prop.nombre?`<tr><td style="width:150px;color:#777;font-size:10px;letter-spacing:.5px">PROPIETARIO</td><td style="font-size:10.5px"><b>${esc(e.prop.nombre)}</b></td></tr>`:""}
+        </table>
+        <div style="font-size:11px;line-height:1.9">
+        ${marcados.map((d,i)=>`<div style="display:flex;gap:8px;padding:2px 0;border-bottom:1px solid #f0f0f0"><span style="color:var(--naranja);font-weight:700;min-width:26px">${i+1}.-</span><span>${esc(d.t)}</span></div>`).join("")}
+        </div>
+        <div style="margin-top:26px;font-size:11px">Saluda atentamente,<br><b>Alejandro Vera Donoso</b><br>Arquitecto PUCV</div>
+        <p style="margin-top:20px;font-size:9px;color:#999">Documento ${esc(e.rev||"R0")} · ${fecha} · averarq.cl</p>
+      </div>`;
+      out+=`<div class="pr-page">${listaHtml}${prFoot()}</div>`;
+    }
   }
   if(e.notas&&notasInt.length){
     const notasHtml=`<div class="ee">${cont}
