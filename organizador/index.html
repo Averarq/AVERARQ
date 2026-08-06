@@ -198,6 +198,8 @@
   .cliente-cod-row{ display:flex; gap:8px; align-items:center; }
   .cliente-cod-row input{ flex:1; font-family:'Outfit'; font-weight:700; letter-spacing:2px; color:var(--orange); text-align:center; }
   .cliente-cod-hint{ font-size:11px; color:var(--gris); margin-top:7px; line-height:1.4; }
+  .cliente-orden-row{ display:flex; align-items:center; gap:10px; margin-top:12px; flex-wrap:wrap; }
+  .cliente-orden-row select{ flex:1; min-width:180px; }
   .pc-actions{ display:flex; gap:6px; flex-shrink:0; }
   .pc-btn{ background:var(--ink); border:1px solid #3a3c3b; border-radius:7px; width:34px; height:34px; font-size:14px; cursor:pointer; transition:all .12s; }
   .pc-edit:hover{ border-color:var(--orange); color:var(--orange); }
@@ -747,6 +749,12 @@
       <select id="docFiltroProyecto" onchange="renderDocumentos()">
         <option value="">Todos los proyectos</option>
       </select>
+      <select id="docOrdenCliente" onchange="guardarOrdenCliente()" title="Orden en que el cliente ve los documentos">
+        <option value="nombre-asc">Cliente ve: Nombre A→Z</option>
+        <option value="nombre-desc">Cliente ve: Nombre Z→A</option>
+        <option value="fecha-desc">Cliente ve: Más reciente primero</option>
+        <option value="fecha-asc">Cliente ve: Más antiguo primero</option>
+      </select>
       <button class="btn-ghost" onclick="cambiarConfigDocs()">⚙️ Servidor</button>
     </div>
   </div>
@@ -930,6 +938,15 @@
         <div class="cliente-cod-hint" id="clienteCodHint">
           Genera un código único para que tu cliente vea el avance de su proyecto en averarq.cl/seguimiento
         </div>
+        <div class="cliente-orden-row">
+          <label style="font-size:12px; color:var(--neutro);">Orden de documentos en el portal:</label>
+          <select id="p_docOrden" onchange="cambiarDocOrden()">
+            <option value="nombre-asc">Nombre (A → Z)</option>
+            <option value="nombre-desc">Nombre (Z → A)</option>
+            <option value="fecha-desc">Fecha (más reciente primero)</option>
+            <option value="fecha-asc">Fecha (más antigua primero)</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -1092,6 +1109,7 @@ function cloudPush(){
     const estado = {
       leads: leads,
       proyectos: proyectos,
+      config: { ordenCliente: ordenClienteDocs },
       savedAt: new Date().toISOString()
     };
     fetch(cloudUrl('/api/estado'), {
@@ -1924,12 +1942,14 @@ function openProjModal(id){
     document.getElementById('p_fechaLabel').value = p.fechaLabel || '';
     document.getElementById('p_fechaCompletada').checked = !!p.fechaCompletada;
     mostrarCodigoCliente(p.codigoCliente || '');
+    document.getElementById('p_docOrden').value = p.docOrden || 'nombre-asc';
     renderProjNotes(p.notas||[]);
   } else {
     ['p_nombre','p_estado','p_total','p_pagoLabel','p_fecha','p_fechaLabel'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('p_prioridad').value='media';
     document.getElementById('p_fechaCompletada').checked = false;
     mostrarCodigoCliente('');
+    document.getElementById('p_docOrden').value = 'nombre-asc';
     renderProjNotes([]);
     renderPagosList(null);
     renderCuotasList(null);
@@ -2745,6 +2765,7 @@ function saveProj(){
     fechaLabel:document.getElementById('p_fechaLabel').value,
     fechaCompletada:document.getElementById('p_fechaCompletada').checked,
     codigoCliente,
+    docOrden:document.getElementById('p_docOrden').value,
   };
   if(editingProjId){
     Object.assign(proyectos.find(x=>x.id===editingProjId), data);
@@ -2761,6 +2782,11 @@ function mostrarCodigoCliente(cod){
   document.getElementById('clienteCodHint').innerHTML = cod
     ? `El cliente entra en <b>averarq.cl/seguimiento</b> con este código y ve el avance, documentos y pagos de su proyecto.`
     : `Genera un código único para que tu cliente vea el avance de su proyecto en averarq.cl/seguimiento`;
+}
+function cambiarDocOrden(){
+  if(!editingProjId) return;
+  const p = proyectos.find(x=>x.id===editingProjId);
+  if(p){ p.docOrden = document.getElementById('p_docOrden').value; saveProyectos(); }
 }
 function generarCodigoCliente(){
   const actual = document.getElementById('p_codigoCliente').value.trim();
@@ -2870,6 +2896,8 @@ function mostrarDocsConectado(){
   document.getElementById('docToolbar').style.display = 'flex';
   document.getElementById('docUpload').style.display = 'block';
   document.getElementById('docNotice').innerHTML = '☁️ Conectado a tu servidor de documentos — disponible desde cualquier dispositivo.';
+  const ordenSel = document.getElementById('docOrdenCliente');
+  if(ordenSel) ordenSel.value = ordenClienteDocs;
 }
 
 const DOC_ICON = { 'application/pdf':'📄' };
@@ -2999,6 +3027,12 @@ function renderDocumentos(){
 }
 
 let docCarpetasAbiertas = {};
+let ordenClienteDocs = localStorage.getItem('averarq_orden_cliente') || 'nombre-asc';
+function guardarOrdenCliente(){
+  ordenClienteDocs = document.getElementById('docOrdenCliente').value;
+  localStorage.setItem('averarq_orden_cliente', ordenClienteDocs);
+  cloudPush(); // sincroniza para que el portal lo lea
+}
 function toggleDocCarpeta(key){
   docCarpetasAbiertas[key] = docCarpetasAbiertas[key] === false ? true : false;
   renderDocumentos();
@@ -3069,6 +3103,10 @@ function cloudPull(){
       if(data.estado){
         if(Array.isArray(data.estado.leads)) leads = data.estado.leads;
         if(Array.isArray(data.estado.proyectos)) proyectos = data.estado.proyectos;
+        if(data.estado.config && data.estado.config.ordenCliente){
+          ordenClienteDocs = data.estado.config.ordenCliente;
+          localStorage.setItem('averarq_orden_cliente', ordenClienteDocs);
+        }
         localStorage.setItem('averarq_pipeline_v1', JSON.stringify(leads));
         localStorage.setItem('averarq_proyectos_v1', JSON.stringify(proyectos));
         cloudReady = true;
