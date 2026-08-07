@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v2.90</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v2.91</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -224,7 +224,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v2.90</span></a>
+    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v2.91</span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <div class="sep"></div>
   <button class="btn" id="btnPDF">📄 Cargar PDF</button>
@@ -273,6 +273,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
       <div class="tab" data-tab="obra">OBRA</div>
       <div class="tab" data-tab="comparar">COMPARAR</div>
       <div class="tab" data-tab="radiografia">RADIOGRAFÍA</div>
+      <div class="tab" data-tab="recibo">RECIBO</div>
     </div>
     <div id="tabContent"></div>
   </div>
@@ -306,11 +307,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v2.90 =================
+/* ================= GESTOR AVERARQ v2.91 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v2.90";
+const GESTOR_VERSION="v2.91";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -476,6 +477,7 @@ function defaultEETT(){return{
   term:{revExt:"auto",revInt:"yeso",cielo:"volcanita",pav:"ceramica",ventanas:"pvc",puertas:"terciado",puertaPpal:"seguridad",tieneSec:false,puertaSec:"metalica",pintura:true,quinc:true,artef:true,obs:"",ventanasCat:[]},
   inst:{elec:true,elecModo:"estandar",agua:"red",alc:"fosa",gas:true,gasModo:"estandar",acs:"calefont",acsOn:true,obs:""},
   radio:null,
+  recibo:{nro:"",fecha:"",cliente:"",rut:"",monto:"",concepto:"",medio:"efectivo",proyecto:"",obs:"",saldoOn:false,saldo:""},
   prelim:{faena:true,trazado:true},post:{cierre:false,aseo:true,obs:""},
   presup:{incluir:true,manual:0,plazo:""}
 };}
@@ -1203,6 +1205,7 @@ function renderTab(){
   if(curTab==="obra")el.innerHTML=htmlObra();
   if(curTab==="comparar")el.innerHTML=htmlComparar();
   if(curTab==="radiografia")el.innerHTML=htmlRadiografia();
+  if(curTab==="recibo")el.innerHTML=htmlRecibo();
   bindTab();
 }
 const TRZ={area:"m² (superficie)",linea:"ml (línea)",punto:"un (conteo)"};
@@ -1845,6 +1848,68 @@ function htmlRadiografia(){
   <div class="row" style="margin-top:10px"><button class="btn primary grow" id="riEmitir">🖨 Emitir radiografía</button></div>`;
   return h;
 }
+// ===== RECIBO DE DINERO =====
+function numPalabras(n){
+  n=Math.round(+n||0);
+  if(n===0)return "cero";
+  const uni=["","uno","dos","tres","cuatro","cinco","seis","siete","ocho","nueve","diez","once","doce","trece","catorce","quince","dieciséis","diecisiete","dieciocho","diecinueve","veinte","veintiuno","veintidós","veintitrés","veinticuatro","veinticinco","veintiséis","veintisiete","veintiocho","veintinueve"];
+  const dec=["","","","treinta","cuarenta","cincuenta","sesenta","setenta","ochenta","noventa"];
+  const cen=["","ciento","doscientos","trescientos","cuatrocientos","quinientos","seiscientos","setecientos","ochocientos","novecientos"];
+  function tramo(x){
+    let s="";
+    if(x===100)return "cien";
+    const c=Math.floor(x/100), d=Math.floor((x%100)/10), u=x%10, dd=x%100;
+    if(c)s+=cen[c]+" ";
+    if(dd<30)s+=uni[dd];
+    else{ s+=dec[d]; if(u)s+=" y "+uni[u]; }
+    return s.trim();
+  }
+  let out="";
+  const millones=Math.floor(n/1000000);
+  const miles=Math.floor((n%1000000)/1000);
+  const resto=n%1000;
+  if(millones){ out+=(millones===1?"un millón":tramo(millones)+" millones")+" "; }
+  if(miles){ out+=(miles===1?"mil":tramo(miles)+" mil")+" "; }
+  if(resto){ out+=tramo(resto); }
+  return out.trim().replace(/\s+/g," ");
+}
+function htmlRecibo(){
+  if(!state.recibo)state.recibo={nro:"",fecha:"",cliente:"",rut:"",monto:"",concepto:"",medio:"efectivo",proyecto:"",obs:"",saldoOn:false,saldo:""};
+  const r=state.recibo; const s=state.serv;
+  // detectar cuota disponible del presupuesto de honorarios
+  let hint="";
+  if(s&&s.items&&s.items.length){
+    const t=servTot();
+    if(s.pagoModo==="cuotas"&&t.cuota>0)hint=`cuota de ${CLP(t.cuotaB||t.cuota)}`;
+    else if(s.pagoModo==="hitos"&&t.hPie>0)hint=`pie de ${CLP(t.hPieB||t.hPie)}`;
+  }
+  return `<h3>RECIBO DE DINERO</h3>
+  <p class="small" style="margin-bottom:8px">Comprobante formal de pago recibido, para entregar al cliente (efectivo, transferencia u otro medio). Puedes importar el monto desde el presupuesto de HONORARIOS o ingresarlo a mano.</p>
+  ${hint?`<div class="card" style="border-left:3px solid var(--verde,#3a8)"><div class="row"><span class="small">Detectado en HONORARIOS: <b>${hint}</b></span><button class="btn mini" id="recImport">↧ importar monto</button></div></div>`:""}
+  <div class="card">
+    <div class="row"><label style="width:80px">N° recibo</label><input type="text" style="width:100px" value="${esc(r.nro)}" placeholder="ej: 001" data-rec="nro">
+      <label style="width:40px">Fecha</label><input type="text" style="width:120px" value="${esc(r.fecha)}" placeholder="dd-mm-aaaa" data-rec="fecha"><button class="btn mini" id="recHoy">hoy</button></div>
+    <div class="row"><label style="width:80px">Recibí de</label><input type="text" class="grow" value="${esc(r.cliente)}" placeholder="nombre del cliente" data-rec="cliente"></div>
+    <div class="row"><label style="width:80px">RUT</label><input type="text" style="width:130px" value="${esc(r.rut)}" placeholder="opcional" data-rec="rut"></div>
+    <div class="row"><label style="width:80px">Monto $</label><input type="number" style="width:130px" value="${r.monto}" placeholder="monto recibido" data-rec="monto">
+      ${r.monto?`<span class="small" style="color:var(--muted)">(${numPalabras(r.monto)} pesos)</span>`:""}</div>
+    <div class="row"><label style="width:80px">Medio</label>
+      <select data-rec="medio" style="width:150px">
+        <option value="efectivo" ${r.medio==="efectivo"?"selected":""}>Efectivo</option>
+        <option value="transferencia" ${r.medio==="transferencia"?"selected":""}>Transferencia</option>
+        <option value="cheque" ${r.medio==="cheque"?"selected":""}>Cheque</option>
+        <option value="otro" ${r.medio==="otro"?"selected":""}>Otro</option>
+      </select></div>
+    <div class="row"><label style="width:80px">Concepto</label><input type="text" class="grow" value="${esc(r.concepto)}" placeholder="ej: abono honorarios · cuota 2 · anteproyecto" data-rec="concepto"></div>
+    <div class="row"><label style="width:80px">Proyecto</label><input type="text" class="grow" value="${esc(r.proyecto)}" placeholder="opcional · nombre o dirección del proyecto" data-rec="proyecto"></div>
+  </div>
+  <div class="card">
+    <div class="row"><label style="font-size:11px;color:var(--txt);cursor:pointer"><input type="checkbox" style="width:auto" data-rec="saldoOn" ${r.saldoOn?"checked":""}> Indicar saldo pendiente ${r.saldoOn?"▾":"▸"}</label></div>
+    ${r.saldoOn?`<div class="row av-unfold"><label style="width:80px">Saldo $</label><input type="number" style="width:130px" value="${r.saldo}" placeholder="saldo por pagar" data-rec="saldo">${r.saldo?`<span class="small" style="color:var(--muted)">(${numPalabras(r.saldo)} pesos)</span>`:""}</div>`:""}
+    <div class="row"><label style="width:80px">Obs.</label><input type="text" class="grow" value="${esc(r.obs)}" placeholder="observaciones (opcional)" data-rec="obs"></div>
+  </div>
+  <div class="row" style="margin-top:10px"><button class="btn primary grow" id="recEmitir">🖨 Emitir recibo</button></div>`;
+}
 function htmlComparar(){
   if(!state.compM2)state.compM2=100;
   if(!state.compAlcance)state.compAlcance="estructural";
@@ -2172,6 +2237,21 @@ function bindTab(){
   const rConcl=$("[data-rconcl]");if(rConcl)rConcl.addEventListener("change",()=>{radioData().concl=rConcl.value;});
   const riAdd=$("#riAdd");if(riAdd)riAdd.onclick=()=>{radioData().items.push({area:"Nueva área",estado:"regular",obs:"",prio:"media"});refreshUI();};
   const riEm=$("#riEmitir");if(riEm)riEm.onclick=emitirRadiografia;
+  // Recibo de dinero
+  $$("#tabContent [data-rec]").forEach(i=>i.addEventListener("change",()=>{
+    const k=i.dataset.rec;
+    state.recibo[k]=(i.type==="checkbox")?i.checked:((k==="monto"||k==="saldo")?(parseFloat(i.value)||""):i.value);
+    if(k==="monto"||k==="saldoOn"||k==="saldo")renderTab();
+    autosave();
+  }));
+  const recHoy=$("#recHoy");if(recHoy)recHoy.onclick=()=>{state.recibo.fecha=new Date().toLocaleDateString("es-CL");renderTab();autosave();};
+  const recImp=$("#recImport");if(recImp)recImp.onclick=()=>{
+    const s=state.serv,t=servTot();
+    if(s.pagoModo==="cuotas"&&t.cuota>0){state.recibo.monto=Math.round(t.cuotaB||t.cuota);state.recibo.concepto=state.recibo.concepto||"Cuota de honorarios profesionales de arquitectura";}
+    else if(s.pagoModo==="hitos"&&t.hPie>0){state.recibo.monto=Math.round(t.hPieB||t.hPie);state.recibo.concepto=state.recibo.concepto||"Pie de honorarios profesionales de arquitectura";}
+    renderTab();autosave();hint("Monto importado desde HONORARIOS");
+  };
+  const recEm=$("#recEmitir");if(recEm)recEm.onclick=emitirRecibo;
   const cEm=$("#compEmitir");if(cEm)cEm.onclick=emitirComparativa;
   const medAdd=$("#medAdd");if(medAdd)medAdd.onclick=()=>{
     const sem=parseFloat($("#medSem").value), pct=parseFloat($("#medPct").value);
@@ -2285,6 +2365,7 @@ function loadState(s){
   if(state.eett.inst.gasModo===undefined)state.eett.inst.gasModo="estandar";
   if(state.eett.inst.acsOn===undefined)state.eett.inst.acsOn=true;
   if(!Array.isArray(state.eett.pj.volumenes))state.eett.pj.volumenes=[];
+  if(!state.recibo)state.recibo={nro:"",fecha:"",cliente:"",rut:"",monto:"",concepto:"",medio:"efectivo",proyecto:"",obs:"",saldoOn:false,saldo:""};
   state.partidas.forEach(p=>{if(!p.grupo)p.grupo=grupoAuto(p);});activePid=state.partidas[0]?.id;selShape=null;drawPts=[];
   $("#nomProyecto").value=state.proyecto||"";
   let mx=1;JSON.stringify(state).replace(/"p(\d+)"/g,(m,n)=>{mx=Math.max(mx,+n+1);return m;});uid=mx;
@@ -2965,6 +3046,35 @@ function emitirEETT(){
 }
 
 /* ---------- COMPARATIVA DE SISTEMAS (impresión) ---------- */
+function emitirRecibo(){
+  const r=state.recibo;
+  const fecha=r.fecha||new Date().toLocaleDateString("es-CL");
+  const medios={efectivo:"efectivo",transferencia:"transferencia electrónica",cheque:"cheque",otro:"otro medio"};
+  const montoTxt=r.monto?numPalabras(r.monto):"";
+  $("#printArea").innerHTML=`<div class="pr-page">`+prHead("RECIBO DE DINERO",fecha)+`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin:6px 0 20px">
+      <div style="font-size:12px;color:#555">${r.nro?`Recibo N° <b>${esc(r.nro)}</b>`:""}</div>
+      <div style="font-size:12px;color:#555">${esc(fecha)}</div>
+    </div>
+    <div style="border:1.5px solid #ddd;border-radius:8px;padding:22px 24px;margin-bottom:20px">
+      <p style="font-size:13px;line-height:1.9;margin:0">
+        Recibí de <b>${esc(r.cliente||"__________________________")}</b>${r.rut?`, RUT ${esc(r.rut)},`:""}
+        la suma de <b>${r.monto?CLP(r.monto):"$ __________"}</b>${montoTxt?` <span style="color:#666">(${montoTxt} pesos)</span>`:""},
+        por concepto de <b>${esc(r.concepto||"__________________________")}</b>${r.proyecto?`, correspondiente al proyecto <b>${esc(r.proyecto)}</b>`:""},
+        pagados mediante <b>${medios[r.medio]||"efectivo"}</b>.
+      </p>
+      ${r.saldoOn&&r.saldo?`<p style="font-size:12px;color:#555;margin:14px 0 0;padding-top:12px;border-top:1px dashed #ddd">Queda un saldo pendiente de <b>${CLP(r.saldo)}</b> (${numPalabras(r.saldo)} pesos).</p>`:""}
+      ${r.obs?`<p style="font-size:11px;color:#777;margin:10px 0 0">${esc(r.obs)}</p>`:""}
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:48px">
+      <div style="text-align:center;font-size:11px;min-width:230px">
+        <div style="border-top:1px solid #333;padding-top:6px"><b>ALEJANDRO VERA DONOSO</b><br>Arquitecto PUCV · Averarq<br><span style="color:#888">Recibí conforme</span></div>
+      </div>
+    </div>
+    <p style="margin-top:30px;font-size:9px;color:#aaa;text-align:center">Este documento constituye un comprobante simple de pago recibido, emitido para respaldo de ambas partes.</p>
+    `+prFoot()+`</div>`;
+  window.print();
+}
 function emitirRadiografia(){
   const r=radioData(); const im=r.inmueble; const fecha=r.fecha;
   const filas=r.items.map((it,i)=>{
