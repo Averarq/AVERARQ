@@ -380,8 +380,20 @@
   }
   .exp-na-btn:hover{ border-color:var(--orange); color:var(--cream); }
   .exp-item.na .exp-na-btn{ border-color:var(--orange); color:var(--orange); }
+  .exp-na-btn.del{ color:var(--gris); }
+  .exp-na-btn.del:hover{ border-color:var(--rojo); color:var(--rojo); }
   .pc-exp{ font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px; background:#3a3c3b; color:var(--neutro); flex-shrink:0; }
   .pc-exp.full{ background:rgba(63,174,106,.18); color:var(--verde); }
+
+  /* Drag & drop del expediente */
+  .exp-drag{ cursor:grab; color:var(--gris); font-size:14px; line-height:1; padding:2px 4px; flex-shrink:0; user-select:none; letter-spacing:-2px; }
+  .exp-drag:active{ cursor:grabbing; }
+  .exp-item.dragging{ opacity:.4; }
+  .exp-item.drag-over{ border-top:2px solid var(--orange); }
+  .exp-item-tools{ display:flex; flex-direction:column; gap:5px; flex-shrink:0; align-items:flex-end; }
+  .exp-add-doc{ display:flex; gap:6px; margin-top:12px; padding-top:12px; border-top:1px dashed #3a3c3b; }
+  .exp-add-doc .exp-nota{ flex:1; }
+  .exp-add-doc .exp-add-btn{ width:auto; padding:0 14px; white-space:nowrap; }
 
   /* Conjunto planimétrico con sub-checklist */
   .exp-item.planim{ border-left-color:var(--orange); background:var(--grafito2); }
@@ -2128,7 +2140,9 @@ const DOM_DOCS = [
   {id:'accesib',   n:'8',  label:'Memoria de accesibilidad universal', cond:true,
                    hint:'No aplica en proyectos habitacionales'},
   {id:'eett',      n:'9',  label:'Especificaciones técnicas'},
-  {id:'planim',    n:'10', label:'Conjunto planimétrico',
+  {id:'ine',       n:'10', label:'Certificado INE',
+                   hint:'Ingreso en línea en el Instituto Nacional de Estadísticas'},
+  {id:'planim',    n:'11', label:'Conjunto planimétrico',
                    hint:'Ubicación, emplazamiento, plantas de arquitectura, elevaciones, cortes, detalles, planta de cubiertas'},
 ];
 
@@ -2149,6 +2163,28 @@ function expedienteData(p){
   if(!p.expediente) p.expediente = {};
   return p.expediente;
 }
+// Lista de documentos DEL PROYECTO (orden + labels editables por proyecto).
+// Se genera desde DOM_DOCS la primera vez; luego el proyecto es dueño de su lista.
+function expDocList(p){
+  const e = expedienteData(p);
+  if(!Array.isArray(e.docList)){
+    e.docList = DOM_DOCS.map(d=>({
+      id:d.id, label:d.label, hint:d.hint||'', planim: d.id==='planim'
+    }));
+  } else {
+    // Migración: si el catálogo base tiene documentos nuevos (ej: se agregó INE),
+    // los añadimos a las listas existentes que no los tengan, antes del planimétrico.
+    DOM_DOCS.forEach(base=>{
+      if(!e.docList.some(x=>x.id===base.id)){
+        const item = { id:base.id, label:base.label, hint:base.hint||'', planim: base.id==='planim' };
+        const planimIx = e.docList.findIndex(x=>x.planim);
+        if(planimIx>=0) e.docList.splice(planimIx, 0, item);
+        else e.docList.push(item);
+      }
+    });
+  }
+  return e.docList;
+}
 // Devuelve el array de láminas del proyecto (lo crea la primera vez)
 function expSubs(p){
   const e = expedienteData(p);
@@ -2161,11 +2197,12 @@ function expSubs(p){
 
 function expEstado(p){
   const e = p.expediente || {};
+  const docList = Array.isArray(e.docList) ? e.docList : DOM_DOCS.map(d=>({id:d.id, planim:d.id==='planim'}));
 
   // Documentos (todos menos el conjunto planimétrico)
   let dTotal = 0, dHechos = 0;
-  DOM_DOCS.forEach(d=>{
-    if(d.id === 'planim') return;
+  docList.forEach(d=>{
+    if(d.planim || d.id === 'planim') return;
     const it = e[d.id] || {};
     if(it.na) return;
     dTotal++;
@@ -2175,7 +2212,8 @@ function expEstado(p){
   // Planos
   const pl = e.planim || {};
   let pTotal = 0, pHechos = 0;
-  if(!pl.na && Array.isArray(pl.subs)){
+  const hayPlanim = docList.some(d=>d.planim || d.id==='planim');
+  if(hayPlanim && !pl.na && Array.isArray(pl.subs)){
     pl.subs.forEach(s=>{
       if(s.na) return;
       pTotal++;
@@ -2206,6 +2244,7 @@ function renderExpediente(){
   const p = proyectos.find(x=>x.id===editingProjId);
   if(!p) return;
   const e = expedienteData(p);
+  const docList = expDocList(p);    // lista de documentos del proyecto
   expSubs(p);                       // asegura que existan las láminas
   const est = expEstado(p);
 
@@ -2215,11 +2254,14 @@ function renderExpediente(){
     `Planos ${est.planosPct===null?'—':est.planosPct+'%'} (${est.pHechos}/${est.pTotal})`;
   document.getElementById('expBarFill').style.width = est.pct + '%';
 
-  const html = DOM_DOCS.map(d=>{
+  // Numeración correlativa dinámica según el orden actual
+  let contador = 0;
+  const html = docList.map((d, index)=>{
     const it = e[d.id] || {};
+    const num = contador++;
 
     // El conjunto planimétrico se dibuja con su propio sub-checklist
-    if(d.id === 'planim'){
+    if(d.planim || d.id === 'planim'){
       const subs = e.planim.subs;
       const cls = it.na ? 'na' : (est.planosPct === 100 ? 'done' : '');
       const filas = subs.map((s,ix)=>`
@@ -2230,10 +2272,13 @@ function renderExpediente(){
           <button class="exp-na-btn sm" onclick="expSubNA(${ix})" title="No aplica">${s.na?'N/A':'·'}</button>
           <button class="exp-na-btn sm del" onclick="expSubDel(${ix})" title="Quitar lámina">✕</button>
         </div>`).join('');
-      return `<div class="exp-item ${cls} planim">
+      return `<div class="exp-item ${cls} planim" draggable="true" data-ix="${index}"
+                   ondragstart="expDragStart(event,${index})" ondragover="expDragOver(event)"
+                   ondrop="expDrop(event,${index})" ondragend="expDragEnd(event)">
+        <span class="exp-drag" title="Arrastrar para reordenar">⋮⋮</span>
         <div class="exp-body">
           <div class="exp-label">
-            <span class="exp-num">${d.n}</span>${d.label}
+            <span class="exp-num">${num}</span>${d.label}
             <span class="exp-peso">50% del expediente</span>
           </div>
           <div class="exp-mini-bar"><div class="exp-mini-fill" style="width:${est.planosPct||0}%"></div></div>
@@ -2248,25 +2293,91 @@ function renderExpediente(){
                  value="${(it.nota||'').replace(/"/g,'&quot;')}"
                  onchange="expNota('planim', this.value)">
         </div>
+        <div class="exp-item-tools">
+          <button class="exp-na-btn" onclick="expNA('${d.id}')">${it.na?'NO APLICA':'N/A'}</button>
+        </div>
       </div>`;
     }
 
     const cls = it.na ? 'na' : (it.done ? 'done' : '');
-    return `<div class="exp-item ${cls}">
+    return `<div class="exp-item ${cls}" draggable="true" data-ix="${index}"
+                 ondragstart="expDragStart(event,${index})" ondragover="expDragOver(event)"
+                 ondrop="expDrop(event,${index})" ondragend="expDragEnd(event)">
+      <span class="exp-drag" title="Arrastrar para reordenar">⋮⋮</span>
       <input type="checkbox" class="exp-chk" ${it.done?'checked':''} ${it.na?'disabled':''}
              onchange="expToggle('${d.id}', this.checked)">
       <div class="exp-body">
-        <div class="exp-label"><span class="exp-num">${d.n}</span>${d.label}</div>
+        <div class="exp-label"><span class="exp-num">${num}</span>${(d.label||'').replace(/</g,'&lt;')}</div>
         ${d.hint?`<div class="exp-hint">${d.hint}</div>`:''}
         <input class="exp-nota" placeholder="Nota: solicitado, folio, fecha…"
                value="${(it.nota||'').replace(/"/g,'&quot;')}"
                onchange="expNota('${d.id}', this.value)">
       </div>
-      ${d.cond?`<button class="exp-na-btn" onclick="expNA('${d.id}')">${it.na?'NO APLICA':'N/A'}</button>`:''}
+      <div class="exp-item-tools">
+        <button class="exp-na-btn" onclick="expNA('${d.id}')">${it.na?'NO APLICA':'N/A'}</button>
+        ${d.custom?`<button class="exp-na-btn del" onclick="expDocDel('${d.id}')" title="Quitar documento">✕</button>`:''}
+      </div>
     </div>`;
   }).join('');
 
-  document.getElementById('expList').innerHTML = html;
+  // Fila para agregar un documento nuevo al listado
+  const addRow = `<div class="exp-add-doc">
+    <input id="expNuevoDoc" class="exp-nota" style="margin-top:0"
+           placeholder="Agregar documento al expediente (ej: Certificado de número, Factibilidad sanitaria)"
+           onkeydown="if(event.key==='Enter'){event.preventDefault();expDocAdd();}">
+    <button class="exp-add-btn" onclick="expDocAdd()">+ Documento</button>
+  </div>`;
+
+  document.getElementById('expList').innerHTML = html + addRow;
+}
+
+/* --- Reordenar documentos (drag & drop) --- */
+let _expDragIx = null;
+function expDragStart(ev, ix){ _expDragIx = ix; ev.dataTransfer.effectAllowed='move';
+  ev.currentTarget.classList.add('dragging'); }
+function expDragOver(ev){ ev.preventDefault(); ev.dataTransfer.dropEffect='move';
+  const t = ev.currentTarget; t.classList.add('drag-over'); }
+function expDragEnd(ev){
+  document.querySelectorAll('.exp-item').forEach(el=>el.classList.remove('dragging','drag-over'));
+}
+function expDrop(ev, ix){
+  ev.preventDefault();
+  if(_expDragIx===null || _expDragIx===ix) return;
+  const p = proyectos.find(x=>x.id===editingProjId);
+  const list = expDocList(p);
+  const [moved] = list.splice(_expDragIx, 1);
+  list.splice(ix, 0, moved);
+  _expDragIx = null;
+  saveProyectos(); renderExpediente(); renderProyectos();
+}
+
+/* --- Agregar / quitar documentos del listado --- */
+function expDocAdd(){
+  const inp = document.getElementById('expNuevoDoc');
+  const val = (inp.value||'').trim();
+  if(!val) return;
+  const p = proyectos.find(x=>x.id===editingProjId);
+  const list = expDocList(p);
+  const id = 'doc'+Date.now();
+  // Insertar antes del planimétrico si existe, si no al final
+  const item = { id, label:val, hint:'', custom:true };
+  const planimIx = list.findIndex(x=>x.planim);
+  if(planimIx>=0) list.splice(planimIx, 0, item);
+  else list.push(item);
+  inp.value='';
+  saveProyectos(); renderExpediente(); renderProyectos();
+}
+function expDocDel(docId){
+  const p = proyectos.find(x=>x.id===editingProjId);
+  const list = expDocList(p);
+  const doc = list.find(x=>x.id===docId);
+  if(!doc || !doc.custom) return; // solo se pueden borrar los agregados a mano
+  if(!confirm(`¿Quitar "${doc.label}" del expediente de este proyecto?`)) return;
+  const ix = list.findIndex(x=>x.id===docId);
+  if(ix>=0) list.splice(ix,1);
+  const e = expedienteData(p);
+  delete e[docId];
+  saveProyectos(); renderExpediente(); renderProyectos();
 }
 
 /* --- Acciones sobre las láminas --- */
@@ -2332,9 +2443,12 @@ function imprimirExpediente(){
   const est = expEstado(p);
   const hoy = new Date().toLocaleDateString('es-CL',{day:'numeric',month:'long',year:'numeric'});
 
-  const filas = DOM_DOCS.map(d=>{
+  const docList = expDocList(p);
+  let contador = 0;
+  const filas = docList.map(d=>{
     const it = e[d.id] || {};
-    if(d.id === 'planim'){
+    const num = contador++;
+    if(d.planim || d.id === 'planim'){
       const subs = expSubs(p);
       const sub = subs.map(s=>{
         const st = s.na ? 'No aplica' : (s.done ? 'Listo' : 'Pendiente');
@@ -2347,8 +2461,8 @@ function imprimirExpediente(){
       }).join('');
       const cls = it.na ? 'na' : (est.planosPct===100 ? 'ok' : 'pend');
       return `<tr class="${cls}">
-        <td class="c">${d.n}</td>
-        <td><b>${d.label}</b> <span class="peso">50% del expediente</span>
+        <td class="c">${num}</td>
+        <td><b>${(d.label||'').replace(/</g,'&lt;')}</b> <span class="peso">50% del expediente</span>
             <div class="sub">Avance de láminas: ${est.pHechos} de ${est.pTotal}</div></td>
         <td>${(it.nota||'').replace(/</g,'&lt;')}</td>
         <td class="est ${cls}">${est.planosPct===null?'—':est.planosPct+'%'}</td></tr>` + sub;
@@ -2356,8 +2470,8 @@ function imprimirExpediente(){
     const estado = it.na ? 'No aplica' : (it.done ? 'Listo' : 'Pendiente');
     const cls = it.na ? 'na' : (it.done ? 'ok' : 'pend');
     return `<tr class="${cls}">
-      <td class="c">${d.n}</td>
-      <td>${d.label}${d.hint?`<div class="sub">${d.hint}</div>`:''}</td>
+      <td class="c">${num}</td>
+      <td>${(d.label||'').replace(/</g,'&lt;')}${d.hint?`<div class="sub">${d.hint}</div>`:''}</td>
       <td>${(it.nota||'').replace(/</g,'&lt;')}</td>
       <td class="est ${cls}">${estado}</td></tr>`;
   }).join('');
