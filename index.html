@@ -169,7 +169,42 @@
     to   { opacity: 1; transform: translateY(-50%) scale(1); }
   }
 
-  .iso-fill { fill: var(--naranja); opacity: 0.22; }
+  .hero-iso { pointer-events: auto; }
+  .iso-fill {
+    fill: var(--naranja);
+    opacity: 0.55;
+    animation: isoFillRespira 4.5s ease-in-out 3.2s infinite;
+  }
+  /* Estela: al pasar el mouse, un destello recorre la A y el halo florece */
+  .iso-sheen {
+    fill: none;
+    stroke: #ff8a4d;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 6 200;
+    stroke-dashoffset: 100;
+    opacity: 0;
+    pointer-events: none;
+    filter: drop-shadow(0 0 2px rgba(255,120,40,0.5));
+  }
+  .hero-iso:hover .iso-sheen {
+    opacity: 0.55;
+    animation: isoSheen 1.5s ease-in-out;
+  }
+  @keyframes isoSheen {
+    from { stroke-dashoffset: 100; }
+    to   { stroke-dashoffset: -110; }
+  }
+  .hero-iso:hover .iso-halo {
+    animation: none;
+    opacity: 0.32;
+    transition: opacity 0.5s ease;
+  }
+  @keyframes isoFillRespira {
+    0%, 100% { opacity: 0.30; }
+    50%      { opacity: 0.70; }
+  }
 
   /* Máscara: el trazo central se dibuja y va descubriendo el logo */
   .iso-reveal {
@@ -186,10 +221,10 @@
     filter: blur(18px);
     animation: isoHalo 1.6s ease 2.8s forwards, isoRespira 6s ease-in-out 4.4s infinite;
   }
-  @keyframes isoHalo { to { opacity: 0.16; } }
+  @keyframes isoHalo { to { opacity: 0.30; } }
   @keyframes isoRespira {
-    0%, 100% { opacity: 0.10; }
-    50%      { opacity: 0.22; }
+    0%, 100% { opacity: 0.18; }
+    50%      { opacity: 0.45; }
   }
 
   /* Móvil: marca de agua de fondo, sin halo */
@@ -199,13 +234,14 @@
       right: -12vw;
       top: 28%;
     }
-    .iso-fill { opacity: 0.13; }
+    .iso-fill { opacity: 0.20; animation: none; }
     .iso-halo { display: none; }
   }
 
   @media (prefers-reduced-motion: reduce) {
     .hero-iso { animation: none; opacity: 1; }
     .iso-reveal { animation: none; stroke-dashoffset: 0; }
+    .iso-fill { animation: none; opacity: 0.55; }
     .iso-halo { animation: none; opacity: 0.12; }
   }
 
@@ -1194,6 +1230,7 @@
         </defs>
         <path class="iso-halo" d="M43.17 0 L6.83 88.53 L74.87 88.53 L79.51 99.87 L93.04 99.74 L83.89 77.19 L24.61 77.19 L47.68 20.23 L54.12 36.73 L67.40 36.73 L52.58 0 Z"/>
         <path class="iso-fill" d="M43.17 0 L6.83 88.53 L74.87 88.53 L79.51 99.87 L93.04 99.74 L83.89 77.19 L24.61 77.19 L47.68 20.23 L54.12 36.73 L67.40 36.73 L52.58 0 Z" mask="url(#isoReveal)"/>
+        <path class="iso-sheen" pathLength="100" d="M60.76 36.73 L47.88 0 L15.70 82.86 L79.38 82.86 L86.28 99.80"/>
       </svg>
     </div>
     <div class="hero-content">
@@ -1214,14 +1251,14 @@
   </section>
 
   <!-- ZONA STRIP -->
-  <div class="zona-strip" aria-label="Comunas de servicio">
-    <span>Llay-Llay</span>
+  <div class="zona-strip" aria-label="Zona de servicio">
+    <span>Valle del Aconcagua</span>
     <span class="sep">·</span>
-    <span>Catemu</span>
+    <span>Gran Valparaíso</span>
     <span class="sep">·</span>
-    <span>San Felipe</span>
+    <span>Litoral</span>
     <span class="sep">·</span>
-    <span>y toda la V Región</span>
+    <span>toda la Región de Valparaíso</span>
   </div>
 
   <!-- SERVICIOS -->
@@ -1245,8 +1282,8 @@
       </div>
       <div class="servicio">
         <p class="servicio-num">04</p>
-        <h3 class="servicio-title">Visualización 3D</h3>
-        <p class="servicio-desc">Renders fotorrealistas y recorridos virtuales para validar el diseño antes de construir.</p>
+        <h3 class="servicio-title">Levantamiento con dron</h3>
+        <p class="servicio-desc">Levantamiento aéreo de terrenos, cubiertas y techumbres con dron propio: fotografía, inspección y apoyo a mediciones.</p>
       </div>
     </div>
   </div>
@@ -1376,7 +1413,7 @@
           <p class="stat-label">proyectos<br>desarrollados</p>
         </div>
         <div class="stat-box">
-          <p class="stat-num">3</p>
+          <p class="stat-num">5</p>
           <p class="stat-label">obras activas<br>en seguimiento</p>
         </div>
         <div class="stat-box">
@@ -1422,10 +1459,9 @@
 
         <div class="campo">
           <label class="campo-label">Nivel de detalle</label>
-          <div class="opciones opciones-3" data-group="complejidad">
+          <div class="opciones" data-group="complejidad">
             <button type="button" class="opcion activa" data-valor="1.0">Estándar<span>Diseño convencional</span><span class="opcion-plazo">Hasta 4 meses</span></button>
             <button type="button" class="opcion" data-valor="1.4">Detallado<span>Más personalización</span><span class="opcion-plazo">4 – 6 meses</span></button>
-            <button type="button" class="opcion" data-valor="1.8">Integral<span>Mobiliario a medida</span><span class="opcion-plazo">+6 meses</span></button>
           </div>
           <p class="campo-nota">Pensado sobre todo para proyectos pequeños donde el detalle pesa más que los metros: quinchos, tiny houses, remodelaciones, ampliaciones y similares.</p>
         </div>
@@ -1476,13 +1512,13 @@
             <p class="contacto-link-value">+56 9 5431 7945</p>
           </div>
         </a>
-        <a href="mailto:ai.veradonoso@gmail.com" class="contacto-link">
+        <a href="mailto:contacto@averarq.cl" class="contacto-link">
           <div class="contacto-link-icon">
             <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
           </div>
           <div class="contacto-link-info">
             <p class="contacto-link-label">Correo</p>
-            <p class="contacto-link-value">ai.veradonoso@gmail.com</p>
+            <p class="contacto-link-value">contacto@averarq.cl</p>
           </div>
         </a>
         <a href="https://instagram.com/averarq" class="contacto-link" target="_blank" rel="noopener">
@@ -1507,19 +1543,30 @@
     </div>
     <div>
       <div class="zona-lista">
-        <p class="zona-lista-title">Zona de cobertura</p>
+        <p class="zona-lista-title">Zona de cobertura · Región de Valparaíso</p>
         <div class="zona-items">
           <span class="zona-item">Llay-Llay</span>
           <span class="zona-item">Catemu</span>
+          <span class="zona-item">Panquehue</span>
           <span class="zona-item">San Felipe</span>
-          <span class="zona-item">Los Andes</span>
+          <span class="zona-item">Putaendo</span>
+          <span class="zona-item">Santa María</span>
           <span class="zona-item">Rinconada</span>
+          <span class="zona-item">Los Andes</span>
+          <span class="zona-item">Calle Larga</span>
           <span class="zona-item">Quillota</span>
           <span class="zona-item">La Calera</span>
           <span class="zona-item">Nogales</span>
           <span class="zona-item">Hijuelas</span>
+          <span class="zona-item">La Cruz</span>
+          <span class="zona-item">Limache</span>
+          <span class="zona-item">Olmué</span>
+          <span class="zona-item">Villa Alemana</span>
+          <span class="zona-item">Quilpué</span>
           <span class="zona-item">Viña del Mar</span>
           <span class="zona-item">Valparaíso</span>
+          <span class="zona-item">Concón</span>
+          <span class="zona-item">Casablanca</span>
         </div>
       </div>
     </div>
