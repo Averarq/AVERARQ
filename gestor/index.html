@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v2.91</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v2.94</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -224,7 +224,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v2.91</span></a>
+    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v2.94</span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <div class="sep"></div>
   <button class="btn" id="btnPDF">📄 Cargar PDF</button>
@@ -307,11 +307,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v2.91 =================
+/* ================= GESTOR AVERARQ v2.94 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v2.91";
+const GESTOR_VERSION="v2.94";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -492,6 +492,7 @@ let state={
   escala:null,            // metros por unidad de mundo
   pdfName:null,
   costos:{m1:55000, m2:40000, gg:12, utilDia:70000, iva:true},
+  incluirTE1:true,
   partidas:[],
   shapes:[]               // {id, pid, trazo:'area'|'linea'|'punto', pts:[{x,y}]}
 };
@@ -577,9 +578,10 @@ function defaultPartidas(){
      ["Gravilla","m³",0.065,26000],
      ["Malla ACMA C-92","m²",1.05,2400],
      ["Polietileno 0,2 mm","m²",1.1,550]].map(a=>({d:a[0],u:a[1],c:a[2],p:a[3]}))},
-   {id:nid(),nombre:"Puertas interiores (instaladas)",trazo:"punto",tipo:"un",altura:0,color:"#b06ab3",
-    rend:5,nM1:1,nM2:0,manual:0,apu:[
-     ["Puerta interior + marco + quincallería","u",1,85000]].map(a=>({d:a[0],u:a[1],c:a[2],p:a[3]}))},
+   {id:nid(),nombre:"Puertas (mix por tipo)",trazo:"punto",tipo:"un",altura:0,color:"#b06ab3",grupo:"apert",
+    rend:6,nM1:1,nM2:0,manual:0,esPuertas:true,
+    mix:[{tipo:"Interior 70 cm",cant:0,precio:85000},{tipo:"Interior 75 cm",cant:0,precio:89000},{tipo:"Interior 80 cm",cant:0,precio:97000},{tipo:"Interior 90 cm",cant:0,precio:111000},{tipo:"Exterior madera 90 cm",cant:0,precio:238000},{tipo:"Exterior metálica 90 cm",cant:0,precio:215000}],
+    apu:[["Puerta (según mix)","u",1,0]].map(a=>({d:a[0],u:a[1],c:a[2],p:a[3]}))},
    {id:nid(),nombre:"Cerchas de pino @80 cm (cielo raso)",trazo:"area",tipo:"m2",altura:0,color:"#d97b4f",
     rend:8,nM1:1,nM2:1,manual:0,apu:[
      ["Pino 2×4\" cuerdas sup./inf.","ml",2.2,2200],
@@ -805,12 +807,26 @@ function partidaMedido(p){
   for(const sh of state.shapes) if(sh.pid===p.id) q+=shapeQty(sh);
   return q;
 }
+const PUERTAS_CATALOGO=[
+  {tipo:"Interior 70 cm",precio:85000},{tipo:"Interior 75 cm",precio:89000},
+  {tipo:"Interior 80 cm",precio:97000},{tipo:"Interior 90 cm",precio:111000},
+  {tipo:"Exterior madera 90 cm",precio:238000},{tipo:"Exterior metálica 90 cm",precio:215000}
+];
+function puertasMixCant(p){ return (p.mix||[]).reduce((s,m)=>s+(+m.cant||0),0); }
+function puertasMixCosto(p){ return (p.mix||[]).reduce((s,m)=>s+(+m.cant||0)*(+m.precio||0),0); }
 function partidaCantidad(p){ // cantidad en la unidad del APU
   let q=partidaMedido(p);
   if(p.trazo==="linea"&&p.tipo==="m2") q=Math.max(0, q*(p.altura||0) - (+p.vanos||0));
   return q+(+p.manual||0);
 }
 function partidaCalc(p){
+  if(p.esPuertas){
+    const q=puertasMixCant(p);              // total de puertas según el mix
+    const mat=puertasMixCosto(p);           // costo directo del mix (materiales+instalación ya incluidos en el precio)
+    const dias=p.rend>0? Math.ceil((q/p.rend)*2)/2 : 0;
+    const mo=0;                             // la instalación ya está en el precio de cada puerta
+    return {q,mat,dias,mo,directo:mat};
+  }
   const q=partidaCantidad(p);
   const mat=q*p.apu.reduce((s,i)=>s+i.c*i.p,0);
   const dias=p.rend>0? Math.ceil((q/p.rend)*2)/2 : 0; // redondeo al ½ día superior
@@ -1224,12 +1240,35 @@ function cardPartida(p){
       <div class="row"><label>+ manual</label><input type="number" style="width:70px" step="0.1" value="${p.manual}" data-f="manual" data-id="${p.id}">
         ${p.trazo==="linea"&&p.tipo==="m2"?`<label>altura m</label><input type="number" style="width:56px" step="0.05" value="${p.altura}" data-f="altura" data-id="${p.id}">
         <label>− vanos m²</label><input type="number" style="width:56px" step="0.1" min="0" value="${p.vanos||0}" data-f="vanos" data-id="${p.id}">`:""}</div>
+      ${p.esPuertas?puertasMixHTML(p):""}
       <div class="row"><select data-f="grupo" data-id="${p.id}" style="width:118px;font-size:10px">${GRUPOS.map(g=>`<option value="${g[0]}" ${p.grupo===g[0]?"selected":""}>${g[1]}</option>`).join("")}</select>
         <span class="small grow" style="text-align:right">${CLP(c.directo)} directo</span></div>
     </div>`;
 }
+function puertasMixHTML(p){
+  const trazado=partidaMedido(p)+(+p.manual||0);
+  const enMix=puertasMixCant(p);
+  const cuadra=trazado===enMix;
+  let h=`<div class="card" style="border-left:3px solid var(--naranja);margin:6px 0">
+    <div class="row"><b class="small" style="letter-spacing:.5px;color:var(--txt2)">MIX DE PUERTAS</b>
+      <span class="small grow" style="text-align:right;color:${cuadra?'var(--muted)':'var(--warn,#e8a33d)'}">plano: ${trazado} · en mix: ${enMix}${cuadra?' ✓':' ⚠'}</span></div>`;
+  (p.mix||[]).forEach((m,i)=>{
+    h+=`<div class="row" style="gap:5px">
+      <input type="text" class="grow" value="${esc(m.tipo)}" data-pmix="${p.id}" data-pi="${i}" data-pk="tipo" style="font-size:11px">
+      <input type="number" min="0" style="width:46px" value="${m.cant}" data-pmix="${p.id}" data-pi="${i}" data-pk="cant" title="cantidad">
+      <span class="small" style="color:var(--muted)">×</span>
+      <input type="number" step="1000" style="width:78px" value="${m.precio}" data-pmix="${p.id}" data-pi="${i}" data-pk="precio" title="precio unitario">
+      <span class="small" style="width:76px;text-align:right">${CLP((+m.cant||0)*(+m.precio||0))}</span>
+      <span class="tdel" data-pmixdel="${p.id}" data-pi="${i}" style="cursor:pointer">✕</span></div>`;
+  });
+  h+=`<div class="row" style="margin-top:4px">
+    <select data-pmixadd="${p.id}" style="font-size:11px;max-width:200px"><option value="">+ agregar tipo de puerta…</option>${PUERTAS_CATALOGO.map((c,i)=>`<option value="${i}">${esc(c.tipo)} · ${CLP(c.precio)}</option>`).join("")}</select>
+    <span class="grow"></span></div></div>`;
+  return h;
+}
 function htmlPartidas(){
   let h=`<h3>PARTIDAS — clic para activar antes de trazar</h3>`;
+  h+=`<div class="row" style="margin-bottom:8px;padding:6px 8px;background:var(--panel2,#1a1c1a);border-radius:6px"><label style="font-size:11px;color:var(--txt);cursor:pointer"><input type="checkbox" style="width:auto" id="chkTE1" ${state.incluirTE1?"checked":""}> Incluir automáticamente <b>Puesta a tierra + certificación TE1</b> en el presupuesto</label></div>`;
   const cnt=id=>state.partidas.filter(p=>(p.grupo||"otros")===id).length;
   h+=`<div id="grpChips"><span class="chip ${grpSel==="todos"?"on":""}" data-grp="todos">Todos<b>${state.partidas.length}</b></span>`+
     GRUPOS.map(g=>{const n=cnt(g[0]);return n?`<span class="chip ${grpSel===g[0]?"on":""}" data-grp="${g[0]}">${g[1]}<b>${n}</b></span>`:"";}).join("")+`</div>`;
@@ -1548,8 +1587,8 @@ function htmlHonorarios(){
   <div id="resumen">
     <div class="tot"><span>Subtotal ítems</span><span class="money">${CLP(t.sub)}</span></div>
     ${t.dcto?`<div class="tot"><span>Descuento ${s.dcto}%</span><span class="money">− ${CLP(t.dcto)}</span></div>`:""}
-    ${t.gop?`<div class="tot"><span>Gastos operativos ${s.gop}%</span><span class="money">${CLP(t.gop)}</span></div>`:""}
     <div class="tot"><span>Honorarios netos</span><span class="money">${CLP(t.neto)}</span></div>
+    ${t.gop?`<div class="tot"><span>Gastos operativos ${s.gop}%</span><span class="money">${CLP(t.gop)}</span></div>`:""}
     ${s.boleta?`<div class="tot"><span>Impuesto boleta 15,25%</span><span class="money">${CLP(t.imp)}</span></div>`:""}
     <div class="tot big"><span>TOTAL REFERENCIAL</span><span class="money">${CLP(t.total)}</span></div>
     ${s.pagoModo==="cuotas"?`<div class="tot"><span>Abono ${s.abonoPct}%</span><span class="money">${CLP(t.abono)} neto · ${CLP(t.abonoB)} c/imp</span></div>
@@ -2059,6 +2098,26 @@ function bindTab(){
     p[f]=(f==="nombre"||f==="color"||f==="grupo")?i.value:parseFloat(i.value)||0;
     refreshUI();draw();
   }));
+  // Mix de puertas
+  $$("#tabContent [data-pmix]").forEach(i=>i.addEventListener("change",()=>{
+    const p=state.partidas.find(x=>x.id===i.dataset.pmix);if(!p||!p.mix)return;
+    const m=p.mix[+i.dataset.pi];if(!m)return;
+    const k=i.dataset.pk;
+    m[k]=(k==="tipo")?i.value:(parseFloat(i.value)||0);
+    refreshUI();
+  }));
+  $$("#tabContent [data-pmixdel]").forEach(x=>x.onclick=()=>{
+    const p=state.partidas.find(y=>y.id===x.dataset.pmixdel);if(!p||!p.mix)return;
+    p.mix.splice(+x.dataset.pi,1);refreshUI();
+  });
+  $$("#tabContent [data-pmixadd]").forEach(sel=>sel.onchange=()=>{
+    const p=state.partidas.find(y=>y.id===sel.dataset.pmixadd);if(!p)return;
+    const idx=sel.value;if(idx==="")return;
+    const c=PUERTAS_CATALOGO[+idx];
+    if(!p.mix)p.mix=[];
+    p.mix.push({tipo:c.tipo,cant:1,precio:c.precio});
+    refreshUI();
+  });
   $$("#tabContent [data-delp]").forEach(x=>x.onclick=()=>{
     if(!confirm("¿Eliminar partida y sus trazados?"))return;
     state.shapes=state.shapes.filter(s=>s.pid!==x.dataset.delp);
@@ -2087,6 +2146,21 @@ function bindTab(){
     rd.readAsDataURL(f);
   };
   const fpd=$("#firmaPropDel");if(fpd)fpd.onclick=()=>{state.eett.firmaProp="";refreshUI();};
+  const chkTE1=$("#chkTE1");if(chkTE1)chkTE1.onchange=()=>{
+    state.incluirTE1=chkTE1.checked;
+    const nom="Puesta a tierra + certificación TE1";
+    if(chkTE1.checked){
+      if(!state.partidas.some(x=>x.nombre===nom)){
+        const d=defaultPartidas().find(x=>x.nombre===nom);
+        if(d){const c=JSON.parse(JSON.stringify(d));c.id=nid();state.partidas.push(c);hint("TE1 agregado al presupuesto.");}
+      }
+    }else{
+      const antes=state.partidas.length;
+      state.partidas=state.partidas.filter(x=>x.nombre!==nom);
+      if(state.partidas.length<antes)hint("TE1 quitado del presupuesto.");
+    }
+    pushHist();refreshUI();
+  };
   const npCat=$("#npCatalogo");if(npCat)npCat.onchange=()=>{
     const nom=npCat.value;if(!nom)return;
     const d=defaultPartidas().find(x=>x.nombre===nom);
@@ -2366,6 +2440,7 @@ function loadState(s){
   if(state.eett.inst.acsOn===undefined)state.eett.inst.acsOn=true;
   if(!Array.isArray(state.eett.pj.volumenes))state.eett.pj.volumenes=[];
   if(!state.recibo)state.recibo={nro:"",fecha:"",cliente:"",rut:"",monto:"",concepto:"",medio:"efectivo",proyecto:"",obs:"",saldoOn:false,saldo:""};
+  if(state.incluirTE1===undefined)state.incluirTE1=true;
   state.partidas.forEach(p=>{if(!p.grupo)p.grupo=grupoAuto(p);});activePid=state.partidas[0]?.id;selShape=null;drawPts=[];
   $("#nomProyecto").value=state.proyecto||"";
   let mx=1;JSON.stringify(state).replace(/"p(\d+)"/g,(m,n)=>{mx=Math.max(mx,+n+1);return m;});uid=mx;
@@ -2556,8 +2631,8 @@ function emitirHon(){
     <h2>RESUMEN</h2>
     ${t.dcto?`<div class="pr-tot"><span>Subtotal</span><span>${MON(t.sub)}</span></div>
     <div class="pr-tot"><span>Descuento ${s.dcto}%${s.dctoConcepto?` <span style="font-weight:400;color:#777">(${esc(s.dctoConcepto)})</span>`:""}</span><span>− ${MON(t.dcto)}</span></div>`:""}
-    ${t.gop?`<div class="pr-tot"><span>Gastos operativos ${s.gop}%</span><span>${MON(t.gop)}</span></div>`:""}
     <div class="pr-tot"><span>Honorarios profesionales netos</span><span>${MON(t.neto)}</span></div>
+    ${t.gop?`<div class="pr-tot"><span>Gastos operativos ${s.gop}%</span><span>${MON(t.gop)}</span></div>`:""}
     ${s.boleta?`<div class="pr-tot"><span>Impuesto boleta de honorarios (15,25%)</span><span>${MON(t.imp)}</span></div>`:""}
     <div class="pr-tot big"><span>VALOR TOTAL REFERENCIAL DEL SERVICIO</span><span>${MON(t.total)}</span></div>
     <h2>PLAZO Y ACOMPAÑAMIENTO</h2>
@@ -3230,7 +3305,7 @@ function emitirObra(){
     if(sv&&confirm("Hay una sesión guardada del Cubicador. ¿Restaurarla?")){loadState(JSON.parse(sv));sesionRestaurada=true;}
   }catch(e){}
   // Cargos obligatorios en proyecto nuevo (TE1 y otros marcados obligatoria:true)
-  if(!sesionRestaurada){
+  if(!sesionRestaurada && state.incluirTE1){
     for(const d of defaultPartidas()){
       if(d.obligatoria && !state.partidas.some(x=>x.nombre===d.nombre)){
         const c=JSON.parse(JSON.stringify(d));c.id=nid();state.partidas.push(c);
