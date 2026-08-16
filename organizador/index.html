@@ -259,6 +259,8 @@
   }
   .file-btn:hover{ border-color:var(--orange); color:var(--cream); }
   .file-name{ font-size:11px; color:var(--neutro); align-self:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:140px; }
+  .ed-archivo-actual{ font-size:12px; color:var(--neutro); background:var(--ink); border-radius:7px; padding:9px 11px; display:flex; align-items:center; gap:8px; }
+  .ed-hint{ font-size:11px; color:var(--gris); margin-top:7px; line-height:1.4; }
   .storage-warn{
     background:rgba(232,72,44,0.12); border:1px solid var(--rojo); color:var(--cream); font-size:12px;
     padding:9px 14px; border-radius:8px; margin:0 32px 14px; display:none;
@@ -2759,6 +2761,7 @@ function renderProjDocs(){
     .then(r=>r.json())
     .then(data=>{
       const docs = (data.documentos||[]).filter(d=>d.proyectoId===editingProjId);
+      _projDocsCache = docs;   // para el modal de edición
       resumen.textContent = docs.length ? `${docs.length} documento${docs.length!==1?'s':''}` : '';
       if(!docs.length){
         list.innerHTML = '<div style="color:var(--gris);font-size:12px;padding:6px 2px">Aún no hay documentos en este proyecto.</div>';
@@ -2773,13 +2776,14 @@ function renderProjDocs(){
             <div class="pi-meta">${d.categoria?d.categoria+' · ':''}${d.fecha||''}${kb?' · '+kb:''}</div>
           </div>
           <a class="pi-link" href="#" onclick="descargarDocProyecto(event,'${d.id}','${(d.fileName||'').replace(/'/g,'')}')">Descargar</a>
-          <button class="pi-del" onclick="editarDocProyecto('${d.id}','${(d.nombre||'').replace(/'/g,"\\'")}','${d.categoria||''}')" title="Editar" style="color:var(--orange)">✎</button>
+          <button class="pi-del" onclick="editarDocProyecto('${d.id}')" title="Editar" style="color:var(--orange)">✎</button>
           <button class="pi-del" onclick="borrarDocProyecto('${d.id}')" title="Eliminar">&times;</button>
         </div>`;
       }).join('');
     })
     .catch(err=>{ list.innerHTML = '<div style="color:var(--rojo);font-size:12px;padding:6px 2px">Error al cargar: '+err.message+'</div>'; });
 }
+let _projDocsCache = [];
 
 function docIcono(type, name){
   const t = (type||'')+(name||'');
@@ -2838,19 +2842,10 @@ function borrarDocProyecto(docId){
     .catch(err=> alert('No se pudo eliminar: '+err.message));
 }
 
-function editarDocProyecto(docId, nombreActual, catActual){
-  const nuevoNombre = prompt('Nombre del documento:', nombreActual || '');
-  if(nuevoNombre===null) return;
-  const cats = ['Certificado','Plano','Render','Foto','Escritura','Patente','Comprobante','Otro'];
-  const nuevaCat = prompt('Categoría ('+cats.join(', ')+'):', catActual || 'Otro');
-  if(nuevaCat===null) return;
-  fetch(cloudUrl('/api/documentos/'+docId), {
-    method:'PATCH',
-    headers:{ ...cloudHeaders(), 'Content-Type':'application/json' },
-    body: JSON.stringify({ nombre:nuevoNombre.trim()||nombreActual, categoria:nuevaCat.trim() })
-  })
-    .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); renderProjDocs(); })
-    .catch(err=> alert('No se pudo actualizar: '+err.message));
+function editarDocProyecto(docId){
+  const d = _projDocsCache.find(x=>x.id===docId);
+  if(!d) return;
+  abrirEditarDoc(d, 'proyecto');
 }
 
 function checkStorageSize(){
@@ -3168,23 +3163,67 @@ function cardDoc(d){
   </div>`;
 }
 
+let _edDocId = null;      // id del documento en edición
+let _edContext = null;    // 'general' o 'proyecto' (para saber qué re-renderizar)
+
 function editarDocumento(id){
   const d = documentos.find(x=>x.id===id);
   if(!d) return;
-  const nuevoNombre = prompt('Nombre del documento:', d.nombre || '');
-  if(nuevoNombre===null) return; // canceló
+  abrirEditarDoc(d, 'general');
+}
+
+function abrirEditarDoc(d, contexto){
+  _edDocId = d.id;
+  _edContext = contexto;
+  document.getElementById('ed_nombre').value = d.nombre || '';
   const cats = ['Certificado','Plano','Render','Foto','Escritura','Patente','Comprobante','Otro'];
-  const catActual = cats.indexOf(d.categoria) >= 0 ? d.categoria : 'Otro';
-  const nuevaCat = prompt('Categoría ('+cats.join(', ')+'):', catActual);
-  if(nuevaCat===null) return;
-  fetch(docApiUrl('/api/documentos/'+id), {
+  document.getElementById('ed_categoria').value = cats.indexOf(d.categoria)>=0 ? d.categoria : 'Otro';
+  const kb = d.size ? (d.size>1048576 ? (d.size/1048576).toFixed(1)+' MB' : Math.round(d.size/1024)+' KB') : '';
+  document.getElementById('ed_archivoActual').innerHTML =
+    `<span>${docIcon ? docIcon(d.type) : '📎'}</span><span>${(d.fileName||'archivo').replace(/</g,'&lt;')}${kb?' · '+kb:''}</span>`;
+  document.getElementById('ed_file').value = '';
+  document.getElementById('ed_fileName').textContent = '';
+  document.getElementById('docEditOverlay').classList.add('open');
+}
+
+function cerrarEditarDoc(){
+  document.getElementById('docEditOverlay').classList.remove('open');
+  _edDocId = null; _edContext = null;
+}
+
+function guardarEditarDoc(){
+  if(!_edDocId) return;
+  const nombre = document.getElementById('ed_nombre').value.trim();
+  const categoria = document.getElementById('ed_categoria').value;
+  const file = document.getElementById('ed_file').files[0];
+  const btn = document.getElementById('ed_guardar');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+
+  // 1) Actualizar nombre + categoría (PATCH)
+  const patch = fetch(cloudUrl('/api/documentos/'+_edDocId), {
     method:'PATCH',
-    headers:{ ...docAuthHeaders(), 'Content-Type':'application/json' },
-    body: JSON.stringify({ nombre:nuevoNombre.trim()||d.nombre, categoria:nuevaCat.trim() })
-  })
-    .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
-    .then(()=> renderDocumentos())
-    .catch(err=> alert('No se pudo actualizar: '+err.message));
+    headers:{ ...cloudHeaders(), 'Content-Type':'application/json' },
+    body: JSON.stringify({ nombre: nombre, categoria: categoria })
+  }).then(r=>{ if(!r.ok) throw new Error('metadatos HTTP '+r.status); });
+
+  // 2) Si hay archivo nuevo, reemplazarlo (PUT)
+  const chain = patch.then(()=>{
+    if(!file) return;
+    btn.textContent = 'Subiendo archivo...';
+    const fd = new FormData();
+    fd.append('file', file);
+    return fetch(cloudUrl('/api/documentos/'+_edDocId+'/file'), {
+      method:'PUT', headers: cloudHeaders(), body: fd
+    }).then(r=>{ if(!r.ok) throw new Error('archivo HTTP '+r.status); });
+  });
+
+  chain
+    .then(()=>{
+      cerrarEditarDoc();
+      if(_edContext==='proyecto') renderProjDocs(); else renderDocumentos();
+    })
+    .catch(err=> alert('No se pudo guardar: '+err.message))
+    .finally(()=>{ btn.disabled=false; btn.textContent='Guardar cambios'; });
 }
 
 function descargarDocumento(ev, id, fileName){
@@ -3243,6 +3282,50 @@ function cloudPull(){
 }
 cloudPull();
 </script>
+
+<!-- Modal de edición de documento -->
+<div class="overlay" id="docEditOverlay">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-head">
+      <h3>Editar documento</h3>
+      <button class="close" onclick="cerrarEditarDoc()">✕</button>
+    </div>
+    <div style="padding:4px 2px;">
+      <div class="field">
+        <label>Nombre del documento</label>
+        <input id="ed_nombre" placeholder="Ej: L2 Elevaciones y cortes">
+      </div>
+      <div class="field">
+        <label>Categoría</label>
+        <select id="ed_categoria">
+          <option value="Certificado">Certificado</option>
+          <option value="Plano">Plano / Lámina</option>
+          <option value="Render">Render</option>
+          <option value="Foto">Foto / Drone</option>
+          <option value="Escritura">Escritura / Legal</option>
+          <option value="Patente">Patente</option>
+          <option value="Comprobante">Comprobante</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+      <div class="field" style="border-top:1px solid #3a3c3b; padding-top:14px; margin-top:4px;">
+        <label>Archivo</label>
+        <div id="ed_archivoActual" class="ed-archivo-actual"></div>
+        <label class="file-btn" style="margin-top:8px;">
+          🔄 Reemplazar archivo
+          <input id="ed_file" type="file" style="display:none"
+                 onchange="document.getElementById('ed_fileName').textContent=this.files[0]?('Nuevo: '+this.files[0].name):''">
+        </label>
+        <span id="ed_fileName" class="file-name"></span>
+        <div class="ed-hint">Deja esto vacío si solo quieres cambiar el nombre o la categoría.</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="cerrarEditarDoc()">Cancelar</button>
+      <button class="btn-primary" id="ed_guardar" onclick="guardarEditarDoc()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
