@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.01</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.03</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -224,7 +224,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.01</span></a>
+    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.03</span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <div class="sep"></div>
   <button class="btn" id="btnPDF">📄 Cargar PDF</button>
@@ -307,11 +307,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.01 =================
+/* ================= GESTOR AVERARQ v3.03 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.01";
+const GESTOR_VERSION="v3.03";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -493,6 +493,7 @@ let state={
   pdfName:null,
   costos:{m1:55000, m2:40000, gg:12, utilDia:70000, iva:true, utilModo:"dia", utilPct:15},
   incluirTE1:true,
+  gantt:{inicio:"", feriadosExtra:[]},
   planPago:{on:true, retencionOn:false, retencionPct:5, retencionMeses:6, hitos:[
     {pago:30, avance:20, label:"Anticipo para inicio y materiales"},
     {pago:30, avance:40, label:"Segundo estado de avance"},
@@ -522,6 +523,97 @@ function grupoAuto(p){
   if(/cierre|exterior|urbaniz|vereda|estacionamiento|reja/.test(n))return"ext";
   if(/faena|trazado|aseo|entrega|preliminar/.test(n))return"prelim";
   return"otros";
+}
+function ganttCronograma(){
+  const g=state.gantt;
+  if(!g.inicio)return null;
+  const grupos=partsPorGrupo();
+  if(!grupos.length)return null;
+  let cursor=new Date(g.inicio+"T00:00:00");
+  // alinear al primer día hábil
+  while(!esDiaHabil(cursor))cursor.setDate(cursor.getDate()+1);
+  const filas=[];
+  let finGlobal=new Date(cursor);
+  for(const gr of grupos){
+    // inicio del grupo = cursor actual
+    const inicioGrupo=new Date(cursor);
+    let maxDias=0;
+    const partidasGrupo=[];
+    for(const {p,c} of gr.ps){
+      const dias=Math.max(0.5, c.dias||0.5);
+      const ini=new Date(inicioGrupo);
+      const fin=sumarHabiles(ini, dias);
+      partidasGrupo.push({nombre:p.nombre, dias, ini:new Date(ini), fin:new Date(fin), color:p.color||"#fc4c02"});
+      if(dias>maxDias)maxDias=dias;
+    }
+    // el grupo termina cuando termina su partida más larga
+    const finGrupo=sumarHabiles(inicioGrupo, maxDias);
+    filas.push({grupo:gr.gn, ini:new Date(inicioGrupo), fin:new Date(finGrupo), dias:maxDias, partidas:partidasGrupo});
+    if(finGrupo>finGlobal)finGlobal=new Date(finGrupo);
+    // el siguiente grupo empieza el día hábil siguiente al fin de este
+    cursor=new Date(finGrupo); cursor.setDate(cursor.getDate()+1);
+    while(!esDiaHabil(cursor))cursor.setDate(cursor.getDate()+1);
+  }
+  const inicioGlobal=new Date(g.inicio+"T00:00:00");
+  while(!esDiaHabil(inicioGlobal))inicioGlobal.setDate(inicioGlobal.getDate()+1);
+  return {inicio:inicioGlobal, fin:finGlobal, filas, diasHabilesTotal:habilesEntre(inicioGlobal,finGlobal)};
+}
+// ===== MOTOR DE FECHAS HÁBILES (Chile) =====
+// Feriados nacionales fijos e irrenunciables + relevantes. Los móviles (Semana Santa) se calculan.
+function feriadosChile(anio){
+  const f=[];
+  const add=(m,d)=>f.push(`${anio}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`);
+  add(1,1);   // Año Nuevo
+  add(5,1);   // Día del Trabajo
+  add(5,21);  // Glorias Navales
+  add(6,20);  // Día Pueblos Indígenas (aprox, varía con solsticio)
+  add(6,29);  // San Pedro y San Pablo
+  add(7,16);  // Virgen del Carmen
+  add(8,15);  // Asunción de la Virgen
+  add(9,18);  // Independencia
+  add(9,19);  // Glorias del Ejército
+  add(10,12); // Encuentro de Dos Mundos
+  add(10,31); // Iglesias Evangélicas
+  add(11,1);  // Todos los Santos
+  add(12,8);  // Inmaculada Concepción
+  add(12,25); // Navidad
+  // Semana Santa (Viernes y Sábado Santo) — cálculo de Pascua (algoritmo de Gauss/Butcher)
+  const a=anio%19,b=Math.floor(anio/100),c=anio%100,d=Math.floor(b/4),e=b%4,
+    g=Math.floor((8*b+13)/25),hh=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,
+    l=(32+2*e+2*i-hh-k)%7,mm=Math.floor((a+11*hh+22*l)/451),
+    mes=Math.floor((hh+l-7*mm+114)/31),dia=((hh+l-7*mm+114)%31)+1;
+  const pascua=new Date(anio,mes-1,dia);
+  const vs=new Date(pascua); vs.setDate(pascua.getDate()-2); // Viernes Santo
+  const ss=new Date(pascua); ss.setDate(pascua.getDate()-1); // Sábado Santo
+  const fmt=dt=>`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;
+  f.push(fmt(vs),fmt(ss));
+  return f;
+}
+function esDiaHabil(dt){
+  const dow=dt.getDay();
+  if(dow===0||dow===6)return false; // domingo/sábado
+  const iso=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;
+  if(feriadosChile(dt.getFullYear()).includes(iso))return false;
+  if((state.gantt.feriadosExtra||[]).includes(iso))return false;
+  return true;
+}
+// Suma N días hábiles a una fecha; devuelve la fecha resultante (medio día se redondea hacia arriba en jornadas)
+function sumarHabiles(fechaInicio, nDias){
+  let dt=new Date(fechaInicio);
+  let restantes=Math.ceil(nDias);
+  // el día de inicio, si es hábil, cuenta como el primer día
+  while(!esDiaHabil(dt))dt.setDate(dt.getDate()+1);
+  while(restantes>1){
+    dt.setDate(dt.getDate()+1);
+    if(esDiaHabil(dt))restantes--;
+  }
+  return dt;
+}
+// Cuenta cuántos días hábiles hay entre dos fechas (inclusive)
+function habilesEntre(desde, hasta){
+  let dt=new Date(desde), n=0;
+  while(dt<=hasta){ if(esDiaHabil(dt))n++; dt.setDate(dt.getDate()+1); }
+  return n;
 }
 function partsPorGrupo(){
   const out=[];
@@ -2129,7 +2221,55 @@ function htmlObra(){
       <button class="btn mini" id="medAdd">+ agregar punto</button></div>
     ${meds.length?`<table style="margin-top:6px">${meds.map((m,i)=>`<tr><td class="small">Semana ${m.sem}</td><td class="small money">${F(m.pct,1)}%</td><td style="width:24px"><button class="btn mini" data-meddel="${i}">×</button></td></tr>`).join("")}</table>`:`<p class="small" style="margin-top:4px;color:var(--muted)">Aún no hay mediciones. Agrega el % de avance real observado en cada semana de control; puedes tomar el "avance real actual" de arriba como referencia.</p>`}
   </div>`;
+  h+=ganttHTML();
   h+=`<div class="row" style="margin-top:12px"><button class="btn primary grow" id="obraEmitir">🖨 Emitir estado de obra</button></div>`;
+  h+=`<div class="row" style="margin-top:6px"><button class="btn grow" id="ganttEmitir" ${state.gantt.inicio?"":"disabled title='Marca la fecha de inicio primero'"}>📅 Emitir carta Gantt detallada</button></div>`;
+  return h;
+}
+function ganttHTML(){
+  const g=state.gantt;
+  let h=`<h3 style="margin-top:16px">CARTA GANTT — PLANIFICACIÓN</h3>
+  <p class="small" style="margin-bottom:6px">Planificación temporal según los días estimados del presupuesto. Los grupos van en secuencia lógica de obra; las partidas de un mismo grupo, en paralelo. Considera solo días hábiles (salta fines de semana y feriados de Chile).</p>
+  <div class="card">
+    <div class="row"><label style="width:120px">Inicio de obra</label>
+      <input type="date" id="ganttInicio" value="${g.inicio||""}" style="width:150px">
+      <span class="small grow" style="text-align:right">Feriados nacionales aplicados automáticamente</span></div>
+    <div class="row"><label style="width:120px">Día no laborable</label>
+      <input type="date" id="ganttFerAdd" style="width:150px">
+      <button class="btn mini" id="ganttFerBtn">+ marcar feriado</button></div>
+    ${(g.feriadosExtra||[]).length?`<div class="row" style="flex-wrap:wrap;gap:4px">${g.feriadosExtra.map((f,i)=>`<span class="chip" style="cursor:default">${f}<b data-ferdel="${i}" style="cursor:pointer;margin-left:4px">×</b></span>`).join("")}</div>`:""}
+  </div>`;
+  const cron=ganttCronograma();
+  if(!cron){
+    h+=`<p class="small" style="color:var(--muted)">${g.inicio?"Agrega partidas cubicadas para ver la planificación.":"Marca la fecha de inicio para generar la carta Gantt."}</p>`;
+    return h;
+  }
+  // Escala de la Gantt: días calendario totales
+  const msDia=86400000;
+  const totalDiasCal=Math.round((cron.fin-cron.inicio)/msDia)+1;
+  const fmtF=dt=>dt.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit"});
+  const fmtFL=dt=>dt.toLocaleDateString("es-CL",{day:"2-digit",month:"short",year:"numeric"});
+  h+=`<div class="card">
+    <div class="row"><span class="small grow">Inicio: <b>${fmtFL(cron.inicio)}</b> · Término: <b>${fmtFL(cron.fin)}</b></span>
+      <span class="small">${cron.diasHabilesTotal} días hábiles · ${totalDiasCal} días corridos</span></div>`;
+  // barras: cada grupo una fila, con barra proporcional a su posición y duración
+  const anchoPx=560;
+  const pxDia=anchoPx/totalDiasCal;
+  h+=`<div style="overflow-x:auto;margin-top:8px">`;
+  const colores=["#fc4c02","#e8a33d","#53565a","#8a5a2b","#6b7280","#b06ab3","#3a8a5a","#c0392b","#2c7a7b","#9b59b6"];
+  cron.filas.forEach((fila,i)=>{
+    const offDias=Math.round((fila.ini-cron.inicio)/msDia);
+    const durDias=Math.round((fila.fin-fila.ini)/msDia)+1;
+    const col=colores[i%colores.length];
+    h+=`<div style="display:flex;align-items:center;margin:3px 0;font-size:11px">
+      <div style="width:110px;flex:0 0 110px;color:var(--txt2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fila.grupo}</div>
+      <div style="position:relative;flex:1;height:20px;background:var(--panel2,#1a1c1a);border-radius:3px">
+        <div style="position:absolute;left:${offDias*pxDia}px;width:${Math.max(durDias*pxDia,6)}px;height:20px;background:${col};border-radius:3px;display:flex;align-items:center;padding-left:5px;color:#fff;font-size:9px;white-space:nowrap;overflow:hidden" title="${fila.grupo}: ${fmtF(fila.ini)} → ${fmtF(fila.fin)} (${F(fila.dias,1)} días)">${F(fila.dias,1)}d</div>
+      </div>
+      <div style="width:96px;flex:0 0 96px;text-align:right;color:var(--muted);font-size:10px">${fmtF(fila.ini)}–${fmtF(fila.fin)}</div>
+    </div>`;
+  });
+  h+=`</div></div>`;
   return h;
 }
 function ponderacionHTML(){
@@ -2406,6 +2546,16 @@ function bindTab(){
     obraData().info[i.dataset.obrainfo]=i.value;autosave();
   }));
   const obEm=$("#obraEmitir");if(obEm)obEm.onclick=emitirObra;
+  // Gantt
+  const gIni=$("#ganttInicio");if(gIni)gIni.addEventListener("change",()=>{state.gantt.inicio=gIni.value;renderTab();autosave();});
+  const gFerBtn=$("#ganttFerBtn");if(gFerBtn)gFerBtn.onclick=()=>{
+    const v=$("#ganttFerAdd").value;
+    if(v && !state.gantt.feriadosExtra.includes(v)){state.gantt.feriadosExtra.push(v);state.gantt.feriadosExtra.sort();renderTab();autosave();}
+  };
+  $$("#tabContent [data-ferdel]").forEach(x=>x.onclick=()=>{
+    state.gantt.feriadosExtra.splice(+x.dataset.ferdel,1);renderTab();autosave();
+  });
+  const gEm=$("#ganttEmitir");if(gEm)gEm.onclick=emitirGantt;
   const oDur=$("[data-obradur]");if(oDur)oDur.addEventListener("change",()=>{obraData().durSem=Math.max(1,parseInt(oDur.value)||16);refreshUI();});
   const cM2=$("[data-compm2]");if(cM2)cM2.addEventListener("change",()=>{state.compM2=Math.max(1,parseFloat(cM2.value)||100);refreshUI();});
   const cAlc=$("[data-compalc]");if(cAlc)cAlc.addEventListener("change",()=>{state.compAlcance=cAlc.value;refreshUI();});
@@ -2593,6 +2743,8 @@ function loadState(s){
     {pago:10, avance:100, label:"Saldo a la recepción de la obra"}
   ]};
   if(state.planPago.retencionOn===undefined)state.planPago.retencionOn=false;
+  if(!state.gantt)state.gantt={inicio:"", feriadosExtra:[]};
+  if(!Array.isArray(state.gantt.feriadosExtra))state.gantt.feriadosExtra=[];
   if(state.planPago.retencionPct===undefined)state.planPago.retencionPct=5;
   if(state.planPago.retencionMeses===undefined)state.planPago.retencionMeses=6;
   state.partidas.forEach(p=>{if(!p.grupo)p.grupo=grupoAuto(p);});activePid=state.partidas[0]?.id;selShape=null;drawPts=[];
@@ -3422,6 +3574,100 @@ function planPagoDocHTML(t){
       ${ret?`<tr><td style="padding:5px 8px;color:#fc4c02" colspan="${ret?4:3}"><b>Retención en garantía</b> — se libera a los ${pp.retencionMeses} meses de la recepción</td><td style="padding:5px 8px;text-align:right;font-weight:bold;color:#fc4c02">${CLP(retTotal)}</td></tr>`:""}
     </table>
   </div>`;
+}
+function emitirGantt(){
+  const cron=ganttCronograma();
+  if(!cron){hint("Marca la fecha de inicio y agrega partidas para la Gantt.");return;}
+  const fecha=new Date().toLocaleDateString("es-CL");
+  const msDia=86400000;
+  const totalDias=Math.round((cron.fin-cron.inicio)/msDia)+1;
+  // Escala adaptativa: días si ≤35 días corridos, semanas si más
+  const porSemana=totalDias>35;
+  const fmtCorta=dt=>dt.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit"});
+  const fmtLarga=dt=>dt.toLocaleDateString("es-CL",{day:"2-digit",month:"long",year:"numeric"});
+  const meses=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  // Dimensiones del SVG
+  const W=1000, labW=170, dateW=110, chartW=W-labW-dateW-40;
+  const rowH=26, headH=60;
+  const H=headH + cron.filas.length*rowH + 70;
+  const pxDia=chartW/totalDias;
+  const x0=labW+10;
+  const fmtISO=dt=>`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;
+  // Construir fondo: franjas de fin de semana + líneas de feriado
+  let fondo="", ejeX="";
+  const feriadosAnio={};
+  for(let a=cron.inicio.getFullYear();a<=cron.fin.getFullYear();a++)feriadosChile(a).forEach(f=>feriadosAnio[f]=1);
+  let leyendaFeriados=[];
+  for(let d=0; d<totalDias; d++){
+    const dt=new Date(cron.inicio); dt.setDate(cron.inicio.getDate()+d);
+    const x=x0+d*pxDia;
+    const dow=dt.getDay();
+    const iso=fmtISO(dt);
+    // fin de semana: franja gris tenue
+    if(dow===0||dow===6){
+      fondo+=`<rect x="${x}" y="${headH}" width="${pxDia}" height="${cron.filas.length*rowH}" fill="#e8e8e6" opacity="0.5"/>`;
+    }
+    // feriado nacional o extra: línea roja punteada
+    const esFer=feriadosAnio[iso]||(state.gantt.feriadosExtra||[]).includes(iso);
+    if(esFer && dow!==0 && dow!==6){
+      fondo+=`<line x1="${x+pxDia/2}" y1="${headH-4}" x2="${x+pxDia/2}" y2="${headH+cron.filas.length*rowH}" stroke="#d32f2f" stroke-width="1.3" stroke-dasharray="3,2"/>`;
+      leyendaFeriados.push(fmtCorta(dt));
+    }
+  }
+  // Eje temporal: marcas cada semana (lunes) o cada día si es corta
+  let tick=0;
+  for(let d=0; d<totalDias; d++){
+    const dt=new Date(cron.inicio); dt.setDate(cron.inicio.getDate()+d);
+    const x=x0+d*pxDia;
+    const marca = porSemana ? (dt.getDay()===1) : true; // lunes si por semana; todos si por día
+    if(marca){
+      ejeX+=`<line x1="${x}" y1="${headH-4}" x2="${x}" y2="${headH}" stroke="#999" stroke-width="0.8"/>`;
+      const lbl = porSemana ? `${dt.getDate()}/${dt.getMonth()+1}` : `${dt.getDate()}`;
+      ejeX+=`<text x="${x+1}" y="${headH-8}" font-size="8" fill="#777">${lbl}</text>`;
+    }
+  }
+  // Barras de cada grupo
+  const colores=["#fc4c02","#e8a33d","#53565a","#8a5a2b","#6b7280","#b06ab3","#3a8a5a","#c0392b","#2c7a7b","#9b59b6"];
+  let barras="";
+  cron.filas.forEach((fila,i)=>{
+    const y=headH+i*rowH+3;
+    const offDias=Math.round((fila.ini-cron.inicio)/msDia);
+    const durDias=Math.round((fila.fin-fila.ini)/msDia)+1;
+    const bx=x0+offDias*pxDia;
+    const bw=Math.max(durDias*pxDia,4);
+    const col=colores[i%colores.length];
+    // etiqueta del grupo
+    barras+=`<text x="10" y="${y+14}" font-size="11" fill="#333" font-weight="600">${esc(fila.grupo)}</text>`;
+    // barra
+    barras+=`<rect x="${bx}" y="${y}" width="${bw}" height="${rowH-8}" rx="3" fill="${col}"/>`;
+    barras+=`<text x="${bx+4}" y="${y+13}" font-size="9" fill="#fff" font-weight="600">${F(fila.dias,1)}d</text>`;
+    // fechas a la derecha
+    barras+=`<text x="${W-dateW+4}" y="${y+14}" font-size="9" fill="#666">${fmtCorta(fila.ini)}–${fmtCorta(fila.fin)}</text>`;
+    // línea separadora tenue
+    barras+=`<line x1="10" y1="${y+rowH-4}" x2="${W-20}" y2="${y+rowH-4}" stroke="#f0f0f0" stroke-width="0.5"/>`;
+  });
+  // Leyenda
+  const uniqFer=[...new Set(leyendaFeriados)];
+  const svg=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+    <rect x="${x0}" y="${headH}" width="${chartW}" height="${cron.filas.length*rowH}" fill="#fafaf8" stroke="#e0e0e0" stroke-width="0.5"/>
+    ${fondo}${ejeX}${barras}
+    <line x1="${x0}" y1="${headH}" x2="${x0}" y2="${headH+cron.filas.length*rowH}" stroke="#ccc" stroke-width="0.8"/>
+  </svg>`;
+  $("#printArea").innerHTML=`<div class="pr-page">`+prHead("CARTA GANTT — PLANIFICACIÓN DE OBRA",fecha)+`
+    <div style="display:flex;justify-content:space-between;margin:6px 0 14px;font-size:11px">
+      <div>Inicio: <b>${fmtLarga(cron.inicio)}</b></div>
+      <div>Término estimado: <b>${fmtLarga(cron.fin)}</b></div>
+      <div><b>${cron.diasHabilesTotal}</b> días hábiles · <b>${totalDias}</b> días corridos</div>
+    </div>
+    ${svg}
+    <div style="margin-top:14px;font-size:10px;color:#666;display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+      <span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:14px;height:10px;background:#e8e8e6;opacity:.7"></span> Fin de semana</span>
+      <span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:2px;height:12px;border-left:1.3px dashed #d32f2f"></span> Feriado / día no laborable</span>
+      ${uniqFer.length?`<span style="color:#999">Feriados en el período: ${uniqFer.join(" · ")}</span>`:""}
+    </div>
+    <p style="margin-top:12px;font-size:10px;color:#777">Planificación referencial basada en los rendimientos estimados de cada partida. Los grupos se ejecutan en secuencia lógica de obra; las partidas de un mismo grupo, en paralelo. El cronograma considera solo días hábiles (excluye fines de semana y feriados de Chile). Los plazos pueden variar según condiciones de obra, clima, disponibilidad de materiales y tiempos de aprobación.</p>
+    `+prFoot()+`</div>`;
+  window.print();
 }
 function emitirObra(){
   const parts=state.partidas.map(p=>({p,c:partidaCalc(p)})).filter(x=>x.c.q>0);
