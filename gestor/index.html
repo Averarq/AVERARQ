@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v2.98</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.01</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -224,7 +224,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v2.98</span></a>
+    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.01</span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <div class="sep"></div>
   <button class="btn" id="btnPDF">📄 Cargar PDF</button>
@@ -307,11 +307,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v2.98 =================
+/* ================= GESTOR AVERARQ v3.01 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v2.98";
+const GESTOR_VERSION="v3.01";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -808,9 +808,19 @@ function shapeQty(sh){ // en unidades de mundo → reales
   if(sh.trazo==="linea")return polyLen(sh.pts)*k;
   return sh.pts.length; // punto: cada punto = 1
 }
+function cantColTxt(p,c){
+  // Para partidas de muro (trazo línea, unidad m2): muestra ML de origen × altura = m²
+  if(p.trazo==="linea" && p.tipo==="m2"){
+    const ml=partidaMedido(p);
+    return `${FS(ml)} ml × ${F(p.altura,2)} m = ${FS(c.q)} m²`;
+  }
+  return `${F(c.q)} ${p.tipo}`;
+}
 function partidaMedido(p){
   let q=0;
   for(const sh of state.shapes) if(sh.pid===p.id) q+=shapeQty(sh);
+  // Para muros (línea + m²), el ingreso manual se interpreta como ML de origen
+  if(p.trazo==="linea" && p.tipo==="m2") q+=(+p.manual||0);
   return q;
 }
 const PUERTAS_CATALOGO=[
@@ -822,7 +832,10 @@ function puertasMixCant(p){ return (p.mix||[]).reduce((s,m)=>s+(+m.cant||0),0); 
 function puertasMixCosto(p){ return (p.mix||[]).reduce((s,m)=>s+(+m.cant||0)*(+m.precio||0),0); }
 function partidaCantidad(p){ // cantidad en la unidad del APU
   let q=partidaMedido(p);
-  if(p.trazo==="linea"&&p.tipo==="m2") q=Math.max(0, q*(p.altura||0) - (+p.vanos||0));
+  if(p.trazo==="linea"&&p.tipo==="m2"){
+    // partidaMedido ya incluye el ML manual; aquí solo convertimos ML→m²
+    return Math.max(0, q*(p.altura||0) - (+p.vanos||0));
+  }
   return q+(+p.manual||0);
 }
 function partidaCalc(p){
@@ -1236,14 +1249,19 @@ function cardPartida(p){
 
     const c=partidaCalc(p);
     const med=partidaMedido(p);
-    const medTxt=p.trazo==="linea"?`${F(med)} ml${p.tipo==="m2"?` × h ${F(p.altura)} m`:""}`:p.trazo==="area"?`${F(med)} m²`:`${F(med,0)} un`;
+    const mlTraz=(p.trazo==="linea"&&p.tipo==="m2")?(med-(+p.manual||0)):med;
+    const medTxt=p.trazo==="linea"
+      ? (p.tipo==="m2"
+          ? `${FS(med)} ml${(+p.manual)?` (${FS(mlTraz)} plano + ${FS(+p.manual)} manual)`:""} × h ${F(p.altura,2)} m = ${FS(c.q)} m²`
+          : `${F(med)} ml`)
+      : p.trazo==="area"?`${F(med)} m²`:`${F(med,0)} un`;
     return `<div class="card ${p.id===activePid?"sel":""}" data-act="${p.id}">
       <div class="row"><input type="color" value="${p.color}" data-f="color" data-id="${p.id}">
         <input type="text" class="grow" value="${esc(p.nombre)}" data-f="nombre" data-id="${p.id}">
         <span class="tdel" data-delp="${p.id}" title="Eliminar partida">✕</span></div>
       <div class="row"><span class="small grow">Trazado: ${TRZ[p.trazo]} · plano: ${medTxt}</span>
         <span class="qty">${F(c.q)} ${p.tipo}</span></div>
-      <div class="row"><label>+ manual</label><input type="number" style="width:70px" step="0.1" value="${p.manual}" data-f="manual" data-id="${p.id}">
+      <div class="row"><label>+ manual ${p.trazo==="linea"&&p.tipo==="m2"?"ml":(p.trazo==="linea"?"ml":p.trazo==="area"?"m²":"un")}</label><input type="number" style="width:70px" step="0.1" value="${p.manual}" data-f="manual" data-id="${p.id}">
         ${p.trazo==="linea"&&p.tipo==="m2"?`<label>altura m</label><input type="number" style="width:56px" step="0.05" value="${p.altura}" data-f="altura" data-id="${p.id}">
         <label>− vanos m²</label><input type="number" style="width:56px" step="0.1" min="0" value="${p.vanos||0}" data-f="vanos" data-id="${p.id}">`:""}</div>
       ${p.esPuertas?puertasMixHTML(p):""}
@@ -2506,7 +2524,19 @@ $("#btnAbrir").onclick=()=>$("#fileJSON").click();
 $("#fileJSON").onchange=e=>{
   const f=e.target.files[0];if(!f)return;
   const rd=new FileReader();
-  rd.onload=()=>{try{loadState(JSON.parse(rd.result));hint("Proyecto cargado."+(state.pdfName?" Recargue el PDF: "+state.pdfName:""));}catch(err){alert("Archivo inválido.");}};
+  rd.onload=()=>{try{
+    const data=JSON.parse(rd.result);
+    // Aviso de migración: proyectos anteriores a v3.00 interpretaban el "manual" de muros como m², no como ML
+    const ver=(data._version||"").replace(/[^\d.]/g,"");
+    const esViejo=ver && parseFloat(ver)<3.00;
+    const cand=(data.proyecto||data);
+    const tieneMurosManual=(cand.partidas||[]).some(p=>p.trazo==="linea"&&p.tipo==="m2"&&(+p.manual)>0);
+    loadState(data);
+    if(esViejo && tieneMurosManual){
+      setTimeout(()=>alert("Aviso de compatibilidad\n\nEste proyecto fue guardado en una versión anterior (v"+ver+"). Desde la v3.00, el campo manual de los muros se interpreta como METROS LINEALES (ml), no como m².\n\nRevisa las cantidades de tus partidas de muro: el valor manual ahora se multiplica por la altura. Ajústalo si es necesario."),300);
+    }
+    hint("Proyecto cargado."+(state.pdfName?" Recargue el PDF: "+state.pdfName:""));
+  }catch(err){alert("Archivo inválido.");}};
   rd.readAsText(f);e.target.value="";
 };
 function loadState(s){
@@ -2595,8 +2625,14 @@ function importarDesdeCabida(data){
   fresh.eett.pj.det=[];
   // si multipiso, repartir superficie por piso (igual, editable luego)
   if((c.pisos||1)>1){
-    const porPiso=Math.round((c.edificable_m2||0)/(c.pisos));
-    for(let i=0;i<c.pisos;i++)fresh.eett.pj.det.push({m2:porPiso,sistema:fresh.eett.pj.sistema||"sip"});
+    const tot=+c.edificable_m2||0, n=c.pisos;
+    // Reparto sin redondear: los primeros n-1 pisos con 2 decimales, el último absorbe la diferencia
+    // para que la suma cuadre EXACTAMENTE con el total (regla de superficies exactas).
+    const base=Math.floor((tot/n)*100)/100;
+    for(let i=0;i<n;i++){
+      const m2=(i<n-1)?base:(tot-base*(n-1));
+      fresh.eett.pj.det.push({m2:Math.round(m2*100)/100,sistema:fresh.eett.pj.sistema||"sip"});
+    }
   }
   loadState(fresh); autosave();
   // guardar una nota de procedencia
@@ -2666,6 +2702,11 @@ function emitir(modo){
   const t=totales();const fecha=new Date().toLocaleDateString("es-CL");
   const hayPartidas=partsPorGrupo().length>0;
   if(!hayPartidas){hint("No hay partidas con cantidades para informar.");return;}
+  // Advertencia no bloqueante: plan de pago activo que no suma 100%
+  if(modo==="cliente" && state.planPago && state.planPago.on){
+    const suma=(state.planPago.hitos||[]).reduce((s,x)=>s+(+x.pago||0),0);
+    if(suma!==100 && !confirm("El plan de pago suma "+suma+"%, no 100%.\n\n¿Emitir de todas formas?")) return;
+  }
   const f=t.directo>0? t.neto/t.directo : 1; // factor de venta: GG + utilidad prorrateados
   let html="";
 
@@ -2676,7 +2717,7 @@ function emitir(modo){
       let st=0;
       for(const {p,c} of g.ps){
         const venta=c.directo*f; st+=venta;
-        rows+=`<tr><td>${esc(p.nombre)}</td><td ${R}>${F(c.q)} ${p.tipo}</td>
+        rows+=`<tr><td>${esc(p.nombre)}</td><td ${R}>${cantColTxt(p,c)}</td>
           <td ${R}>${CLP(c.q?venta/c.q:0)} /${p.tipo}</td><td ${R}>${CLP(venta)}</td></tr>`;
       }
       rows+=`<tr><td colspan="3" style="text-align:right;color:#777;font-size:10px">Subtotal ${g.gn}</td><td ${R}><b>${CLP(st)}</b></td></tr>`;
@@ -2699,7 +2740,7 @@ function emitir(modo){
       let sd=0,sv=0;
       for(const {p,c} of g.ps){
         const venta=c.directo*f; sd+=c.directo; sv+=venta;
-        rows+=`<tr><td>${esc(p.nombre)}</td><td ${R}>${F(c.q)} ${p.tipo}</td><td ${R}>${F(c.dias,1)}</td>
+        rows+=`<tr><td>${esc(p.nombre)}</td><td ${R}>${cantColTxt(p,c)}</td><td ${R}>${F(c.dias,1)}</td>
           <td ${R}>${CLP(c.mat)}</td><td ${R}>${CLP(c.mo)}</td><td ${R}>${CLP(c.directo)}</td>
           <td ${R}>${CLP(venta)}</td><td ${R}>${CLP(venta-c.directo)}</td></tr>`;
       const blk=`<div class="apu-block"><h2>APU — ${esc(p.nombre)} (por 1 ${p.tipo})</h2><table>
