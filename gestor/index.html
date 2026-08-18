@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.03</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.05</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -224,7 +224,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.03</span></a>
+    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.05</span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <div class="sep"></div>
   <button class="btn" id="btnPDF">📄 Cargar PDF</button>
@@ -307,11 +307,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.03 =================
+/* ================= GESTOR AVERARQ v3.05 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.03";
+const GESTOR_VERSION="v3.05";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -504,13 +504,14 @@ let state={
   shapes:[]               // {id, pid, trazo:'area'|'linea'|'punto', pts:[{x,y}]}
 };
 
-const GRUPOS=[["prelim","Preliminares"],["fund","Fundaciones"],["suelo","Suelo"],
+const GRUPOS=[["demol","Demoliciones"],["prelim","Preliminares"],["fund","Fundaciones"],["suelo","Suelo"],
  ["muros","Muros"],["tech","Techumbre"],["cielo","Cielos"],["apert","Aperturas"],
  ["term","Terminaciones"],["inst","Instalaciones"],["mobil","Mobiliario"],["ext","Exteriores"],["otros","Otros"]];
 const GNOM=id=>{const g=GRUPOS.find(g=>g[0]===id);return g?g[1]:"Otros";};
 let grpSel="todos";
 function grupoAuto(p){
   const n=(p.nombre||"").toLowerCase();
+  if(/demolici|retiro de revestimiento|retiro y carga|escombro/.test(n))return"demol";
   if(/fundaci|cimiento|sobrecimiento|poyo/.test(n))return"fund";
   if(/radier|losa de piso|pavimento interior|sobrelosa/.test(n))return"suelo";
   if(/albañil|tabique|sip|muro|pandereta/.test(n))return"muros";
@@ -626,6 +627,86 @@ function partsPorGrupo(){
 }
 function defaultPartidas(){
   const arr=[
+   // ===== FUNDACIONES Y PREPARACIÓN DE TERRENO =====
+   {id:nid(),nombre:"Excavación de zanja a mano (cimiento corrido)",trazo:"linea",tipo:"ml",altura:0,color:"#8a5a2b",grupo:"fund",
+    rend:6,nM1:0,nM2:2,manual:0,apu:[
+     ["Herramienta menor (pala, chuzo)","gl",0.02,6000]].map(a=>({d:a[0],u:a[1],c:a[2],p:a[3]}))},
+   {id:nid(),nombre:"Emplantillado hormigón pobre e=5 cm",trazo:"linea",tipo:"ml",altura:0,color:"#6b7280",grupo:"fund",
+    rend:30,nM1:1,nM2:1,manual:0,apu:[
+     ["Hormigón pobre G05 (cemento)","saco",0.18,5990],
+     ["Arena","m³",0.012,28000],
+     ["Gravilla","m³",0.018,32000]].map(a=>({d:a[0],u:a[1],c:a[2],p:a[3]}))},
+   {id:nid(),nombre:"Cimiento corrido hormigón (30×40 cm)",trazo:"linea",tipo:"ml",altura:0,color:"#53565a",grupo:"fund",
+    rend:8,nM1:1,nM2:1,manual:0,apu:[
+     ["Hormigón G15 (cemento)","saco",1.8,5990],
+     ["Arena","m³",0.06,28000],
+     ["Gravilla","m³",0.09,32000],
+     ["Moldaje pino (reutilizable)","gl",0.15,4500]].map(a=>({d:a[0],u:a[1],c:a[2],p:a[3]}))},
+   {id:nid(),nombre:"Sobrecimiento hormigón armado (20×30 cm)",trazo:"linea",tipo:"ml",altura:0,color:"#53565a",grupo:"fund",
+    rend:7,nM1:1,nM2:1,manual:0,apu:[
+     ["Hormigón G20 (cemento)","saco",1.2,5990],
+     ["Arena","m³",0.04,28000],
+     ["Gravilla","m³",0.06,32000],
+     ["Fierro 8 mm","kg",3.5,1150],
+     ["Moldaje pino","gl",0.25,4500]].map(a=>({d:a[0],u:a[1],c:a[2],p:a[3]}))},
+   {id:nid(),nombre:"Relleno estabilizado compactado",trazo:"area",tipo:"m2",altura:0,color:"#8a5a2b",grupo:"fund",
+    rend:25,nM1:0,nM2:2,manual:0,apu:[
+     ["Estabilizado / ripio","m³",0.12,18000],
+     ["Compactación (arriendo placa)","gl",0.03,25000]].map(a=>({d:a[0],u:a[1],c:a[2],p:a[3]}))},
+
+   // ===== DEMOLICIÓN (diferenciada por material, según tablas MINVU) =====
+   {id:nid(),nombre:"Demolición hormigón (radier/pilar/cadena)",trazo:"area",tipo:"m2",altura:0,color:"#c0392b",grupo:"demol",
+    rend:8,nM1:1,nM2:2,manual:0,apu:[
+     ["Arriendo martillo demoledor","día",0.13,35000],
+     ["Discos, brocas, desgaste","gl",0.05,12000],
+     ["Herramienta menor","gl",0.03,6000]].map(a=>({d:a[0],u:a[1],c:a[2],p:a[3]}))},
+   {id:nid(),nombre:"Demolición albañilería (muro ladrillo)",trazo:"area",tipo:"m2",altura:0,color:"#c0392b",grupo:"demol",
+    rend:14,nM1:0,nM2:2,manual:0,apu:[
+     ["Herramienta menor (combo, chuzo)","gl",0.04,6000],
+     ["Arriendo martillo (según espesor)","día",0.05,35000]].map(a=>({d:a[0],u:a[1],c:a[2],p:a[3]}))},
+   {id:nid(),nombre:"Demolición tabique liviano (volcanita/madera)",trazo:"area",tipo:"m2",altura:0,color:"#e8a33d",grupo:"demol",
+    rend:30,nM1:0,nM2:1,manual:0,apu:[
+     ["Herramienta menor","gl",0.02,6000]].map(a=>({d:a[0],u:a[1],c:a[2],p:a[3]}))},
+   {id:nid(),nombre:"Retiro de revestimiento (piso/cielo/cubierta)",trazo:"area",tipo:"m2",altura:0,color:"#e8a33d",grupo:"demol",
+    rend:40,nM1:0,nM2:1,manual:0,apu:[
+     ["Herramienta menor","gl",0.015,6000]].map(a=>({d:a[0],u:a[1],c:a[2],p:a[3]}))},
+   {id:nid(),nombre:"Retiro y carga de escombros a botadero",trazo:"area",tipo:"m2",altura:0,color:"#8a5a2b",grupo:"demol",
+    rend:35,nM1:0,nM2:2,manual:0,apu:[
+     ["Arriendo camión + botadero","viaje",0.03,90000],
+     ["Bolsas / carga manual","gl",0.02,3000]].map(a=>({d:a[0],u:a[1],c:a[2],p:a[3]}))},
+
+   // ===== TERMINACIONES =====
+   {id:nid(),nombre:"Estuco a grano perdido (muro albañilería)",trazo:"area",tipo:"m2",altura:0,color:"#b06ab3",grupo:"term",
+    rend:12,nM1:1,nM2:1,manual:0,apu:[
+     ["Cemento 25 kg","saco",0.15,5990],
+     ["Arena fina","m³",0.02,30000],
+     ["Aditivo adherencia","gl",0.02,4500]].map(a=>({d:a[0],u:a[1],c:a[2],p:a[3]}))},
+   {id:nid(),nombre:"Empaste muro interior (yeso/pasta)",trazo:"area",tipo:"m2",altura:0,color:"#b06ab3",grupo:"term",
+    rend:25,nM1:1,nM2:0,manual:0,apu:[
+     ["Pasta muro 25 kg","saco",0.12,8500],
+     ["Lija, espátula","gl",0.02,2000]].map(a=>({d:a[0],u:a[1],c:a[2],p:a[3]}))},
+   {id:nid(),nombre:"Pintura látex muro interior (2 manos)",trazo:"area",tipo:"m2",altura:0,color:"#3a8a5a",grupo:"term",
+    rend:35,nM1:1,nM2:0,manual:0,apu:[
+     ["Látex lavable (rend. 10 m²/L)","L",0.22,4200],
+     ["Rodillo, brocha, cinta","gl",0.02,2500]].map(a=>({d:a[0],u:a[1],c:a[2],p:a[3]}))},
+   {id:nid(),nombre:"Óleo/esmalte muro exterior (2 manos)",trazo:"area",tipo:"m2",altura:0,color:"#3a8a5a",grupo:"term",
+    rend:28,nM1:1,nM2:0,manual:0,apu:[
+     ["Esmalte al agua exterior","L",0.25,6500],
+     ["Imprimante/sellador","L",0.1,5200],
+     ["Insumos pintura","gl",0.02,2500]].map(a=>({d:a[0],u:a[1],c:a[2],p:a[3]}))},
+   {id:nid(),nombre:"Guardapolvo pino (instalado)",trazo:"linea",tipo:"ml",altura:0,color:"#8a5a2b",grupo:"term",
+    rend:40,nM1:1,nM2:0,manual:0,apu:[
+     ["Guardapolvo pino 10 mm","ml",1.05,1400],
+     ["Clavos, adhesivo, sello","gl",0.05,600]].map(a=>({d:a[0],u:a[1],c:a[2],p:a[3]}))},
+   {id:nid(),nombre:"Cornisa/moldura de cielo (instalada)",trazo:"linea",tipo:"ml",altura:0,color:"#8a5a2b",grupo:"term",
+    rend:30,nM1:1,nM2:0,manual:0,apu:[
+     ["Moldura poliestireno/pino","ml",1.05,1900],
+     ["Adhesivo, sello, pintura","gl",0.05,800]].map(a=>({d:a[0],u:a[1],c:a[2],p:a[3]}))},
+   {id:nid(),nombre:"Sello siliconado (perímetros húmedos)",trazo:"linea",tipo:"ml",altura:0,color:"#6b7280",grupo:"term",
+    rend:60,nM1:1,nM2:0,manual:0,apu:[
+     ["Silicona antihongos","tubo",0.08,4200],
+     ["Cinta, limpieza","gl",0.02,500]].map(a=>({d:a[0],u:a[1],c:a[2],p:a[3]}))},
+
    {id:nid(),nombre:"Albañilería confinada e=14 (ladrillo artesanal)",trazo:"linea",tipo:"m2",altura:2.4,color:"#fc4c02",
     rend:3.0,nM1:1,nM2:1,manual:0,apu:[
      ["Ladrillo fiscal artesanal","u",39,420],
