@@ -175,6 +175,7 @@
   .proj-card.p-alta{ border-left-color:var(--orange); }
   .proj-card.p-media{ border-left-color:#e8a23c; }
   .proj-card.p-baja{ border-left-color:var(--gris); }
+  .proj-card.p-terminado{ border-left-color:var(--verde); opacity:.9; }
   .pc-main{ display:flex; align-items:center; gap:16px; flex:1; cursor:pointer; min-width:0; }
   .proj-card .pc-name{ font-weight:700; font-size:15px; min-width:190px; }
   .proj-card .pc-estado{ font-size:12px; color:var(--neutro); }
@@ -211,6 +212,18 @@
   .proj-card.p-alta .pc-badge{ background:rgba(252,76,2,0.18); color:var(--orange); }
   .proj-card.p-media .pc-badge{ background:rgba(232,162,60,0.18); color:#e8a23c; }
   .proj-card.p-baja .pc-badge{ background:rgba(199,201,199,0.14); color:var(--neutro); }
+  .proj-card.p-terminado .pc-badge{ background:rgba(63,174,106,0.18); color:var(--verde); }
+
+  /* Sección de proyectos terminados (colapsable) */
+  .terminados-section{ margin-top:14px; }
+  .terminados-head{ display:flex; align-items:center; gap:10px; padding:12px 16px; cursor:pointer; user-select:none;
+    background:rgba(63,174,106,0.08); border:1px solid rgba(63,174,106,0.25); border-radius:12px; transition:background .12s; }
+  .terminados-head:hover{ background:rgba(63,174,106,0.14); }
+  .terminados-arrow{ color:var(--verde); font-size:13px; width:12px; }
+  .terminados-ico{ color:var(--verde); font-weight:800; }
+  .terminados-title{ font-weight:700; font-size:14px; color:var(--verde); flex:1; }
+  .terminados-count{ font-size:12px; font-weight:700; color:var(--verde); background:rgba(63,174,106,0.18); padding:3px 11px; border-radius:20px; }
+  .terminados-body{ margin-top:10px; display:flex; flex-direction:column; gap:10px; }
   .pc-overdue{ color:var(--rojo); font-weight:700; }
   .pc-done{ color:var(--verde); font-weight:700; }
   .check-field{ margin-top:14px; }
@@ -916,6 +929,7 @@
             <option value="alta">Alta</option>
             <option value="media" selected>Media</option>
             <option value="baja">Baja</option>
+            <option value="terminado">✓ Terminado</option>
           </select>
         </div>
       </div>
@@ -1658,8 +1672,8 @@ function renderCalendario(){
 /* ============================================================
    PROYECTOS EN CURSO
 ============================================================ */
-const PRIORIDAD_COLOR = { alta:'#FC4C02', media:'#e8a23c', baja:'#8a8c8a' };
-const PRIORIDAD_LABEL = { alta:'Alta', media:'Media', baja:'Baja' };
+const PRIORIDAD_COLOR = { alta:'#FC4C02', media:'#e8a23c', baja:'#8a8c8a', terminado:'#3fae6a' };
+const PRIORIDAD_LABEL = { alta:'Alta', media:'Media', baja:'Baja', terminado:'Terminado' };
 let currentView = 'barras';
 
 let proyectos = JSON.parse(localStorage.getItem('averarq_proyectos_v1') || 'null');
@@ -1738,47 +1752,75 @@ function renderProyectos(){
   renderProjList();
 }
 
+function projCardHTML(p){
+  const d = daysUntil(p.fecha);
+  const overdue = d!==null && d<=0 && !p.fechaCompletada;
+  let fechaTxt = '';
+  if(p.fecha){
+    if(p.fechaCompletada) fechaTxt = `<span class="pc-done">✅ ${p.fechaLabel||'Fecha'}: cumplido</span>`;
+    else if(overdue) fechaTxt = `<span class="pc-overdue">${p.fechaLabel||'Fecha'}: vencida</span>`;
+    else fechaTxt = `${p.fechaLabel||'Fecha'}: ${d} día(s)`;
+  }
+  const checkbox = p.fecha ? `<label class="pc-check" onclick="event.stopPropagation()">
+      <input type="checkbox" ${p.fechaCompletada?'checked':''} onchange="toggleFechaCompletada('${p.id}', this.checked)">
+    </label>` : '';
+  return `
+  <div class="proj-card p-${p.prioridad}">
+    <span class="pc-badge">${PRIORIDAD_LABEL[p.prioridad]}</span>
+    <div class="pc-main" onclick="openProjModal('${p.id}')">
+      <div class="pc-name">${p.nombre}</div>
+      <div class="pc-estado">${p.estado}${fechaTxt? ' · '+fechaTxt : ''}</div>
+      ${(function(){
+        if(!p.expediente) return '';
+        const e = expEstado(p);
+        const full = e.pct === 100;
+        return `<div class="pc-exp-wrap ${full?'full':''}" title="Avance del expediente D.O.M. — Documentos ${e.docsPct??0}% · Planos ${e.planosPct??0}%">
+          <span class="pc-exp-ico">🏛</span>
+          <div class="pc-exp-bar"><div class="pc-exp-fill" style="width:${e.pct}%"></div></div>
+          <span class="pc-exp-pct">${e.pct}%</span>
+        </div>`;
+      })()}
+    </div>
+    ${checkbox}
+    <div class="pc-pago">${pagoTexto(p)}</div>
+    <div class="pc-actions">
+      <button class="pc-btn pc-edit" onclick="openProjModal('${p.id}')" title="Editar">✎</button>
+      <button class="pc-btn pc-del-btn" onclick="deleteProjDirect('${p.id}')" title="Eliminar">🗑</button>
+    </div>
+  </div>`;
+}
+
+let terminadosAbierto = false;
+function toggleTerminados(){ terminadosAbierto = !terminadosAbierto; renderProjList(); }
+
 function renderProjList(){
   const list = document.getElementById('projList');
   const order = {alta:0, media:1, baja:2};
-  const sorted = [...proyectos].sort((a,b)=> order[a.prioridad]-order[b.prioridad]);
-  list.innerHTML = sorted.map(p=>{
-    const d = daysUntil(p.fecha);
-    const overdue = d!==null && d<=0 && !p.fechaCompletada;
-    let fechaTxt = '';
-    if(p.fecha){
-      if(p.fechaCompletada) fechaTxt = `<span class="pc-done">✅ ${p.fechaLabel||'Fecha'}: cumplido</span>`;
-      else if(overdue) fechaTxt = `<span class="pc-overdue">${p.fechaLabel||'Fecha'}: vencida</span>`;
-      else fechaTxt = `${p.fechaLabel||'Fecha'}: ${d} día(s)`;
-    }
-    const checkbox = p.fecha ? `<label class="pc-check" onclick="event.stopPropagation()">
-        <input type="checkbox" ${p.fechaCompletada?'checked':''} onchange="toggleFechaCompletada('${p.id}', this.checked)">
-      </label>` : '';
-    return `
-    <div class="proj-card p-${p.prioridad}">
-      <span class="pc-badge">${PRIORIDAD_LABEL[p.prioridad]}</span>
-      <div class="pc-main" onclick="openProjModal('${p.id}')">
-        <div class="pc-name">${p.nombre}</div>
-        <div class="pc-estado">${p.estado}${fechaTxt? ' · '+fechaTxt : ''}</div>
-        ${(function(){
-          if(!p.expediente) return '';
-          const e = expEstado(p);
-          const full = e.pct === 100;
-          return `<div class="pc-exp-wrap ${full?'full':''}" title="Avance del expediente D.O.M. — Documentos ${e.docsPct??0}% · Planos ${e.planosPct??0}%">
-            <span class="pc-exp-ico">🏛</span>
-            <div class="pc-exp-bar"><div class="pc-exp-fill" style="width:${e.pct}%"></div></div>
-            <span class="pc-exp-pct">${e.pct}%</span>
-          </div>`;
-        })()}
+
+  // Activos (no terminados), ordenados por prioridad
+  const activos = proyectos.filter(p=>p.prioridad!=='terminado')
+    .sort((a,b)=> order[a.prioridad]-order[b.prioridad]);
+  // Terminados, aparte
+  const terminados = proyectos.filter(p=>p.prioridad==='terminado');
+
+  let html = activos.map(p=>projCardHTML(p)).join('');
+
+  if(terminados.length){
+    html += `
+    <div class="terminados-section">
+      <div class="terminados-head" onclick="toggleTerminados()">
+        <span class="terminados-arrow">${terminadosAbierto?'▾':'▸'}</span>
+        <span class="terminados-ico">✓</span>
+        <span class="terminados-title">Terminados</span>
+        <span class="terminados-count">${terminados.length}</span>
       </div>
-      ${checkbox}
-      <div class="pc-pago">${pagoTexto(p)}</div>
-      <div class="pc-actions">
-        <button class="pc-btn pc-edit" onclick="openProjModal('${p.id}')" title="Editar">✎</button>
-        <button class="pc-btn pc-del-btn" onclick="deleteProjDirect('${p.id}')" title="Eliminar">🗑</button>
+      <div class="terminados-body" style="${terminadosAbierto?'':'display:none'}">
+        ${terminados.map(p=>projCardHTML(p)).join('')}
       </div>
     </div>`;
-  }).join('');
+  }
+
+  list.innerHTML = html;
 }
 
 function deleteProjDirect(id){
@@ -1820,15 +1862,16 @@ function chartBarras(){
       <div class="legend-item"><span class="legend-dot" style="background:${PRIORIDAD_COLOR.alta}"></span>Alta</div>
       <div class="legend-item"><span class="legend-dot" style="background:${PRIORIDAD_COLOR.media}"></span>Media</div>
       <div class="legend-item"><span class="legend-dot" style="background:${PRIORIDAD_COLOR.baja}"></span>Baja</div>
+      <div class="legend-item"><span class="legend-dot" style="background:${PRIORIDAD_COLOR.terminado}"></span>Terminado</div>
     </div>
   </div>`;
 }
 
 function chartPrioridad(){
-  const counts = {alta:0, media:0, baja:0};
-  proyectos.forEach(p=> counts[p.prioridad]++);
+  const counts = {alta:0, media:0, baja:0, terminado:0};
+  proyectos.forEach(p=> { if(counts[p.prioridad]!==undefined) counts[p.prioridad]++; });
   const total = proyectos.length || 1;
-  const order = ['alta','media','baja'];
+  const order = ['alta','media','baja','terminado'].filter(k=>counts[k]>0);
   let acc = 0;
   const R=90, C=120, CIRC=2*Math.PI*R;
   const segs = order.map(k=>{
