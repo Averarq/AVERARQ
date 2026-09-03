@@ -1,1 +1,2723 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AVERARQ · Wind Lab</title>
+<meta name="description" content="Simulador preliminar de viento para arquitectura. Averarq.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   AVERARQ · WIND LAB — DESIGN SYSTEM
+   Paleta oficial Manual de Marca Averarq 2.0
+   Grafito 419C #212322 · Naranja 1655C #FC4C02 · Gris 420C #C7C9C7
+   Cool Gray 11C #53565A · Crema #EEEEEC
+   ========================================================================== */
+:root{
+  --grafito:#212322;
+  --naranjo:#FC4C02;
+  --naranjo-suave:#FFF0EA;
+  --gris:#C7C9C7;
+  --coolgray:#53565A;
+  --crema:#EEEEEC;
 
+  --bg:#F4F4F2;
+  --panel:#FBFBFA;
+  --panel-2:#EEEEEC;
+  --line:#DCDCD8;
+  --line-soft:#E7E7E3;
+  --txt:#212322;
+  --txt-2:#53565A;
+  --txt-3:#8E918E;
+  --viewport-bg:#1B1D1C;
+
+  --f-ui:'Outfit','Barlow','Segoe UI',system-ui,-apple-system,sans-serif;
+  --f-num:'Outfit','SF Mono',ui-monospace,'Segoe UI',sans-serif;
+
+  --sidebar:344px;
+  --topbar:46px;
+  --r:2px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--f-ui);
+  background:var(--bg); color:var(--txt);
+  font-size:13px; line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+button{background:none;border:none;cursor:pointer}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#D2D2CE;border-radius:9px;border:3px solid var(--panel)}
+::-webkit-scrollbar-thumb:hover{background:#B9B9B4}
+
+/* ---------------------------------------------------------------- TOPBAR */
+.app{display:grid;grid-template-rows:var(--topbar) 1fr;height:100vh}
+.topbar{
+  display:flex;align-items:center;gap:0;
+  background:var(--panel);border-bottom:1px solid var(--line);
+  padding:0 16px 0 0;
+}
+.brand{
+  display:flex;align-items:center;gap:9px;
+  width:var(--sidebar); flex:0 0 var(--sidebar);
+  padding-left:18px; height:100%;
+  border-right:1px solid var(--line);
+}
+.brand svg{width:16px;height:19px;display:block}
+.brand .wm{
+  font-weight:700;font-size:13.5px;letter-spacing:.2em;
+  text-transform:uppercase;line-height:1;
+}
+.brand .wm i{font-style:normal;color:var(--naranjo)}
+.brand .sep{width:1px;height:14px;background:var(--line);margin:0 3px}
+.brand .tool{
+  font-weight:400;font-size:10.5px;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--txt-2);line-height:1;padding-top:1px;
+}
+.topbar-mid{flex:1;display:flex;align-items:center;gap:18px;padding-left:20px;min-width:0}
+.topbar-right{display:flex;align-items:center;gap:14px}
+
+.status{display:flex;align-items:center;gap:7px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--txt-2)}
+.status .dot{width:6px;height:6px;border-radius:50%;background:var(--gris);transition:background .4s,box-shadow .4s}
+.status.calc .dot{background:var(--naranjo);box-shadow:0 0 0 3px rgba(252,76,2,.16);animation:pulse 1.3s ease-in-out infinite}
+.status.ok .dot{background:#5A8F5E}
+.status.paused .dot{background:var(--coolgray)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+.meta{font-size:10.5px;color:var(--txt-3);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta b{font-weight:500;color:var(--txt-2)}
+
+.tbtn{
+  height:26px;padding:0 11px;border:1px solid var(--line);
+  font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt-2);
+  border-radius:var(--r);transition:.15s;white-space:nowrap;background:#fff;
+}
+.tbtn:hover{border-color:var(--coolgray);color:var(--txt)}
+.tbtn.on{background:var(--grafito);border-color:var(--grafito);color:#fff}
+.tbtn.accent{border-color:var(--naranjo);color:var(--naranjo)}
+.tbtn.accent:hover{background:var(--naranjo);color:#fff}
+
+/* --------------------------------------------------------------- LAYOUT */
+.main{display:grid;grid-template-columns:var(--sidebar) 1fr;min-height:0}
+.sidebar{
+  background:var(--panel);border-right:1px solid var(--line);
+  overflow-y:auto;overflow-x:hidden;position:relative;
+}
+.viewport{position:relative;background:var(--bg);overflow:hidden;min-width:0}
+
+/* -------------------------------------------------------------- SECTIONS */
+.sec{border-bottom:1px solid var(--line-soft)}
+.sec-h{
+  width:100%;display:flex;align-items:center;gap:9px;
+  padding:13px 18px;text-align:left;
+  font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-weight:600;color:var(--txt);
+  transition:background .15s;
+}
+.sec-h:hover{background:var(--panel-2)}
+.sec-h .chev{
+  width:7px;height:7px;border-right:1.4px solid var(--txt-3);border-bottom:1.4px solid var(--txt-3);
+  transform:rotate(45deg) translate(-1px,-1px);transition:transform .22s cubic-bezier(.4,0,.2,1);flex:0 0 auto;
+}
+.sec.open .sec-h .chev{transform:rotate(225deg) translate(-1px,-1px)}
+.sec-h .badge{margin-left:auto;font-size:9.5px;letter-spacing:.08em;color:var(--txt-3);text-transform:none;font-weight:400}
+.sec-b{display:none;padding:2px 18px 20px}
+.sec.open .sec-b{display:block}
+
+.grp{margin-bottom:15px}
+.grp:last-child{margin-bottom:2px}
+.lab{
+  display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+  font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--txt-2);
+  margin-bottom:7px;
+}
+.lab .val{font-family:var(--f-num);font-size:11px;letter-spacing:.02em;color:var(--txt);font-weight:500;text-transform:none;font-variant-numeric:tabular-nums}
+.hint{font-size:10.5px;color:var(--txt-3);line-height:1.5;margin-top:6px}
+
+/* --------------------------------------------------------------- INPUTS */
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;height:18px;background:transparent;cursor:pointer;display:block;
+}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--gris);border-radius:2px}
+input[type=range]::-moz-range-track{height:2px;background:var(--gris);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:12px;height:12px;border-radius:50%;
+  background:var(--naranjo);margin-top:-5px;border:2px solid var(--panel);
+  box-shadow:0 0 0 1px var(--naranjo);transition:transform .12s;
+}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18)}
+input[type=range]::-moz-range-thumb{
+  width:12px;height:12px;border-radius:50%;background:var(--naranjo);
+  border:2px solid var(--panel);box-shadow:0 0 0 1px var(--naranjo);
+}
+input[type=text],input[type=number],select{
+  width:100%;height:30px;padding:0 9px;background:#fff;
+  border:1px solid var(--line);border-radius:var(--r);
+  font-size:12px;font-variant-numeric:tabular-nums;transition:border-color .15s;
+}
+input[type=text]:focus,input[type=number]:focus,select:focus{outline:none;border-color:var(--naranjo)}
+select{
+  cursor:pointer;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2353565A' stroke-width='1.2'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 9px center;background-size:9px;padding-right:26px;
+}
+.row{display:flex;gap:7px;align-items:center}
+.row>*{min-width:0}
+.unit{
+  flex:0 0 auto;height:30px;display:flex;align-items:center;padding:0 8px;
+  border:1px solid var(--line);border-radius:var(--r);background:var(--panel-2);
+  font-size:10px;letter-spacing:.1em;color:var(--txt-2);cursor:pointer;user-select:none;
+}
+.unit:hover{border-color:var(--coolgray)}
+
+/* --------------------------------------------------------------- BUTTONS */
+.btn{
+  height:31px;padding:0 12px;border:1px solid var(--line);background:#fff;
+  font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt-2);
+  border-radius:var(--r);transition:.15s;display:inline-flex;align-items:center;justify-content:center;gap:7px;
+}
+.btn:hover{border-color:var(--coolgray);color:var(--txt)}
+.btn.full{width:100%}
+.btn.primary{background:var(--grafito);border-color:var(--grafito);color:#fff}
+.btn.primary:hover{background:#000}
+.btn.danger:hover{border-color:var(--naranjo);color:var(--naranjo)}
+.btn svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+
+.seg{display:flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:#fff}
+.seg button{
+  flex:1;height:29px;font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--txt-2);border-right:1px solid var(--line);transition:.15s;white-space:nowrap;padding:0 4px;
+}
+.seg button:last-child{border-right:none}
+.seg button:hover{background:var(--panel-2)}
+.seg button.on{background:var(--grafito);color:#fff}
+.seg.accent button.on{background:var(--naranjo);color:#fff}
+
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{
+  padding:5px 9px;border:1px solid var(--line);border-radius:var(--r);background:#fff;
+  font-size:10px;letter-spacing:.06em;color:var(--txt-2);transition:.15s;
+}
+.chip:hover{border-color:var(--coolgray);color:var(--txt)}
+.chip.on{background:var(--naranjo-suave);border-color:var(--naranjo);color:var(--naranjo)}
+
+/* ----------------------------------------------------------- TOOLBAR VP */
+.toolbar{
+  position:absolute;top:14px;left:14px;z-index:6;
+  display:flex;background:rgba(251,251,250,.94);backdrop-filter:blur(8px);
+  border:1px solid var(--line);border-radius:var(--r);box-shadow:0 1px 3px rgba(33,35,34,.07);
+}
+.toolbar button{
+  width:34px;height:34px;display:flex;align-items:center;justify-content:center;
+  border-right:1px solid var(--line-soft);color:var(--txt-2);transition:.15s;position:relative;
+}
+.toolbar button:last-child{border-right:none}
+.toolbar button:hover{background:var(--panel-2);color:var(--txt)}
+.toolbar button.on{background:var(--grafito);color:#fff}
+.toolbar svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
+.toolbar .div{width:1px;background:var(--line);margin:6px 0;flex:0 0 1px}
+
+/* ------------------------------------------------------------- VIEWPORT */
+#glcanvas,#overlay{position:absolute;inset:0;width:100%;height:100%;display:block}
+#overlay{z-index:3}
+.viewport.draw #overlay{cursor:crosshair}
+.viewport.pan #overlay{cursor:grab}
+.viewport.panning #overlay{cursor:grabbing}
+
+.vp-legend{
+  position:absolute;right:16px;bottom:16px;z-index:6;
+  background:rgba(251,251,250,.95);backdrop-filter:blur(8px);
+  border:1px solid var(--line);border-radius:var(--r);padding:11px 13px 10px;
+  min-width:186px;box-shadow:0 1px 3px rgba(33,35,34,.07);
+}
+.vp-legend .ttl{font-size:8.5px;letter-spacing:.19em;text-transform:uppercase;color:var(--txt-2);margin-bottom:8px;font-weight:600}
+.vp-legend .ramp{height:9px;border-radius:1px;margin-bottom:5px;border:1px solid rgba(33,35,34,.12)}
+.vp-legend .ends{display:flex;justify-content:space-between;font-family:var(--f-num);font-size:10px;font-variant-numeric:tabular-nums;color:var(--txt)}
+.vp-legend .lockrow{display:flex;gap:4px;margin-top:9px;border-top:1px solid var(--line-soft);padding-top:8px}
+.vp-legend .lockrow button{
+  flex:1;font-size:8.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--txt-3);
+  padding:3px 0;border:1px solid var(--line);border-radius:1px;transition:.15s;
+}
+.vp-legend .lockrow button.on{background:var(--naranjo);border-color:var(--naranjo);color:#fff}
+
+.vp-note{
+  position:absolute;left:50%;transform:translateX(-50%);bottom:14px;z-index:5;
+  font-size:9.5px;color:var(--txt-3);letter-spacing:.03em;text-align:center;
+  background:rgba(244,244,242,.8);padding:3px 12px;border-radius:2px;pointer-events:none;max-width:70%;
+}
+
+.readout{
+  position:absolute;left:14px;bottom:14px;z-index:6;
+  background:rgba(251,251,250,.95);backdrop-filter:blur(8px);
+  border:1px solid var(--line);border-radius:var(--r);padding:9px 12px;
+  font-family:var(--f-num);font-size:10.5px;font-variant-numeric:tabular-nums;color:var(--txt-2);
+  display:none;min-width:150px;box-shadow:0 1px 3px rgba(33,35,34,.07);
+}
+.readout.show{display:block}
+.readout .k{color:var(--txt-3);font-size:8.5px;letter-spacing:.15em;text-transform:uppercase;display:block;margin-bottom:2px}
+.readout .r{display:flex;justify-content:space-between;gap:14px;padding:1.5px 0}
+.readout .r b{font-weight:500;color:var(--txt)}
+
+/* --------------------------------------------------------------- PANELS */
+.list{display:flex;flex-direction:column;gap:5px}
+.item{
+  display:flex;align-items:center;gap:8px;padding:7px 9px;
+  border:1px solid var(--line);border-radius:var(--r);background:#fff;font-size:11.5px;
+}
+.item .sw{width:7px;height:7px;border-radius:50%;flex:0 0 auto;background:var(--naranjo)}
+.item input{border:none;height:auto;padding:0;background:transparent;flex:1;font-size:11.5px}
+.item input:focus{outline:none;color:var(--naranjo)}
+.item .v{font-family:var(--f-num);font-size:10.5px;color:var(--txt-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.item .x{color:var(--txt-3);font-size:15px;line-height:1;padding:0 2px}
+.item .x:hover{color:var(--naranjo)}
+.empty{font-size:10.5px;color:var(--txt-3);padding:9px 0;line-height:1.5}
+
+.bars{display:flex;flex-direction:column;gap:7px;margin-top:4px}
+.bar-row{display:grid;grid-template-columns:1fr 46px;gap:9px;align-items:center}
+.bar-row .nm{font-size:10px;color:var(--txt-2);letter-spacing:.03em}
+.bar-row .tr{height:4px;background:var(--panel-2);border-radius:2px;overflow:hidden;margin-top:3px}
+.bar-row .fl{height:100%;transition:width .4s cubic-bezier(.4,0,.2,1)}
+.bar-row .pc{font-family:var(--f-num);font-size:10.5px;text-align:right;font-variant-numeric:tabular-nums;color:var(--txt)}
+
+.stat{display:grid;grid-template-columns:1fr auto;gap:6px;padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:11px}
+.stat:last-child{border-bottom:none}
+.stat .k{color:var(--txt-2);letter-spacing:.03em}
+.stat .v{font-family:var(--f-num);font-weight:500;font-variant-numeric:tabular-nums}
+
+.note{
+  font-size:10px;color:var(--txt-3);line-height:1.55;padding:9px 10px;
+  background:var(--panel-2);border-left:2px solid var(--gris);border-radius:0 var(--r) var(--r) 0;
+}
+.note.warn{background:var(--naranjo-suave);border-left-color:var(--naranjo);color:#9a3a10}
+
+/* --------------------------------------------------------------- MODALS */
+.modal{
+  position:fixed;inset:0;z-index:100;display:none;
+  align-items:center;justify-content:center;background:rgba(33,35,34,.42);backdrop-filter:blur(3px);
+}
+.modal.show{display:flex}
+.modal-box{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+  width:min(680px,92vw);max-height:88vh;overflow:auto;box-shadow:0 18px 50px rgba(33,35,34,.24);
+}
+.modal-h{display:flex;align-items:center;justify-content:space-between;padding:17px 22px;border-bottom:1px solid var(--line)}
+.modal-h h3{font-size:11px;letter-spacing:.2em;text-transform:uppercase;font-weight:600}
+.modal-h .x{font-size:20px;color:var(--txt-3);line-height:1}
+.modal-h .x:hover{color:var(--txt)}
+.modal-b{padding:20px 22px}
+.modal-f{display:flex;gap:8px;justify-content:flex-end;padding:15px 22px;border-top:1px solid var(--line)}
+.preview-wrap{
+  background:
+    linear-gradient(45deg,#E4E4E0 25%,transparent 25%,transparent 75%,#E4E4E0 75%),
+    linear-gradient(45deg,#E4E4E0 25%,transparent 25%,transparent 75%,#E4E4E0 75%);
+  background-size:14px 14px;background-position:0 0,7px 7px;background-color:#F7F7F5;
+  border:1px solid var(--line);display:flex;align-items:center;justify-content:center;padding:10px;min-height:200px;
+}
+.preview-wrap canvas{max-width:100%;max-height:320px;display:block;image-rendering:pixelated}
+
+.split-handle{
+  position:absolute;top:0;bottom:0;width:1px;background:var(--naranjo);z-index:5;cursor:ew-resize;display:none;
+}
+.split-handle::before{
+  content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:26px;height:26px;border-radius:50%;background:var(--naranjo);
+}
+.split-handle::after{
+  content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:11px;height:7px;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 14'%3E%3Cpath d='M8 3L4 7l4 4M14 3l4 4-4 4' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+.split-handle.show{display:block}
+
+.fatal{
+  position:fixed;inset:0;z-index:200;background:var(--bg);display:none;
+  align-items:center;justify-content:center;padding:40px;text-align:center;
+}
+.fatal.show{display:flex}
+.fatal div{max-width:520px}
+.fatal h2{font-size:12px;letter-spacing:.22em;text-transform:uppercase;margin-bottom:14px}
+.fatal p{font-size:13px;color:var(--txt-2);line-height:1.7}
+
+.adv{display:none}
+body.advanced .adv{display:block}
+.adv-inline{display:none}
+body.advanced .adv-inline{display:flex}
+
+/* ------------------------------------------------------------ RESPONSIVE */
+.mob-toggle{display:none}
+@media (max-width:1180px){ :root{--sidebar:308px} }
+@media (max-width:900px){
+  :root{--sidebar:0px}
+  .brand{width:auto;flex:0 0 auto;border-right:none;padding-right:14px}
+  .main{grid-template-columns:1fr}
+  .sidebar{
+    position:absolute;left:0;right:0;bottom:0;top:auto;z-index:20;
+    max-height:62vh;border-right:none;border-top:1px solid var(--line);
+    transform:translateY(calc(100% - 46px));transition:transform .3s cubic-bezier(.4,0,.2,1);
+    border-radius:8px 8px 0 0;box-shadow:0 -6px 26px rgba(33,35,34,.13);
+  }
+  .sidebar.open{transform:translateY(0)}
+  .mob-toggle{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;height:46px;border-bottom:1px solid var(--line-soft);
+    font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-weight:600;
+    position:sticky;top:0;background:var(--panel);z-index:2;
+  }
+  .mob-toggle::before{content:'';width:34px;height:3px;border-radius:2px;background:var(--gris);position:absolute;top:7px;left:50%;transform:translateX(-50%)}
+  .vp-legend{right:10px;bottom:60px;min-width:150px}
+  .readout{left:10px;bottom:60px}
+  .vp-note{display:none}
+  .topbar-mid .meta{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ================================================================ TOPBAR -->
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="41.6 33.0 21.9 25.4" aria-hidden="true">
+        <path fill="#FC4C02" fill-rule="nonzero" d="M 57.574219 52.507812 L 46.25 52.507812 L 51.9375 38.394531 L 53.53125 42.492188 L 56.828125 42.492188 L 53.164062 33.398438 L 50.796875 33.398438 L 41.816406 55.308594 L 45.125 55.304688 L 58.695312 55.304688 L 59.8125 58.101562 L 63.183594 58.101562 L 60.898438 52.464844 Z"/>
+      </svg>
+      <span class="wm">AVER<i>ARQ</i></span>
+      <span class="sep"></span>
+      <span class="tool">Wind Lab</span>
+    </div>
+    <div class="topbar-mid">
+      <div class="status" id="status"><span class="dot"></span><span class="txt">Iniciando</span></div>
+      <div class="meta" id="topMeta"></div>
+    </div>
+    <div class="topbar-right">
+      <div class="meta adv" id="perfMeta" style="font-family:var(--f-num)"></div>
+      <button class="tbtn" id="btnAdvanced" title="Muestra parámetros numéricos del solver">Avanzado</button>
+      <button class="tbtn" id="btnPause">Pausar</button>
+      <button class="tbtn accent" id="btnReset">Reiniciar flujo</button>
+    </div>
+  </header>
+
+  <div class="main">
+
+    <!-- ============================================================= SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <button class="mob-toggle" id="mobToggle">Parámetros</button>
+
+      <!-- ------------------------------------------------------- PROYECTO -->
+      <section class="sec" data-sec="proyecto">
+        <button class="sec-h"><span class="chev"></span>Proyecto</button>
+        <div class="sec-b">
+          <div class="grp">
+            <div class="lab">Nombre del proyecto</div>
+            <input type="text" id="pjName" value="Estudio sin título" spellcheck="false">
+          </div>
+          <div class="grp">
+            <div class="lab">Mandante</div>
+            <input type="text" id="pjClient" placeholder="Opcional" spellcheck="false">
+          </div>
+          <div class="grp">
+            <div class="note">Simulación preliminar orientada a decisiones de diseño. No reemplaza un estudio CFD especializado ni una ingeniería de viento.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ------------------------------------------------------- GEOMETRÍA -->
+      <section class="sec open" data-sec="geometria">
+        <button class="sec-h"><span class="chev"></span>Geometría<span class="badge" id="geoBadge"></span></button>
+        <div class="sec-b">
+          <div class="grp">
+            <div class="lab">Caso de validación</div>
+            <select id="preset">
+              <option value="empty">Canal vacío</option>
+              <option value="block" selected>Bloque aislado</option>
+              <option value="two">Dos edificios</option>
+              <option value="corridor">Corredor entre edificios</option>
+              <option value="courtyard">Patio</option>
+              <option value="canyon">Cañón urbano</option>
+              <option value="Lplan">Planta en L</option>
+              <option value="Uplan">Planta en U</option>
+            </select>
+          </div>
+          <div class="grp">
+            <div class="lab">Herramienta<span class="val" id="toolName">Rectángulo</span></div>
+            <div class="seg" id="toolSeg">
+              <button data-tool="select">Sondear</button>
+              <button data-tool="draw">Pintar</button>
+              <button data-tool="rect" class="on">Rect</button>
+              <button data-tool="erase">Borrar</button>
+              <button data-tool="pan">Mover</button>
+            </div>
+          </div>
+          <div class="grp" id="brushGrp">
+            <div class="lab">Tamaño del pincel<span class="val" id="brushVal">8 celdas</span></div>
+            <input type="range" id="brush" min="1" max="40" step="1" value="8">
+          </div>
+          <div class="grp row">
+            <button class="btn" id="btnUndo" style="flex:1" title="Ctrl+Z">Deshacer</button>
+            <button class="btn" id="btnRedo" style="flex:1" title="Ctrl+Shift+Z">Rehacer</button>
+          </div>
+          <div class="grp">
+            <button class="btn full danger" id="btnClear">Limpiar obstáculos</button>
+          </div>
+          <div class="grp">
+            <button class="btn full" id="btnImport">
+              <svg viewBox="0 0 24 24"><path d="M12 16V4M8 8l4-4 4 4M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+              Importar planta
+            </button>
+            <div class="hint">PNG, JPG o SVG. Las zonas oscuras (o el trazado del SVG) se convierten en obstáculos.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ----------------------------------------------------------- ESCALA -->
+      <section class="sec" data-sec="escala">
+        <button class="sec-h"><span class="chev"></span>Escala<span class="badge" id="scaleBadge"></span></button>
+        <div class="sec-b">
+          <div class="grp">
+            <div class="lab">Ancho del dominio<span class="val" id="domWVal">50.0 m</span></div>
+            <div class="row">
+              <input type="number" id="domW" min="4" max="2000" step="0.5" value="50">
+              <span class="unit">m</span>
+            </div>
+            <div class="hint" id="domHHint"></div>
+          </div>
+          <div class="grp">
+            <button class="btn full" id="btnCalib">
+              <svg viewBox="0 0 24 24"><path d="M3 12h18M6 9v6M18 9v6"/></svg>
+              Definir escala con dos puntos
+            </button>
+            <div class="hint">Marca dos puntos sobre la planta importada e indica la distancia real entre ellos.</div>
+          </div>
+          <div class="grp">
+            <div class="lab">Resolución de la malla<span class="val" id="cellVal"></span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ----------------------------------------------------------- VIENTO -->
+      <section class="sec open" data-sec="viento">
+        <button class="sec-h"><span class="chev"></span>Viento<span class="badge" id="windBadge"></span></button>
+        <div class="sec-b">
+          <div class="grp">
+            <div class="lab">Velocidad de referencia<span class="val" id="spdVal">5.0 m/s</span></div>
+            <div class="row">
+              <input type="number" id="spdNum" min="0.5" max="40" step="0.1" value="5">
+              <span class="unit" id="unitBtn" title="Cambiar unidad">m/s</span>
+            </div>
+            <input type="range" id="spd" min="0.5" max="40" step="0.1" value="5" style="margin-top:9px">
+            <div class="hint">Referencia meteorológica a 10 m de altura en terreno abierto.</div>
+          </div>
+          <div class="grp">
+            <div class="lab">Dirección<span class="val" id="dirVal">270° · O → E</span></div>
+            <input type="range" id="dir" min="0" max="359" step="1" value="270">
+            <div class="chips" style="margin-top:8px" id="dirChips">
+              <button class="chip" data-d="0">N</button>
+              <button class="chip" data-d="45">NE</button>
+              <button class="chip" data-d="90">E</button>
+              <button class="chip" data-d="135">SE</button>
+              <button class="chip" data-d="180">S</button>
+              <button class="chip" data-d="225">SO</button>
+              <button class="chip" data-d="270">O</button>
+              <button class="chip" data-d="315">NO</button>
+            </div>
+            <div class="hint">Convención meteorológica: la dirección indica de dónde viene el viento.</div>
+          </div>
+          <div class="grp">
+            <div class="lab">Norte del plano<span class="val" id="northVal">0°</span></div>
+            <input type="range" id="north" min="0" max="359" step="1" value="0">
+            <div class="hint">Gira el símbolo de norte para calzar con la orientación de tu planta.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------------------------------------------------- ENTORNO -->
+      <section class="sec" data-sec="entorno">
+        <button class="sec-h"><span class="chev"></span>Entorno<span class="badge" id="envBadge"></span></button>
+        <div class="sec-b">
+          <div class="grp">
+            <div class="lab">Rugosidad del terreno</div>
+            <select id="env">
+              <option value="sea">Mar abierto</option>
+              <option value="open">Campo abierto</option>
+              <option value="rural">Rural</option>
+              <option value="suburban" selected>Suburbano</option>
+              <option value="urban">Urbano</option>
+              <option value="dense">Urbano denso</option>
+            </select>
+            <div class="hint" id="envHint"></div>
+          </div>
+          <div class="grp">
+            <div class="lab">Altura de análisis<span class="val" id="hVal">1.5 m</span></div>
+            <input type="range" id="height" min="1.5" max="60" step="0.5" value="1.5">
+            <div class="hint">Nivel del plano simulado. A nivel peatonal el viento es más lento que la referencia a 10 m.</div>
+          </div>
+          <div class="grp">
+            <div class="stat"><span class="k">Velocidad en el plano · U<sub>ref</sub></span><span class="v" id="uDesign">—</span></div>
+          </div>
+          <div class="grp adv">
+            <div class="lab">Exponente α (manual)<span class="val" id="alphaVal">0.22</span></div>
+            <input type="range" id="alpha" min="0.08" max="0.42" step="0.005" value="0.22">
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------------------------------------------- VISUALIZACIÓN -->
+      <section class="sec open" data-sec="visualizacion">
+        <button class="sec-h"><span class="chev"></span>Visualización</button>
+        <div class="sec-b">
+          <div class="grp">
+            <div class="lab">Campo</div>
+            <div class="seg" id="fieldSeg">
+              <button data-f="0" class="on">Velocidad</button>
+              <button data-f="1">Presión</button>
+              <button data-f="2">Vorticidad</button>
+            </div>
+          </div>
+          <div class="grp">
+            <div class="lab">Representación</div>
+            <div class="seg" id="modeSeg">
+              <button data-m="map" class="on">Mapa</button>
+              <button data-m="lines">Líneas</button>
+              <button data-m="both">Mapa + líneas</button>
+            </div>
+          </div>
+          <div class="grp">
+            <div class="lab">Sobreimpresos</div>
+            <div class="chips">
+              <button class="chip on" data-ov="north">Norte</button>
+              <button class="chip on" data-ov="rose">Rosa de viento</button>
+              <button class="chip on" data-ov="scalebar">Escala gráfica</button>
+              <button class="chip on" data-ov="grid">Retícula</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ----------------------------------------------------------- SOLVER -->
+      <section class="sec" data-sec="solver">
+        <button class="sec-h"><span class="chev"></span>Solver<span class="badge" id="solverBadge"></span></button>
+        <div class="sec-b">
+          <div class="grp">
+            <div class="lab">Resolución<span class="val" id="resVal">512 × 256</span></div>
+            <div class="seg" id="resSeg">
+              <button data-r="256">Baja</button>
+              <button data-r="384">Media</button>
+              <button data-r="512" class="on">Alta</button>
+              <button data-r="768">Ultra</button>
+            </div>
+          </div>
+          <div class="grp">
+            <div class="lab">Calidad</div>
+            <div class="seg" id="qualSeg">
+              <button data-q="fast">Rápida</button>
+              <button data-q="balanced" class="on">Equilibrada</button>
+              <button data-q="precise">Precisa</button>
+            </div>
+            <div class="hint" id="qualHint"></div>
+          </div>
+          <div class="grp row">
+            <button class="btn" id="btnPause2" style="flex:1">Pausar</button>
+            <button class="btn" id="btnReset2" style="flex:1">Resetear flujo</button>
+          </div>
+          <div class="grp adv">
+            <div class="stat"><span class="k">τ base</span><span class="v" id="tauVal">—</span></div>
+            <div class="stat"><span class="k">u lattice</span><span class="v" id="ulatVal">—</span></div>
+            <div class="stat"><span class="k">Δx</span><span class="v" id="dxVal">—</span></div>
+            <div class="stat"><span class="k">Δt</span><span class="v" id="dtVal">—</span></div>
+            <div class="stat"><span class="k">Iteraciones</span><span class="v" id="itVal">—</span></div>
+            <div class="stat"><span class="k">Iteraciones / s</span><span class="v" id="ipsVal">—</span></div>
+            <div class="stat"><span class="k">FPS</span><span class="v" id="fpsVal">—</span></div>
+            <div class="stat"><span class="k">Residual</span><span class="v" id="resiVal">—</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------------------------------------------------- ANÁLISIS -->
+      <section class="sec" data-sec="analisis">
+        <button class="sec-h"><span class="chev"></span>Análisis<span class="badge" id="anBadge"></span></button>
+        <div class="sec-b">
+
+          <div class="grp">
+            <div class="lab">Lectura de diseño</div>
+            <div class="stat"><span class="k">Velocidad media</span><span class="v" id="mMean">—</span></div>
+            <div class="stat"><span class="k">Velocidad máxima</span><span class="v" id="mMax">—</span></div>
+            <div class="bars" id="bands"></div>
+            <div class="hint">Porcentaje de la superficie libre del dominio en cada rango, relativo a U<sub>ref</sub>.</div>
+          </div>
+
+          <div class="grp">
+            <div class="lab">Interpretación</div>
+            <div class="stat"><span class="k">Zonas de aceleración</span><span class="v" id="mAcc">—</span></div>
+            <div class="stat"><span class="k">Zonas protegidas</span><span class="v" id="mShel">—</span></div>
+            <div class="stat"><span class="k">Posible recirculación</span><span class="v" id="mRec">—</span></div>
+            <div class="hint">Ayuda interpretativa, no una certificación de confort ni de cargas.</div>
+          </div>
+
+          <div class="grp">
+            <div class="lab">Sondas<span class="val" id="probeCount">0</span></div>
+            <div class="list" id="probeList"></div>
+            <div class="hint">Con la herramienta <b>Sondear</b>, haz clic en el plano para fijar un punto de medición.</div>
+          </div>
+
+          <div class="grp">
+            <div class="lab">Zonas de interés<span class="val" id="zoneCount">0</span></div>
+            <button class="btn full" id="btnZone">Dibujar zona</button>
+            <div class="list" id="zoneList" style="margin-top:6px"></div>
+          </div>
+
+          <div class="grp">
+            <div class="lab">Escenarios</div>
+            <div class="row">
+              <button class="btn" id="btnSaveA" style="flex:1">Guardar A</button>
+              <button class="btn" id="btnSaveB" style="flex:1">Guardar B</button>
+            </div>
+            <div class="seg accent" id="scenSeg" style="margin-top:7px">
+              <button data-s="live" class="on">En vivo</button>
+              <button data-s="A">A</button>
+              <button data-s="B">B</button>
+              <button data-s="AB">A / B</button>
+            </div>
+            <div class="list" id="scenList" style="margin-top:7px"></div>
+            <div class="hint">A y B se comparan siempre con la misma dirección, velocidad y escala cromática.</div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ---------------------------------------------------------- EXPORTAR -->
+      <section class="sec" data-sec="exportar">
+        <button class="sec-h"><span class="chev"></span>Exportar</button>
+        <div class="sec-b">
+          <div class="grp">
+            <div class="lab">Contenido de la lámina</div>
+            <div class="chips">
+              <button class="chip on" data-ex="header">Encabezado Averarq</button>
+              <button class="chip on" data-ex="legend">Leyenda</button>
+              <button class="chip on" data-ex="wind">Viento y norte</button>
+              <button class="chip on" data-ex="probes">Sondas y zonas</button>
+            </div>
+          </div>
+          <div class="grp">
+            <div class="lab">Escenario a exportar</div>
+            <select id="exScope">
+              <option value="current">Vista actual</option>
+            </select>
+          </div>
+          <div class="grp row">
+            <button class="btn" id="btnPng" style="flex:1">PNG</button>
+            <button class="btn primary" id="btnPngHi" style="flex:1">PNG alta res.</button>
+          </div>
+          <div class="grp">
+            <div class="hint">La lámina se descarga con la nomenclatura del proyecto y los parámetros de viento del escenario.</div>
+          </div>
+        </div>
+      </section>
+
+    </aside>
+
+    <!-- ============================================================ VIEWPORT -->
+    <div class="viewport" id="viewport">
+      <canvas id="glcanvas"></canvas>
+      <canvas id="overlay"></canvas>
+      <div class="split-handle" id="splitHandle"></div>
+
+      <div class="toolbar" id="tbar">
+        <button data-tool="select" title="Sondear (S)"><svg viewBox="0 0 24 24"><path d="M5 3l14 8-6 1.5L10 19z"/></svg></button>
+        <button data-tool="draw" title="Pintar obstáculo (D)"><svg viewBox="0 0 24 24"><path d="M4 20l4-1 10-10a2.1 2.1 0 00-3-3L5 16z"/></svg></button>
+        <button data-tool="rect" class="on" title="Rectángulo (R)"><svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="1"/></svg></button>
+        <button data-tool="erase" title="Borrar (E)"><svg viewBox="0 0 24 24"><path d="M8 20h11M4.5 15.5l4 4 11-11-4-4z"/></svg></button>
+        <button data-tool="pan" title="Mover vista (M / barra espaciadora)"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/></svg></button>
+        <span class="div"></span>
+        <button id="btnFit" title="Encuadrar (F)"><svg viewBox="0 0 24 24"><path d="M4 9V5a1 1 0 011-1h4M20 9V5a1 1 0 00-1-1h-4M4 15v4a1 1 0 001 1h4M20 15v4a1 1 0 01-1 1h-4"/></svg></button>
+        <button id="btnZoomIn" title="Acercar"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M11 8v6M8 11h6M20 20l-4.6-4.6"/></svg></button>
+        <button id="btnZoomOut" title="Alejar"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M8 11h6M20 20l-4.6-4.6"/></svg></button>
+      </div>
+
+      <div class="readout" id="readout"></div>
+
+      <div class="vp-legend" id="legend">
+        <div class="ttl" id="legTitle">Velocidad del viento</div>
+        <div class="ramp" id="legRamp"></div>
+        <div class="ends"><span id="legMin">0.0</span><span id="legMax">—</span></div>
+        <div class="lockrow">
+          <button id="btnAuto" class="on">Auto</button>
+          <button id="btnLock">Fijar</button>
+        </div>
+      </div>
+
+      <div class="vp-note">Simulación preliminar orientada a decisiones de diseño. No reemplaza un estudio CFD especializado ni una ingeniería de viento.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================ MODAL IMPORT -->
+<div class="modal" id="mImport">
+  <div class="modal-box">
+    <div class="modal-h"><h3>Importar planta</h3><button class="x" data-close>&times;</button></div>
+    <div class="modal-b">
+      <div class="grp" style="margin-bottom:16px">
+        <input type="file" id="fileInput" accept="image/png,image/jpeg,image/svg+xml,.svg,.png,.jpg,.jpeg" style="font-size:11px">
+      </div>
+      <div class="preview-wrap"><canvas id="impPreview"></canvas></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px">
+        <div class="grp">
+          <div class="lab">Umbral<span class="val" id="thrVal">0.50</span></div>
+          <input type="range" id="thr" min="0.02" max="0.98" step="0.01" value="0.5">
+          <div class="hint">Todo lo más oscuro que el umbral se toma como obstáculo.</div>
+        </div>
+        <div class="grp">
+          <div class="lab">Opciones</div>
+          <div class="chips">
+            <button class="chip" id="chipInvert">Invertir máscara</button>
+            <button class="chip on" id="chipAlpha">Usar transparencia</button>
+          </div>
+          <div class="chips" style="margin-top:6px">
+            <button class="chip on" id="chipReplace">Reemplazar</button>
+            <button class="chip" id="chipAdd">Sumar a lo existente</button>
+          </div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:14px" id="impInfo">Selecciona un archivo para previsualizar la máscara.</div>
+    </div>
+    <div class="modal-f">
+      <button class="btn" data-close>Cancelar</button>
+      <button class="btn primary" id="btnImpOk">Usar esta geometría</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================= MODAL CALIB -->
+<div class="modal" id="mCalib">
+  <div class="modal-box" style="width:min(440px,92vw)">
+    <div class="modal-h"><h3>Calibrar escala</h3><button class="x" data-close>&times;</button></div>
+    <div class="modal-b">
+      <div class="grp">
+        <div class="stat"><span class="k">Distancia medida en pantalla</span><span class="v" id="calPx">—</span></div>
+      </div>
+      <div class="grp">
+        <div class="lab">Distancia real entre los dos puntos</div>
+        <div class="row">
+          <input type="number" id="calReal" min="0.05" step="0.05" value="8.50">
+          <span class="unit">m</span>
+        </div>
+      </div>
+      <div class="note" style="margin-top:12px" id="calResult">El ancho del dominio se recalculará a partir de esta medida.</div>
+    </div>
+    <div class="modal-f">
+      <button class="btn" data-close>Cancelar</button>
+      <button class="btn primary" id="btnCalOk">Aplicar escala</button>
+    </div>
+  </div>
+</div>
+
+<div class="fatal" id="fatal">
+  <div>
+    <h2>Wind Lab no puede iniciarse</h2>
+    <p id="fatalMsg"></p>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================================
+   MÓDULO 1 · BRAND — tokens de marca y rampas cromáticas
+   ========================================================================== */
+const BRAND = {
+  grafito:'#212322', naranjo:'#FC4C02', gris:'#C7C9C7',
+  coolgray:'#53565A', crema:'#EEEEEC',
+  /* Rampa secuencial de velocidad: azul profundo → gris de marca → naranjo → rojo.
+     Deliberadamente NO es una rampa arcoíris tipo Jet. */
+  seq:[
+    [0.00,0x0E,0x22,0x33],[0.14,0x14,0x40,0x5C],[0.30,0x2A,0x6E,0x88],
+    [0.46,0x7F,0xA0,0xA6],[0.56,0xC7,0xC9,0xC7],[0.66,0xDC,0xC0,0x8C],
+    [0.78,0xE8,0x9A,0x3C],[0.90,0xFC,0x4C,0x02],[1.00,0x7E,0x17,0x04]
+  ],
+  /* Rampa divergente para presión y vorticidad, centrada en cero. */
+  div:[
+    [0.00,0x10,0x35,0x50],[0.25,0x62,0x91,0xA4],[0.50,0xEE,0xEE,0xEC],
+    [0.75,0xE8,0x9A,0x3C],[1.00,0xA3,0x26,0x05]
+  ]
+};
+function rampCSS(stops){
+  return 'linear-gradient(90deg,'+stops.map(s=>
+    `rgb(${s[1]},${s[2]},${s[3]}) ${(s[0]*100).toFixed(1)}%`).join(',')+')';
+}
+function rampColor(stops,t){
+  t=Math.max(0,Math.min(1,t));
+  for(let i=0;i<stops.length-1;i++){
+    const a=stops[i],b=stops[i+1];
+    if(t<=b[0]){
+      const k=(t-a[0])/Math.max(1e-6,b[0]-a[0]);
+      return [a[1]+(b[1]-a[1])*k, a[2]+(b[2]-a[2])*k, a[3]+(b[3]-a[3])*k];
+    }
+  }
+  const l=stops[stops.length-1]; return [l[1],l[2],l[3]];
+}
+
+/* ============================================================================
+   MÓDULO 2 · STATE — modelo de datos único
+   ========================================================================== */
+const ENVS = {
+  sea:      {name:'Mar abierto',   alpha:0.11, csmag:0.05, z0:'0.0002 m'},
+  open:     {name:'Campo abierto', alpha:0.14, csmag:0.06, z0:'0.03 m'},
+  rural:    {name:'Rural',         alpha:0.17, csmag:0.07, z0:'0.10 m'},
+  suburban: {name:'Suburbano',     alpha:0.22, csmag:0.08, z0:'0.30 m'},
+  urban:    {name:'Urbano',        alpha:0.30, csmag:0.10, z0:'1.00 m'},
+  dense:    {name:'Urbano denso',  alpha:0.36, csmag:0.12, z0:'2.00 m'}
+};
+const QUALITY = {
+  fast:     {name:'Rápida',      nu:0.0090, budget:12, note:'Más viscosa: el flujo se asienta antes y la interfaz queda más suelta.'},
+  balanced: {name:'Equilibrada', nu:0.0045, budget:16, note:'Compromiso entre detalle de estelas y velocidad de convergencia.'},
+  precise:  {name:'Precisa',     nu:0.0022, budget:21, note:'Estelas y torbellinos más definidos. Exige más GPU por cuadro.'}
+};
+const U_LAT = 0.075;             // velocidad de red — Ma≈0.13, seguro
+const RHO_AIR = 1.225;           // kg/m³
+const MASTER_W = 1024;           // ancho de la máscara maestra
+
+const S = {
+  project:{ name:'Estudio sin título', client:'' },
+  domain :{ widthM:50, aspect:2.0, nx:512, ny:256 },
+  mask   :{ w:MASTER_W, h:512, data:null },
+  wind   :{ speed:5, unit:'ms', dirFrom:270, heightM:1.5 },
+  north  :{ rot:0 },
+  env    :{ preset:'suburban', alpha:0.22, manualAlpha:false },
+  solver :{ res:512, quality:'balanced', running:true, iters:0, ips:0, fps:0, residual:1 },
+  view   :{ field:0, mode:'map', cx:0.5, cy:0.5, zoom:1,
+            autoScale:true, min:0, max:1, lockMin:0, lockMax:1,
+            overlays:{north:true,rose:true,scalebar:true,grid:true} },
+  tool   :{ current:'rect', brush:8 },
+  probes :[], zones:[],
+  scenarios:{ A:null, B:null, mode:'live', split:0.5 },
+  export :{ header:true, legend:true, wind:true, probes:true },
+  advanced:false,
+  status :'init'
+};
+
+/* ---- unidades y magnitudes derivadas ------------------------------------ */
+function speedMs(){ return S.wind.unit==='kmh' ? S.wind.speed/3.6 : S.wind.speed; }
+/* Ley potencial: la referencia meteorológica se toma a 10 m. */
+function uDesign(){
+  const a = S.env.manualAlpha ? S.env.alpha : ENVS[S.env.preset].alpha;
+  return speedMs() * Math.pow(Math.max(S.wind.heightM,0.5)/10, a);
+}
+function dxM(){ return S.domain.widthM / S.domain.nx; }
+function dtS(){ return dxM()*U_LAT/Math.max(uDesign(),1e-4); }
+function tau0(){ return 3*QUALITY[S.solver.quality].nu + 0.5; }
+function csmag(){ return ENVS[S.env.preset].csmag; }
+/* Vector de flujo en la red a partir de dirección meteorológica + giro del norte.
+   Pantalla: x derecha, y abajo. Red: x derecha, y arriba. */
+function flowDir(){
+  const b = (S.wind.dirFrom + S.north.rot) * Math.PI/180;
+  return [-Math.sin(b), -Math.cos(b)];          // unidad, en coordenadas de red
+}
+function flowDirScreen(){
+  const b = (S.wind.dirFrom + S.north.rot) * Math.PI/180;
+  return [-Math.sin(b), Math.cos(b)];           // unidad, en coordenadas de pantalla
+}
+const CARD = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSO','SO','OSO','O','ONO','NO','NNO'];
+function cardinal(d){ return CARD[Math.round(((d%360)+360)%360/22.5)%16]; }
+function cardinalTo(d){ return cardinal(d+180); }
+
+/* ============================================================================
+   MÓDULO 3 · MASK — geometría como máscara maestra + historial RLE
+   ========================================================================== */
+const Mask = {
+  hist:[], hi:-1, MAXH:40,
+
+  resize(aspect){
+    const h = Math.max(64, Math.round(MASTER_W/aspect));
+    if(S.mask.data && S.mask.h===h) return;
+    const old = S.mask.data, ow = S.mask.w, oh = S.mask.h;
+    const nd = new Uint8Array(MASTER_W*h);
+    if(old){ // remuestreo por vecino más cercano al cambiar la proporción
+      for(let y=0;y<h;y++){
+        const sy = Math.min(oh-1, Math.floor(y*oh/h));
+        for(let x=0;x<MASTER_W;x++){
+          nd[y*MASTER_W+x] = old[sy*ow + Math.min(ow-1,Math.floor(x*ow/MASTER_W))];
+        }
+      }
+    }
+    S.mask.w = MASTER_W; S.mask.h = h; S.mask.data = nd;
+  },
+
+  /* --- RLE binario, para que el historial no cueste megabytes --- */
+  encode(){
+    const d=S.mask.data, out=[]; let run=0, cur=d[0];
+    for(let i=0;i<d.length;i++){
+      if(d[i]===cur && run<65535){ run++; }
+      else { out.push(run, cur); cur=d[i]; run=1; }
+    }
+    out.push(run,cur);
+    return {w:S.mask.w,h:S.mask.h,r:Uint16Array.from(out)};
+  },
+  decode(e){
+    const d=new Uint8Array(e.w*e.h); let p=0;
+    for(let i=0;i<e.r.length;i+=2){ const n=e.r[i], v=e.r[i+1]; d.fill(v,p,p+n); p+=n; }
+    S.mask.w=e.w; S.mask.h=e.h; S.mask.data=d;
+  },
+  push(){
+    this.hist.length = this.hi+1;
+    this.hist.push(this.encode());
+    if(this.hist.length>this.MAXH) this.hist.shift();
+    this.hi = this.hist.length-1;
+  },
+  undo(){ if(this.hi>0){ this.hi--; this.decode(this.hist[this.hi]); return true; } return false; },
+  redo(){ if(this.hi<this.hist.length-1){ this.hi++; this.decode(this.hist[this.hi]); return true; } return false; },
+
+  clear(){ S.mask.data.fill(0); },
+
+  /* --- pintura en coordenadas normalizadas (u,v), v=0 arriba --- */
+  paintDisc(u,v,rCells,val){
+    const w=S.mask.w,h=S.mask.h;
+    // el pincel se expresa en celdas del solver; se traduce a la máscara maestra
+    const rx = rCells*(w/S.domain.nx), ry = rCells*(h/S.domain.ny);
+    const cx=u*w, cy=v*h;
+    const x0=Math.max(0,Math.floor(cx-rx)), x1=Math.min(w-1,Math.ceil(cx+rx));
+    const y0=Math.max(0,Math.floor(cy-ry)), y1=Math.min(h-1,Math.ceil(cy+ry));
+    for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++){
+      const dx=(x+0.5-cx)/rx, dy=(y+0.5-cy)/ry;
+      if(dx*dx+dy*dy<=1) S.mask.data[y*w+x]=val;
+    }
+  },
+  paintLine(u0,v0,u1,v1,rCells,val){
+    const n = Math.max(1, Math.ceil(Math.hypot((u1-u0)*S.mask.w,(v1-v0)*S.mask.h)/Math.max(1,rCells*0.6)));
+    for(let i=0;i<=n;i++) this.paintDisc(u0+(u1-u0)*i/n, v0+(v1-v0)*i/n, rCells, val);
+  },
+  paintRect(u0,v0,u1,v1,val){
+    const w=S.mask.w,h=S.mask.h;
+    const x0=Math.max(0,Math.floor(Math.min(u0,u1)*w)), x1=Math.min(w-1,Math.ceil(Math.max(u0,u1)*w));
+    const y0=Math.max(0,Math.floor(Math.min(v0,v1)*h)), y1=Math.min(h-1,Math.ceil(Math.max(v0,v1)*h));
+    for(let y=y0;y<=y1;y++) S.mask.data.fill(val, y*w+x0, y*w+x1+1);
+  },
+
+  /* --- remuestreo a la malla del solver (área media → antialias) --- */
+  toGrid(nx,ny){
+    const out=new Uint8Array(nx*ny), w=S.mask.w,h=S.mask.h,d=S.mask.data;
+    const sx=w/nx, sy=h/ny;
+    for(let gy=0;gy<ny;gy++){
+      // fila 0 del solver = base del dominio → invierte respecto a la máscara
+      const my0=Math.floor((ny-1-gy)*sy), my1=Math.max(my0+1,Math.floor((ny-gy)*sy));
+      for(let gx=0;gx<nx;gx++){
+        const mx0=Math.floor(gx*sx), mx1=Math.max(mx0+1,Math.floor((gx+1)*sx));
+        let sum=0,n=0;
+        for(let y=my0;y<my1 && y<h;y++) for(let x=mx0;x<mx1 && x<w;x++){ sum+=d[y*w+x]; n++; }
+        out[gy*nx+gx] = (n>0 && sum/n>=0.5) ? 1 : 0;
+      }
+    }
+    return out;
+  },
+  coverage(){
+    const d=S.mask.data; let n=0;
+    for(let i=0;i<d.length;i++) n+=d[i];
+    return n/d.length;
+  }
+};
+
+/* ---- presets de validación (coordenadas normalizadas, v=0 arriba) -------- */
+const PRESETS = {
+  empty:    ()=>[],
+  block:    ()=>[[0.30,0.40,0.40,0.60]],
+  two:      ()=>[[0.26,0.16,0.36,0.44],[0.26,0.56,0.36,0.84]],
+  corridor: ()=>[[0.24,0.10,0.40,0.42],[0.24,0.58,0.40,0.90],
+                 [0.55,0.10,0.71,0.42],[0.55,0.58,0.71,0.90]],
+  courtyard:()=>[[0.28,0.24,0.62,0.32],[0.28,0.68,0.62,0.76],
+                 [0.28,0.24,0.36,0.76],[0.54,0.24,0.62,0.44],[0.54,0.56,0.62,0.76]],
+  canyon:   ()=>[[0.14,0.06,0.26,0.36],[0.34,0.06,0.46,0.36],[0.54,0.06,0.66,0.36],[0.74,0.06,0.86,0.36],
+                 [0.14,0.64,0.26,0.94],[0.34,0.64,0.46,0.94],[0.54,0.64,0.66,0.94],[0.74,0.64,0.86,0.94]],
+  Lplan:    ()=>[[0.30,0.28,0.62,0.40],[0.30,0.28,0.42,0.74]],
+  Uplan:    ()=>[[0.30,0.26,0.38,0.74],[0.56,0.26,0.64,0.74],[0.30,0.62,0.64,0.74]]
+};
+function applyPreset(k){
+  Mask.clear();
+  (PRESETS[k]||PRESETS.empty)().forEach(r=>Mask.paintRect(r[0],r[1],r[2],r[3],1));
+}
+
+/* ============================================================================
+   MÓDULO 4 · SOLVER — Lattice Boltzmann D2Q9 sobre WebGL2
+   ----------------------------------------------------------------------------
+   Estado por celda: 9 poblaciones repartidas en 3 texturas RGBA32F
+      A = (f0,f1,f2,f3)   B = (f4,f5,f6,f7)   C = (f8, rho, ux, uy)
+   Un solo paso fusiona streaming (esquema pull) + bordes + colisión BGK con
+   viscosidad turbulenta de Smagorinsky.  Ping-pong entre dos juegos de texturas.
+   La interfaz pública (init/step/setObstacles/readMacro) está pensada para que
+   mañana se pueda enchufar un backend WebGPU sin tocar el resto de la app.
+   ========================================================================== */
+const VS_QUAD = `#version 300 es
+void main(){
+  vec2 p = vec2(float((gl_VertexID<<1)&2), float(gl_VertexID&2));
+  gl_Position = vec4(p*2.0-1.0,0.0,1.0);
+}`;
+
+const LBM_COMMON = `
+const vec2 CV[9] = vec2[9](vec2(0.,0.),vec2(1.,0.),vec2(0.,1.),vec2(-1.,0.),vec2(0.,-1.),
+                           vec2(1.,1.),vec2(-1.,1.),vec2(-1.,-1.),vec2(1.,-1.));
+const float WT[9] = float[9](0.444444444,0.111111111,0.111111111,0.111111111,0.111111111,
+                             0.027777778,0.027777778,0.027777778,0.027777778);
+const int OPP[9] = int[9](0,3,4,1,2,7,8,5,6);
+float feq(int i, float rho, vec2 u){
+  float cu = dot(CV[i],u);
+  return WT[i]*rho*(1.0 + 3.0*cu + 4.5*cu*cu - 1.5*dot(u,u));
+}`;
+
+const FS_INIT = `#version 300 es
+precision highp float;
+uniform highp sampler2D uObs;
+uniform vec2 uU0;
+layout(location=0) out vec4 oA;
+layout(location=1) out vec4 oB;
+layout(location=2) out vec4 oC;
+${LBM_COMMON}
+void main(){
+  ivec2 p = ivec2(gl_FragCoord.xy);
+  vec2 u = texelFetch(uObs,p,0).r > 0.5 ? vec2(0.0) : uU0;
+  oA = vec4(feq(0,1.,u),feq(1,1.,u),feq(2,1.,u),feq(3,1.,u));
+  oB = vec4(feq(4,1.,u),feq(5,1.,u),feq(6,1.,u),feq(7,1.,u));
+  oC = vec4(feq(8,1.,u),1.0,u.x,u.y);
+}`;
+
+const FS_STEP = `#version 300 es
+precision highp float;
+uniform highp sampler2D uFA,uFB,uFC;
+uniform highp sampler2D uObs;
+uniform float uTau,uCs;
+uniform vec2 uU0;
+layout(location=0) out vec4 oA;
+layout(location=1) out vec4 oB;
+layout(location=2) out vec4 oC;
+${LBM_COMMON}
+float getF(ivec2 p,int i){
+  if(i<4)  return texelFetch(uFA,p,0)[i];
+  if(i<8)  return texelFetch(uFB,p,0)[i-4];
+  return texelFetch(uFC,p,0).x;
+}
+void main(){
+  ivec2 p = ivec2(gl_FragCoord.xy);
+  ivec2 N = textureSize(uObs,0);
+
+  /* --- celda sólida: equilibrio en reposo -------------------------------- */
+  if(texelFetch(uObs,p,0).r > 0.5){
+    oA = vec4(WT[0],WT[1],WT[2],WT[3]);
+    oB = vec4(WT[4],WT[5],WT[6],WT[7]);
+    oC = vec4(WT[8],1.0,0.0,0.0);
+    return;
+  }
+
+  vec4 lA = texelFetch(uFA,p,0), lB = texelFetch(uFB,p,0), lC = texelFetch(uFC,p,0);
+  float lf[9];
+  lf[0]=lA.x; lf[1]=lA.y; lf[2]=lA.z; lf[3]=lA.w;
+  lf[4]=lB.x; lf[5]=lB.y; lf[6]=lB.z; lf[7]=lB.w; lf[8]=lC.x;
+
+  /* --- streaming pull + condiciones de borde ----------------------------- */
+  float f[9];
+  for(int i=0;i<9;i++){
+    ivec2 q = p - ivec2(CV[i]);
+    if(q.x<0 || q.y<0 || q.x>=N.x || q.y>=N.y){
+      /* Borde abierto según la normal de la cara cruzada. La cara es entrada
+         si el flujo libre penetra por ella; si no, es salida abierta. Vale
+         para cualquier ángulo de viento.
+         En la salida NO se reinyectan las poblaciones salientes de la propia
+         celda: eso realimenta y amplifica. Se extrapola desde el vecino
+         interior, normalizando su densidad para anclar ρ→1 sin imponer
+         velocidad, que es lo que deja pasar la estela sin reflejarla. */
+      ivec2 nin = ivec2(0);
+      float inflow = -1.0;
+      if(q.x<0)   { nin.x =  1; inflow = max(inflow,  uU0.x); }  /* oeste */
+      if(q.x>=N.x){ nin.x = -1; inflow = max(inflow, -uU0.x); }  /* este  */
+      if(q.y<0)   { nin.y =  1; inflow = max(inflow,  uU0.y); }  /* sur   */
+      if(q.y>=N.y){ nin.y = -1; inflow = max(inflow, -uU0.y); }  /* norte */
+      ivec2 qi   = clamp(p+nin, ivec2(0), N-ivec2(1));
+      bool solidN = texelFetch(uObs,qi,0).r > 0.5;
+      vec4 cN     = texelFetch(uFC,qi,0);
+      vec2 nf     = vec2(nin); nf /= max(length(nf),1e-6);
+
+      if(inflow > 1e-6){
+        f[i] = feq(i,1.0,uU0);                     /* cara de barlovento */
+      } else if(solidN){
+        f[i] = lf[OPP[i]];
+      } else if(inflow < -1e-6 || dot(cN.zw,nf) < 0.0){
+        /* Salida de presión extrapolada: se conserva la parte fuera de
+           equilibrio del vecino interior y se reancla la densidad a 1, y se
+           amortigua el reflujo (un vórtice que intenta volver a entrar por la
+           salida), que es la causa clásica de divergencia.
+           Se aplica también a las caras laterales cuando el aire desviado por
+           los volúmenes sale por ellas: así el dominio se comporta como un
+           tramo de terreno abierto y no como un túnel cerrado. */
+        float rn = max(cN.y,0.5); vec2 un = cN.zw;
+        float vin = dot(un,nf);
+        vec2 ub = (vin > 0.0) ? un - 0.9*vin*nf : un;
+        float mb = length(ub); if(mb > 0.22) ub *= 0.22/mb;
+        f[i] = feq(i,1.0,ub) + (getF(qi,i) - feq(i,rn,un));
+      } else {
+        f[i] = feq(i,1.0,uU0);                     /* campo lejano */
+      }
+    } else if(texelFetch(uObs,q,0).r > 0.5){
+      f[i] = lf[OPP[i]];                       /* bounce-back de medio paso */
+    } else {
+      f[i] = getF(q,i);
+    }
+  }
+
+  /* --- magnitudes macroscópicas ------------------------------------------ */
+  float rho = 0.0; vec2 u = vec2(0.0);
+  for(int i=0;i<9;i++){ rho += f[i]; u += CV[i]*f[i]; }
+  if(!(rho > 0.2 && rho < 3.0)){                /* guarda de estabilidad */
+    rho = 1.0; u = vec2(0.0);
+    for(int i=0;i<9;i++) f[i] = feq(i,1.0,vec2(0.0));
+  } else {
+    u /= rho;
+    float m = length(u);
+    if(m > 0.30) u *= 0.30/m;                   /* clamp de Mach */
+  }
+
+  /* --- colisión regularizada + viscosidad turbulenta de Smagorinsky -------
+     La parte fuera de equilibrio se proyecta sobre el espacio de Hermite de
+     segundo orden antes de relajar. Eso filtra los modos fantasma del BGK y
+     permite trabajar con ω cerca de 2 (viscosidad baja) sin que la estela de
+     un edificio desestabilice el cálculo. */
+  float fe[9]; float Pxx=0.0,Pxy=0.0,Pyy=0.0;
+  for(int i=0;i<9;i++){
+    fe[i] = feq(i,rho,u);
+    float n = f[i]-fe[i];
+    Pxx += CV[i].x*CV[i].x*n;
+    Pxy += CV[i].x*CV[i].y*n;
+    Pyy += CV[i].y*CV[i].y*n;
+  }
+  /* Capa esponja: la viscosidad sube suavemente en la franja contigua a las
+     caras de salida, para que las estelas se disipen antes de tocar el borde
+     en vez de reflejarse hacia el interior del dominio. */
+  float band = 0.05*float(max(N.x,N.y));
+  float dOut = 1e9; vec2 fp = vec2(p);
+  if(uU0.x < -1e-6) dOut = min(dOut, fp.x);
+  if(uU0.x >  1e-6) dOut = min(dOut, float(N.x-1)-fp.x);
+  if(uU0.y < -1e-6) dOut = min(dOut, fp.y);
+  if(uU0.y >  1e-6) dOut = min(dOut, float(N.y-1)-fp.y);
+  float sp   = 1.0 - smoothstep(0.0, band, dOut);
+  float tauL = uTau + sp*sp*0.30;
+
+  float Qm  = sqrt(2.0*(Pxx*Pxx + 2.0*Pxy*Pxy + Pyy*Pyy));
+  float tt  = 0.5*(tauL + sqrt(tauL*tauL + 18.0*uCs*uCs*Qm/rho));
+  float om  = 1.0/tt;
+  for(int i=0;i<9;i++){
+    float reg = 4.5*WT[i]*( (CV[i].x*CV[i].x - 0.3333333)*Pxx
+                          + 2.0*CV[i].x*CV[i].y*Pxy
+                          + (CV[i].y*CV[i].y - 0.3333333)*Pyy );
+    f[i] = fe[i] + (1.0-om)*reg;
+  }
+
+  oA = vec4(f[0],f[1],f[2],f[3]);
+  oB = vec4(f[4],f[5],f[6],f[7]);
+  oC = vec4(f[8],rho,u.x,u.y);
+}`;
+
+function compile(gl,type,src){
+  const s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s);
+  if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){
+    const log=gl.getShaderInfoLog(s);
+    console.error(log, src.split('\n').map((l,i)=>(i+1)+': '+l).join('\n'));
+    throw new Error('Shader: '+log);
+  }
+  return s;
+}
+function program(gl,vs,fs){
+  const p=gl.createProgram();
+  gl.attachShader(p,compile(gl,gl.VERTEX_SHADER,vs));
+  gl.attachShader(p,compile(gl,gl.FRAGMENT_SHADER,fs));
+  gl.linkProgram(p);
+  if(!gl.getProgramParameter(p,gl.LINK_STATUS)) throw new Error('Link: '+gl.getProgramInfoLog(p));
+  const u={};
+  const n=gl.getProgramParameter(p,gl.ACTIVE_UNIFORMS);
+  for(let i=0;i<n;i++){ const info=gl.getActiveUniform(p,i); u[info.name.replace('[0]','')]=gl.getUniformLocation(p,info.name); }
+  return {p,u};
+}
+
+const Solver = {
+  gl:null, nx:0, ny:0, buf:[null,null], cur:0,
+  progInit:null, progStep:null, obsTex:null, vao:null,
+  macro:null, macroReady:false, pbo:null, fence:null, prevSpeed:null,
+
+  create(gl){
+    this.gl = gl;
+    if(!gl.getExtension('EXT_color_buffer_float')) throw new Error('NOFLOAT');
+    this.progInit = program(gl, VS_QUAD, FS_INIT);
+    this.progStep = program(gl, VS_QUAD, FS_STEP);
+    this.vao = gl.createVertexArray();
+    this.obsTex = gl.createTexture();
+  },
+
+  makeTex(w,h){
+    const gl=this.gl, t=gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D,t);
+    gl.texStorage2D(gl.TEXTURE_2D,1,gl.RGBA32F,w,h);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    return t;
+  },
+
+  resize(nx,ny){
+    const gl=this.gl;
+    if(this.nx===nx && this.ny===ny) return;
+    this.nx=nx; this.ny=ny;
+    for(let k=0;k<2;k++){
+      if(this.buf[k]){ this.buf[k].tex.forEach(t=>gl.deleteTexture(t)); gl.deleteFramebuffer(this.buf[k].fb); }
+      const tex=[this.makeTex(nx,ny),this.makeTex(nx,ny),this.makeTex(nx,ny)];
+      const fb=gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER,fb);
+      for(let i=0;i<3;i++) gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0+i,gl.TEXTURE_2D,tex[i],0);
+      if(gl.checkFramebufferStatus(gl.FRAMEBUFFER)!==gl.FRAMEBUFFER_COMPLETE) throw new Error('FBO incompleto');
+      this.buf[k]={tex,fb};
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+    /* textura de obstáculos: solo se reconstruye cuando cambia la geometría */
+    gl.deleteTexture(this.obsTex); this.obsTex=gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D,this.obsTex);
+    gl.texStorage2D(gl.TEXTURE_2D,1,gl.R8,nx,ny);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+
+    this.macro = new Float32Array(nx*ny*4);
+    this.speed = new Float32Array(nx*ny);
+    this.prevSpeed = new Float32Array(nx*ny);
+    this.obs = new Uint8Array(nx*ny);
+    this.obsUp = new Uint8Array(nx*ny);
+    if(this.pbo) gl.deleteBuffer(this.pbo);
+    this.pbo = gl.createBuffer();
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER,this.pbo);
+    gl.bufferData(gl.PIXEL_PACK_BUFFER, nx*ny*16, gl.STREAM_READ);
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER,null);
+    if(this.fence){ gl.deleteSync(this.fence); this.fence=null; }
+    this.macroReady=false;
+  },
+
+  setObstacles(arr){
+    const gl=this.gl;
+    this.obs.set(arr);
+    /* R8 normaliza el byte a [0,1]: el solido debe subirse como 255, no como 1 */
+    for(let i=0;i<arr.length;i++) this.obsUp[i]=arr[i]?255:0;
+    gl.bindTexture(gl.TEXTURE_2D,this.obsTex);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT,1);
+    gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,this.nx,this.ny,gl.RED,gl.UNSIGNED_BYTE,this.obsUp);
+  },
+
+  bindTargets(k){
+    const gl=this.gl;
+    gl.bindFramebuffer(gl.FRAMEBUFFER,this.buf[k].fb);
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0,gl.COLOR_ATTACHMENT1,gl.COLOR_ATTACHMENT2]);
+    gl.viewport(0,0,this.nx,this.ny);
+  },
+
+  init(u0){
+    const gl=this.gl;
+    gl.bindVertexArray(this.vao);
+    gl.useProgram(this.progInit.p);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,this.obsTex);
+    gl.uniform1i(this.progInit.u.uObs,0);
+    gl.uniform2f(this.progInit.u.uU0,u0[0],u0[1]);
+    for(let k=0;k<2;k++){ this.bindTargets(k); gl.drawArrays(gl.TRIANGLES,0,3); }
+    this.cur=0; S.solver.iters=0; this.macroReady=false;
+    gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  },
+
+  step(n,u0,tau,cs){
+    const gl=this.gl;
+    gl.bindVertexArray(this.vao);
+    gl.useProgram(this.progStep.p);
+    const U=this.progStep.u;
+    gl.uniform1i(U.uFA,0); gl.uniform1i(U.uFB,1); gl.uniform1i(U.uFC,2); gl.uniform1i(U.uObs,3);
+    gl.uniform1f(U.uTau,tau); gl.uniform1f(U.uCs,cs);
+    gl.uniform2f(U.uU0,u0[0],u0[1]);
+    gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D,this.obsTex);
+    for(let s=0;s<n;s++){
+      const src=this.buf[this.cur], dst=1-this.cur;
+      for(let i=0;i<3;i++){ gl.activeTexture(gl.TEXTURE0+i); gl.bindTexture(gl.TEXTURE_2D,src.tex[i]); }
+      this.bindTargets(dst);
+      gl.drawArrays(gl.TRIANGLES,0,3);
+      this.cur=dst;
+    }
+    S.solver.iters+=n;
+    gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  },
+
+  macroTex(){ return this.buf[this.cur].tex[2]; },
+
+  /* --- lectura asíncrona GPU→CPU: sondas, métricas, zonas, streamlines --- */
+  requestRead(){
+    const gl=this.gl;
+    if(this.fence) return;
+    gl.bindFramebuffer(gl.FRAMEBUFFER,this.buf[this.cur].fb);
+    gl.readBuffer(gl.COLOR_ATTACHMENT2);
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER,this.pbo);
+    gl.readPixels(0,0,this.nx,this.ny,gl.RGBA,gl.FLOAT,0);
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER,null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+    this.fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE,0);
+    gl.flush();
+  },
+  pollRead(){
+    const gl=this.gl;
+    if(!this.fence) return false;
+    const st = gl.clientWaitSync(this.fence,0,0);
+    if(st===gl.ALREADY_SIGNALED || st===gl.CONDITION_SATISFIED){
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER,this.pbo);
+      gl.getBufferSubData(gl.PIXEL_PACK_BUFFER,0,this.macro);
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER,null);
+      gl.deleteSync(this.fence); this.fence=null;
+      this.prevSpeed.set(this.speed);
+      const m=this.macro,s=this.speed;
+      for(let i=0,j=0;i<s.length;i++,j+=4) s[i]=Math.hypot(m[j+2],m[j+3]);
+      this.macroReady=true;
+      return true;
+    }
+    if(st===gl.WAIT_FAILED){ gl.deleteSync(this.fence); this.fence=null; }
+    return false;
+  },
+  /* muestreo bilineal del campo macroscópico en coordenadas normalizadas */
+  sample(u,v){
+    if(!this.macroReady) return null;
+    const nx=this.nx, ny=this.ny;
+    const x = Math.min(nx-1.001, Math.max(0, u*nx-0.5));
+    const y = Math.min(ny-1.001, Math.max(0, (1-v)*ny-0.5));
+    const x0=Math.floor(x), y0=Math.floor(y), fx=x-x0, fy=y-y0;
+    const g=(xx,yy)=>{ const i=(yy*nx+xx)*4; return [this.macro[i+1],this.macro[i+2],this.macro[i+3]]; };
+    const a=g(x0,y0),b=g(x0+1,y0),c=g(x0,y0+1),d=g(x0+1,y0+1);
+    const mix=(p,q,t)=>[p[0]+(q[0]-p[0])*t,p[1]+(q[1]-p[1])*t,p[2]+(q[2]-p[2])*t];
+    const r=mix(mix(a,b,fx),mix(c,d,fx),fy);
+    const gi=(Math.round(y)*nx+Math.round(x));
+    return {rho:r[0], ux:r[1], uy:r[2], solid:this.obs[gi]===1};
+  }
+};
+
+/* ============================================================================
+   MÓDULO 5 · RENDER — visualización del campo con la rampa cromática Averarq
+   ========================================================================== */
+const FS_DRAW = `#version 300 es
+precision highp float;
+uniform highp sampler2D uMacro;
+uniform highp sampler2D uObs;
+uniform sampler2D uRamp;
+uniform vec4  uRect;      /* x,y,w,h del dominio en píxeles de canvas */
+uniform vec2  uRes;
+uniform int   uField;     /* 0 velocidad · 1 presión · 2 vorticidad */
+uniform float uMin,uMax,uK;
+uniform vec3  uBg,uSolid;
+out vec4 frag;
+
+float scalarAt(ivec2 p){
+  ivec2 N = textureSize(uMacro,0);
+  p = clamp(p, ivec2(0), N-ivec2(1));
+  if(uField==0) return length(texelFetch(uMacro,p,0).zw);
+  if(uField==1) return texelFetch(uMacro,p,0).y - 1.0;
+  ivec2 xp=ivec2(min(p.x+1,N.x-1),p.y), xm=ivec2(max(p.x-1,0),p.y);
+  ivec2 yp=ivec2(p.x,min(p.y+1,N.y-1)), ym=ivec2(p.x,max(p.y-1,0));
+  float dvdx=(texelFetch(uMacro,xp,0).w - texelFetch(uMacro,xm,0).w)*0.5;
+  float dudy=(texelFetch(uMacro,yp,0).z - texelFetch(uMacro,ym,0).z)*0.5;
+  return dvdx - dudy;
+}
+void main(){
+  vec2 px = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);   /* y hacia abajo */
+  vec2 uv = (px - uRect.xy)/uRect.zw;
+  if(uv.x<0.0||uv.x>1.0||uv.y<0.0||uv.y>1.0){ frag=vec4(uBg,1.0); return; }
+
+  ivec2 N = textureSize(uMacro,0);
+  vec2 g = vec2(uv.x, 1.0-uv.y)*vec2(N) - 0.5;
+  ivec2 g0 = ivec2(floor(g));
+  vec2 fr = g - vec2(g0);
+  fr = fr*fr*(3.0-2.0*fr);                                   /* suavizado */
+
+  float s = mix(mix(scalarAt(g0),               scalarAt(g0+ivec2(1,0)), fr.x),
+                mix(scalarAt(g0+ivec2(0,1)),    scalarAt(g0+ivec2(1,1)), fr.x), fr.y);
+  s *= uK;
+
+  float t = (s - uMin)/max(1e-9, uMax-uMin);
+  vec3 col = texture(uRamp, vec2(clamp(t,0.001,0.999),0.5)).rgb;
+
+  /* cobertura de obstáculo con borde antialiaseado */
+  float o = mix(mix(texelFetch(uObs,clamp(g0,ivec2(0),N-1),0).r,
+                    texelFetch(uObs,clamp(g0+ivec2(1,0),ivec2(0),N-1),0).r, fr.x),
+                mix(texelFetch(uObs,clamp(g0+ivec2(0,1),ivec2(0),N-1),0).r,
+                    texelFetch(uObs,clamp(g0+ivec2(1,1),ivec2(0),N-1),0).r, fr.x), fr.y);
+  col = mix(col, uSolid, smoothstep(0.32,0.62,o));
+  frag = vec4(col,1.0);
+}`;
+
+const Render = {
+  gl:null, prog:null, rampTex:null, rampKind:null,
+  create(gl){
+    this.gl=gl;
+    this.prog = program(gl, VS_QUAD, FS_DRAW);
+    this.rampTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D,this.rampTex);
+    gl.texStorage2D(gl.TEXTURE_2D,1,gl.RGBA8,256,1);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  },
+  setRamp(kind){
+    if(this.rampKind===kind) return;
+    this.rampKind=kind;
+    const stops = kind==='div'?BRAND.div:BRAND.seq;
+    const d=new Uint8Array(256*4);
+    for(let i=0;i<256;i++){
+      const c=rampColor(stops,i/255);
+      d[i*4]=c[0]|0; d[i*4+1]=c[1]|0; d[i*4+2]=c[2]|0; d[i*4+3]=255;
+    }
+    const gl=this.gl;
+    gl.bindTexture(gl.TEXTURE_2D,this.rampTex);
+    gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,256,1,gl.RGBA,gl.UNSIGNED_BYTE,d);
+  },
+  draw(rect,W,H,field,min,max,k,texM,texO){
+    const gl=this.gl;
+    this.setRamp(field===0?'seq':'div');
+    gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+    gl.viewport(0,0,W,H);
+    gl.bindVertexArray(Solver.vao);
+    gl.useProgram(this.prog.p);
+    const U=this.prog.u;
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,texM||Solver.macroTex()); gl.uniform1i(U.uMacro,0);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D,texO||Solver.obsTex); gl.uniform1i(U.uObs,1);
+    gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D,this.rampTex);      gl.uniform1i(U.uRamp,2);
+    gl.uniform4f(U.uRect,rect.x,rect.y,rect.w,rect.h);
+    gl.uniform2f(U.uRes,W,H);
+    gl.uniform1i(U.uField,field);
+    gl.uniform1f(U.uMin,min); gl.uniform1f(U.uMax,max); gl.uniform1f(U.uK,k);
+    const hx=h=>[parseInt(h.slice(1,3),16)/255,parseInt(h.slice(3,5),16)/255,parseInt(h.slice(5,7),16)/255];
+    const bg=hx('#F4F4F2'), sl=hx(BRAND.grafito);
+    gl.uniform3f(U.uBg,bg[0],bg[1],bg[2]);
+    gl.uniform3f(U.uSolid,sl[0],sl[1],sl[2]);
+    gl.drawArrays(gl.TRIANGLES,0,3);
+  }
+};
+
+/* ============================================================================
+   MÓDULO 6 · VIEW — transformación mundo ↔ pantalla (compartida con export)
+   ========================================================================== */
+function makeView(W,H,margin){
+  const asp = S.domain.aspect;
+  const aw = Math.max(20, W-2*margin), ah = Math.max(20, H-2*margin);
+  let fw = Math.min(aw, ah*asp); let fh = fw/asp;
+  const w = fw*S.view.zoom, h = fh*S.view.zoom;
+  const x = W/2 - S.view.cx*w, y = H/2 - S.view.cy*h;
+  return {
+    x, y, w, h, W, H, fit:fw,
+    toS(u,v){ return [x+u*w, y+v*h]; },
+    toW(px,py){ return [(px-x)/w, (py-y)/h]; },
+    mPerPx(){ return S.domain.widthM/w; }
+  };
+}
+
+/* ---- factor de conversión del campo a unidades físicas ------------------ */
+function fieldK(){
+  const U=uDesign();
+  if(S.view.field===0) return U/U_LAT;                          /* m/s */
+  if(S.view.field===1) return RHO_AIR*(U/U_LAT)*(U/U_LAT)/3;    /* Pa   */
+  return 1/Math.max(dtS(),1e-9);                                /* 1/s  */
+}
+function fieldName(){ return ['Velocidad del viento','Presión relativa','Vorticidad'][S.view.field]; }
+function fieldUnit(){ return ['m/s','Pa','1/s'][S.view.field]; }
+
+/* ============================================================================
+   MÓDULO 7 · ANALYSIS — métricas de diseño, zonas y sondas
+   ========================================================================== */
+const Analysis = {
+  m:{mean:0,max:0,bands:[0,0,0,0],acc:0,shel:0,rec:0,fluid:0},
+  compute(){
+    if(!Solver.macroReady) return;
+    const nx=Solver.nx, ny=Solver.ny, sp=Solver.speed, ma=Solver.macro, ob=Solver.obs;
+    const K=uDesign()/U_LAT, Uref=uDesign();
+    const fd=flowDir();
+    let sum=0,mx=0,n=0,b=[0,0,0,0],acc=0,shel=0,rec=0,resid=0,rn=0;
+    const ps=Solver.prevSpeed;
+    for(let i=0;i<sp.length;i++){
+      if(ob[i]) continue;
+      const v=sp[i]*K; sum+=v; n++;
+      if(v>mx) mx=v;
+      const r=v/Math.max(Uref,1e-6);
+      if(r<0.5) b[0]++; else if(r<1.0) b[1]++; else if(r<1.5) b[2]++; else b[3]++;
+      if(r>1.3) acc++;
+      if(r<0.3) shel++;
+      const j=i*4;
+      if(ma[j+2]*fd[0]+ma[j+3]*fd[1] < -0.002) rec++;
+      resid+=Math.abs(sp[i]-ps[i]); rn++;
+    }
+    if(!n) return;
+    this.m={ mean:sum/n, max:mx, fluid:n,
+             bands:b.map(x=>100*x/n), acc:100*acc/n, shel:100*shel/n, rec:100*rec/n };
+    const meanLat=sum/n/Math.max(K,1e-9);
+    const dIt = Math.max(1, S.solver.iters - (this._lastIt||0));
+    this._lastIt = S.solver.iters;
+    S.solver.residual = rn? ((resid/rn)/Math.max(meanLat,1e-6))*(60/dIt) : 1;
+  },
+  zoneStats(z){
+    if(!Solver.macroReady) return null;
+    const nx=Solver.nx, ny=Solver.ny, K=uDesign()/U_LAT;
+    const u0=Math.min(z.u0,z.u1), u1=Math.max(z.u0,z.u1);
+    const v0=Math.min(z.v0,z.v1), v1=Math.max(z.v0,z.v1);
+    const x0=Math.max(0,Math.floor(u0*nx)), x1=Math.min(nx-1,Math.ceil(u1*nx));
+    const gy0=Math.max(0,Math.floor((1-v1)*ny)), gy1=Math.min(ny-1,Math.ceil((1-v0)*ny));
+    const vals=[];
+    for(let y=gy0;y<=gy1;y++) for(let x=x0;x<=x1;x++){
+      const i=y*nx+x; if(Solver.obs[i]) continue;
+      vals.push(Solver.speed[i]*K);
+    }
+    if(!vals.length) return null;
+    vals.sort((a,b)=>a-b);
+    const sum=vals.reduce((a,b)=>a+b,0);
+    return { n:vals.length, mean:sum/vals.length, min:vals[0], max:vals[vals.length-1],
+             p90:vals[Math.min(vals.length-1,Math.floor(vals.length*0.9))] };
+  },
+  /* Escala automática por percentil, no por máximo: una sola celda caliente
+     junto a un borde no debe aplanar toda la lectura cromática del plano. */
+  pct(arr,q){ arr.sort((a,b)=>a-b); return arr[Math.min(arr.length-1,Math.floor(arr.length*q))]; },
+  autoRange(){
+    if(!Solver.macroReady) return null;
+    const K=fieldK(), nx=Solver.nx, ny=Solver.ny, ob=Solver.obs, m=Solver.macro;
+    const step = Math.max(1, Math.round(Math.sqrt(nx*ny/20000)));
+    if(S.view.field===0){
+      const s=[];
+      for(let i=0;i<Solver.speed.length;i+=step) if(!ob[i]) s.push(Solver.speed[i]);
+      if(!s.length) return [0,1];
+      return [0, Math.max(0.4*uDesign(), this.pct(s,0.995)*K*1.04)];
+    }
+    if(S.view.field===1){
+      const s=[];
+      for(let i=0;i<ob.length;i+=step) if(!ob[i]) s.push(Math.abs(m[i*4+1]-1));
+      if(!s.length) return [-1,1];
+      const a=Math.max(this.pct(s,0.99)*K*1.04, 0.5); return [-a,a];
+    }
+    const s=[];
+    for(let y=1;y<ny-1;y+=3) for(let x=1;x<nx-1;x+=3){
+      const i=y*nx+x; if(ob[i]) continue;
+      const dvdx=(m[(y*nx+x+1)*4+3]-m[(y*nx+x-1)*4+3])*0.5;
+      const dudy=(m[((y+1)*nx+x)*4+2]-m[((y-1)*nx+x)*4+2])*0.5;
+      s.push(Math.abs(dvdx-dudy));
+    }
+    if(!s.length) return [-1,1];
+    const a=Math.max(this.pct(s,0.985)*K, 0.2);
+    return [-a,a];
+  }
+};
+
+/* ============================================================================
+   MÓDULO 8 · STREAMLINES — trazas advectadas por el campo real
+   ========================================================================== */
+const Streams = {
+  P:[], N:0, trail:12,
+  reset(n){
+    this.N=n; this.P=[];
+    for(let i=0;i<n;i++) this.P.push(this.seed(true));
+  },
+  seed(rand){
+    const u=Math.random(), v=Math.random();
+    return {u,v,life:rand?Math.random()*260:0,t:[]};
+  },
+  update(){
+    if(!Solver.macroReady) return;
+    const K=1/U_LAT*0.0022;
+    for(const p of this.P){
+      const s=Solver.sample(p.u,p.v);
+      if(!s || s.solid || p.u<0||p.u>1||p.v<0||p.v>1||p.life>300){
+        const q=this.seed(false); p.u=q.u; p.v=q.v; p.life=0; p.t.length=0; continue;
+      }
+      p.t.push(p.u,p.v);
+      if(p.t.length>this.trail*2) p.t.splice(0,2);
+      p.u += s.ux*K;
+      p.v -= s.uy*K;
+      p.life++;
+    }
+  }
+};
+
+/* ============================================================================
+   MÓDULO 9 · OVERLAY — anotación 2D (leyenda, norte, sondas, zonas, escala)
+   Se usa igual en pantalla y en la exportación, con un factor de escala.
+   ========================================================================== */
+function drawOverlay(ctx, V, o){
+  const k = o.k||1;
+  ctx.save();
+  ctx.lineJoin='round'; ctx.lineCap='round';
+
+  /* ---- retícula métrica ------------------------------------------------- */
+  if(o.grid){
+    const mpp=V.mPerPx();
+    const targets=[0.5,1,2,5,10,20,25,50,100,200,500,1000];
+    let stepM=targets.find(t=>t/mpp>=58*k)||1000;
+    ctx.strokeStyle='rgba(238,238,236,0.10)'; ctx.lineWidth=1*k;
+    ctx.beginPath();
+    for(let m=stepM;m<S.domain.widthM;m+=stepM){
+      const u=m/S.domain.widthM, a=V.toS(u,0), b=V.toS(u,1);
+      ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]);
+    }
+    const hM=S.domain.widthM/S.domain.aspect;
+    for(let m=stepM;m<hM;m+=stepM){
+      const v=m/hM, a=V.toS(0,v), b=V.toS(1,v);
+      ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]);
+    }
+    ctx.stroke();
+  }
+
+  /* ---- líneas de corriente --------------------------------------------- */
+  if(o.streamlines){
+    ctx.strokeStyle='rgba(238,238,236,0.46)'; ctx.lineWidth=1.05*k;
+    ctx.beginPath();
+    for(const p of Streams.P){
+      const t=p.t; if(t.length<6) continue;
+      let started=false;
+      for(let i=0;i<t.length;i+=2){
+        const s=V.toS(t[i],t[i+1]);
+        if(!started){ ctx.moveTo(s[0],s[1]); started=true; } else ctx.lineTo(s[0],s[1]);
+      }
+    }
+    ctx.stroke();
+    ctx.fillStyle='rgba(252,76,2,0.85)';
+    for(const p of Streams.P){
+      if(p.t.length<6) continue;
+      const s=V.toS(p.u,p.v);
+      ctx.beginPath(); ctx.arc(s[0],s[1],1.35*k,0,6.2832); ctx.fill();
+    }
+  }
+
+  /* ---- marco del dominio ------------------------------------------------ */
+  ctx.strokeStyle='rgba(33,35,34,0.30)'; ctx.lineWidth=1*k;
+  ctx.strokeRect(V.x+0.5,V.y+0.5,V.w,V.h);
+
+  /* ---- zonas de interés -------------------------------------------------- */
+  if(o.probes) for(const z of S.zones){
+    const a=V.toS(Math.min(z.u0,z.u1),Math.min(z.v0,z.v1));
+    const b=V.toS(Math.max(z.u0,z.u1),Math.max(z.v0,z.v1));
+    ctx.strokeStyle=BRAND.naranjo; ctx.lineWidth=1.2*k;
+    ctx.setLineDash([5*k,3*k]);
+    ctx.strokeRect(a[0],a[1],b[0]-a[0],b[1]-a[1]);
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(252,76,2,0.10)';
+    ctx.fillRect(a[0],a[1],b[0]-a[0],b[1]-a[1]);
+    ctx.font=`600 ${9.5*k}px 'Outfit',sans-serif`;
+    ctx.fillStyle=BRAND.naranjo; ctx.textBaseline='bottom';
+    ctx.fillText(z.name.toUpperCase(), a[0]+2*k, a[1]-3*k);
+  }
+
+  /* ---- sondas ------------------------------------------------------------ */
+  if(o.probes) for(const p of S.probes){
+    const s=V.toS(p.u,p.v);
+    const smp=Solver.sample(p.u,p.v);
+    ctx.strokeStyle='#EEEEEC'; ctx.lineWidth=2.6*k;
+    ctx.beginPath(); ctx.arc(s[0],s[1],4.2*k,0,6.2832); ctx.stroke();
+    ctx.strokeStyle=BRAND.naranjo; ctx.lineWidth=1.4*k;
+    ctx.beginPath(); ctx.arc(s[0],s[1],4.2*k,0,6.2832); ctx.stroke();
+    const lab = p.name + (smp? '  '+(Math.hypot(smp.ux,smp.uy)*uDesign()/U_LAT).toFixed(2)+' m/s' : '');
+    ctx.font=`500 ${10*k}px 'Outfit',sans-serif`;
+    const wpx=ctx.measureText(lab).width;
+    ctx.fillStyle='rgba(27,29,28,0.72)';
+    ctx.fillRect(s[0]+8*k, s[1]-8*k, wpx+9*k, 15*k);
+    ctx.fillStyle='#EEEEEC'; ctx.textBaseline='middle';
+    ctx.fillText(lab, s[0]+12.5*k, s[1]-0.2*k);
+  }
+
+  /* ---- rosa / vector de viento ------------------------------------------ */
+  if(o.rose){
+    const cx=V.W-64*k, cy=76*k, R=26*k;
+    const d=flowDirScreen();
+    ctx.save(); ctx.translate(cx,cy);
+    ctx.strokeStyle='rgba(33,35,34,0.16)'; ctx.lineWidth=1*k;
+    ctx.beginPath(); ctx.arc(0,0,R,0,6.2832); ctx.stroke();
+    ctx.strokeStyle=BRAND.naranjo; ctx.lineWidth=1.8*k;
+    ctx.beginPath();
+    ctx.moveTo(-d[0]*R*0.92,-d[1]*R*0.92);
+    ctx.lineTo(d[0]*R*0.62,d[1]*R*0.62);
+    ctx.stroke();
+    ctx.fillStyle=BRAND.naranjo;
+    const a=Math.atan2(d[1],d[0]);
+    ctx.save(); ctx.translate(d[0]*R*0.92,d[1]*R*0.92); ctx.rotate(a);
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-8*k,4*k); ctx.lineTo(-8*k,-4*k); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    ctx.restore();
+    ctx.font=`600 ${8.5*k}px 'Outfit',sans-serif`;
+    ctx.fillStyle=BRAND.coolgray; ctx.textAlign='center'; ctx.textBaseline='top';
+    ctx.fillText(`${S.wind.dirFrom}°  ${cardinal(S.wind.dirFrom)} → ${cardinalTo(S.wind.dirFrom)}`, cx, cy+R+7*k);
+    ctx.textAlign='left';
+  }
+
+  /* ---- norte ------------------------------------------------------------- */
+  if(o.north){
+    const cx=V.W-64*k, cy=V.H-108*k, R=20*k;
+    const a=S.north.rot*Math.PI/180;
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(a);
+    ctx.strokeStyle=BRAND.grafito; ctx.lineWidth=1.2*k;
+    ctx.beginPath(); ctx.moveTo(0,R); ctx.lineTo(0,-R); ctx.stroke();
+    ctx.fillStyle=BRAND.grafito;
+    ctx.beginPath(); ctx.moveTo(0,-R-1*k); ctx.lineTo(-4.6*k,-R+9*k); ctx.lineTo(4.6*k,-R+9*k); ctx.closePath(); ctx.fill();
+    ctx.font=`700 ${10*k}px 'Outfit',sans-serif`; ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillText('N',0,-R-4*k);
+    ctx.restore(); ctx.textAlign='left';
+  }
+
+  /* ---- escala gráfica ---------------------------------------------------- */
+  if(o.scalebar){
+    const mpp=V.mPerPx();
+    const targets=[1,2,5,10,20,25,50,100,200,500,1000];
+    let bar=targets.find(t=>t/mpp>=90*k)||1000;
+    const px=bar/mpp, x0=20*k, y0=V.H-30*k;
+    ctx.strokeStyle=BRAND.grafito; ctx.lineWidth=1.3*k;
+    ctx.beginPath();
+    ctx.moveTo(x0,y0-4*k); ctx.lineTo(x0,y0+4*k);
+    ctx.moveTo(x0,y0); ctx.lineTo(x0+px,y0);
+    ctx.moveTo(x0+px,y0-4*k); ctx.lineTo(x0+px,y0+4*k);
+    ctx.moveTo(x0+px/2,y0-3*k); ctx.lineTo(x0+px/2,y0+3*k);
+    ctx.stroke();
+    ctx.font=`500 ${9.5*k}px 'Outfit',sans-serif`;
+    ctx.fillStyle=BRAND.coolgray; ctx.textBaseline='bottom';
+    ctx.fillText(bar+' m', x0+px+7*k, y0+4*k);
+  }
+  ctx.restore();
+}
+
+/* ============================================================================
+   MÓDULO 10 · APP — arranque, bucle e interacción
+   ========================================================================== */
+const $  = s=>document.querySelector(s);
+const $$ = s=>Array.from(document.querySelectorAll(s));
+const glc = $('#glcanvas'), ovc = $('#overlay'), vp = $('#viewport');
+const octx = ovc.getContext('2d');
+let gl=null, DPR=1, needObs=true, drawing=null, spaceDown=false;
+let calibMode=false, calibPts=[], zoneMode=false, rectPre=null;
+let hoverW=null, lastT=performance.now(), frames=0, fpsT=performance.now(), iterT=performance.now(), iter0=0;
+let stableSince=0;
+/* Subpasos por cuadro: se ajustan solos al presupuesto de GPU de la calidad
+   elegida, para que la simulación avance lo más rápido que permita el equipo
+   sin romper la fluidez de la interfaz. */
+let subSteps=18;
+function adaptSteps(dt){
+  if(!isFinite(dt)||dt<=0) return;
+  const b=QUALITY[S.solver.quality].budget;
+  if(dt < b*0.85)      subSteps = Math.min(260, subSteps*1.10);
+  else if(dt > b*1.45) subSteps = Math.max(2,   subSteps*0.80);
+}
+
+function fatal(msg){ $('#fatalMsg').textContent=msg; $('#fatal').classList.add('show'); }
+
+function boot(){
+  try{
+    gl = glc.getContext('webgl2',{antialias:false,preserveDrawingBuffer:true,alpha:false,
+                                 powerPreference:'high-performance'});
+    if(!gl) throw new Error('NOWEBGL');
+    Solver.create(gl);
+    Render.create(gl);
+  }catch(e){
+    fatal(e.message==='NOWEBGL'
+      ? 'Este navegador no expone WebGL2. Wind Lab necesita WebGL2 para ejecutar el solver. Prueba con Chrome, Edge o Firefox actualizados.'
+      : e.message==='NOFLOAT'
+      ? 'Tu GPU o navegador no permite renderizar en texturas de punto flotante (EXT_color_buffer_float), que el solver necesita para almacenar las poblaciones de la red.'
+      : 'Error al iniciar el motor gráfico: '+e.message);
+    return;
+  }
+  Mask.resize(S.domain.aspect);
+  resize();                 /* fija la proporción real del visor primero */
+  applyPreset('block');
+  Mask.push();
+  rebuildGrid(true);
+  Streams.reset(700);
+  bindUI();
+  refreshAll();
+  requestAnimationFrame(loop);
+}
+
+/* ---- dimensionado ------------------------------------------------------- */
+function resize(){
+  DPR = Math.min(window.devicePixelRatio||1, 2);
+  const r = vp.getBoundingClientRect();
+  const W = Math.max(64, Math.round(r.width*DPR)), H = Math.max(64, Math.round(r.height*DPR));
+  if(glc.width!==W||glc.height!==H){ glc.width=W; glc.height=H; ovc.width=W; ovc.height=H; }
+  const asp = r.width/Math.max(1,r.height);
+  if(Math.abs(asp - S.domain.aspect) > 0.001){
+    S.domain.aspect = Math.max(0.4, Math.min(4.0, asp));
+    Mask.resize(S.domain.aspect);
+    rebuildGrid(true);
+  }
+}
+function gridSize(){
+  const long = S.solver.res;
+  const a = S.domain.aspect;
+  let nx,ny;
+  if(a>=1){ nx=long; ny=Math.max(48, Math.round(long/a)); }
+  else    { ny=long; nx=Math.max(48, Math.round(long*a)); }
+  nx = Math.max(48, nx - (nx%2)); ny = Math.max(48, ny - (ny%2));
+  return [nx,ny];
+}
+function rebuildGrid(reinit){
+  const [nx,ny]=gridSize();
+  S.domain.nx=nx; S.domain.ny=ny;
+  Solver.resize(nx,ny);
+  Solver.setObstacles(Mask.toGrid(nx,ny));
+  needObs=false;
+  if(reinit) Solver.init(u0vec());
+  markCalculating();
+  refreshSolverInfo();
+}
+function u0vec(){ const d=flowDir(); return [d[0]*U_LAT, d[1]*U_LAT]; }
+function markCalculating(){ stableSince=0; setStatus('calc'); }
+
+/* ---- bucle principal ---------------------------------------------------- */
+function loop(t){
+  requestAnimationFrame(loop);
+  resize();
+  const dt=t-lastT; lastT=t;
+  frames++;
+  if(t-fpsT>500){ S.solver.fps=frames*1000/(t-fpsT); frames=0; fpsT=t; }
+
+  if(needObs){ Solver.setObstacles(Mask.toGrid(S.domain.nx,S.domain.ny)); needObs=false; markCalculating(); }
+
+  adaptSteps(dt);
+  if(S.solver.running && !drawingPauses()){
+    Solver.step(Math.max(1,Math.round(subSteps)),u0vec(),tau0(),csmag());
+  }
+  if(t-iterT>1000){ S.solver.ips=(S.solver.iters-iter0)*1000/(t-iterT); iter0=S.solver.iters; iterT=t; }
+
+  Solver.pollRead();
+  if(!Solver.fence && (!Solver._rt || t-Solver._rt>70)){ Solver.requestRead(); Solver._rt=t; }
+
+  if(Solver.macroReady){
+    Analysis.compute();
+    if(S.view.mode!=='map') Streams.update();
+    if(S.view.autoScale) updateAutoRange();
+    if(t-(window._uiT||0)>320){ window._uiT=t; refreshLive(); }
+    if(S.solver.residual<0.012){ if(!stableSince) stableSince=t; if(t-stableSince>700) setStatus(S.solver.running?'ok':'paused'); }
+    else { stableSince=0; if(S.solver.running) setStatus('calc'); }
+  }
+  if(!S.solver.running) setStatus('paused');
+
+  drawFrame();
+}
+function drawingPauses(){ return drawing && (drawing.tool==='draw'||drawing.tool==='erase'||drawing.tool==='rect'); }
+
+/* ---- render del frame --------------------------------------------------- */
+function drawFrame(){
+  const W=glc.width,H=glc.height;
+  const V=makeView(W,H,34*DPR);
+  const [mn,mx]=curRange();
+  const mode=S.scenarios.mode;
+  const A=S.scenarios.A, B=S.scenarios.B;
+
+  gl.disable(gl.SCISSOR_TEST);
+  if(mode==='live' || (mode==='A'&&!A) || (mode==='B'&&!B) || (mode==='AB'&&(!A||!B))){
+    Render.draw(V,W,H,S.view.field,mn,mx,fieldK());
+  } else if(mode==='A'){ drawSnap(A,V,W,H,mn,mx); }
+  else if(mode==='B'){ drawSnap(B,V,W,H,mn,mx); }
+  else {
+    const sx=Math.round(S.scenarios.split*W);
+    gl.enable(gl.SCISSOR_TEST);
+    gl.scissor(0,0,sx,H);        drawSnap(A,V,W,H,mn,mx);
+    gl.scissor(sx,0,W-sx,H);     drawSnap(B,V,W,H,mn,mx);
+    gl.disable(gl.SCISSOR_TEST);
+  }
+
+  octx.setTransform(1,0,0,1,0,0);
+  octx.clearRect(0,0,W,H);
+  drawOverlay(octx,V,{k:DPR, grid:S.view.overlays.grid, north:S.view.overlays.north,
+    rose:S.view.overlays.rose, scalebar:S.view.overlays.scalebar, probes:true,
+    streamlines:(S.view.mode!=='map') && mode==='live'});
+
+  /* previsualización de rectángulo / calibración / zona */
+  if(rectPre){
+    const a=V.toS(rectPre.u0,rectPre.v0), b=V.toS(rectPre.u1,rectPre.v1);
+    octx.strokeStyle = rectPre.kind==='zone'?BRAND.naranjo:'#EEEEEC';
+    octx.lineWidth=1.4*DPR; octx.setLineDash([6*DPR,4*DPR]);
+    octx.strokeRect(a[0],a[1],b[0]-a[0],b[1]-a[1]);
+    octx.setLineDash([]);
+  }
+  if(calibMode){
+    octx.strokeStyle=BRAND.naranjo; octx.lineWidth=1.6*DPR;
+    const pts=calibPts.map(p=>V.toS(p[0],p[1]));
+    if(hoverW && pts.length===1) pts.push(V.toS(hoverW[0],hoverW[1]));
+    if(pts.length===2){ octx.beginPath(); octx.moveTo(pts[0][0],pts[0][1]); octx.lineTo(pts[1][0],pts[1][1]); octx.stroke(); }
+    for(const p of pts.slice(0,calibPts.length)){
+      octx.beginPath(); octx.arc(p[0],p[1],4.5*DPR,0,6.2832); octx.stroke();
+    }
+  }
+  if(S.scenarios.mode==='AB' && S.scenarios.A && S.scenarios.B){
+    const sx=S.scenarios.split*W/DPR;
+    $('#splitHandle').style.left=sx+'px';
+    labelAB(V,W,H);
+  }
+}
+function labelAB(V,W,H){
+  const sx=S.scenarios.split*W;
+  octx.font=`600 ${10*DPR}px 'Outfit',sans-serif`;
+  octx.textBaseline='top';
+  const tag=(txt,x,align)=>{
+    octx.textAlign=align;
+    const w=octx.measureText(txt).width+14*DPR;
+    octx.fillStyle='rgba(27,29,28,0.72)';
+    octx.fillRect(align==='left'?x:x-w, 14*DPR, w, 19*DPR);
+    octx.fillStyle='#EEEEEC';
+    octx.fillText(txt, align==='left'?x+7*DPR:x-7*DPR, 19*DPR);
+    octx.textAlign='left';
+  };
+  if(sx>90*DPR) tag('A · '+(S.scenarios.A.name||'Escenario A'), 14*DPR,'left');
+  if(W-sx>90*DPR) tag('B · '+(S.scenarios.B.name||'Escenario B'), W-14*DPR,'right');
+}
+function drawSnap(sc,V,W,H,mn,mx){
+  if(!sc) return;
+  Render.draw(V,W,H,S.view.field,mn,mx,fieldK(),sc.tex,sc.obsTex);
+}
+function curRange(){
+  if(S.view.autoScale) return [S.view.min,S.view.max];
+  return [S.view.lockMin,S.view.lockMax];
+}
+function updateAutoRange(){
+  const r=Analysis.autoRange(); if(!r) return;
+  const s=0.10;
+  S.view.min += (r[0]-S.view.min)*s;
+  S.view.max += (r[1]-S.view.max)*s;
+}
+
+/* ---- estado en la barra superior ---------------------------------------- */
+function setStatus(k){
+  if(S.status===k) return;
+  S.status=k;
+  const el=$('#status'); el.className='status '+(k==='ok'?'ok':k==='paused'?'paused':'calc');
+  el.querySelector('.txt').textContent = k==='ok'?'Estable':k==='paused'?'En pausa':'Calculando…';
+}
+
+/* ============================================================================
+   INTERACCIÓN
+   ========================================================================== */
+function evW(e){
+  const r=ovc.getBoundingClientRect();
+  const V=makeView(glc.width,glc.height,34*DPR);
+  return V.toW((e.clientX-r.left)*DPR,(e.clientY-r.top)*DPR);
+}
+function clamp01(w){ return [Math.max(0,Math.min(1,w[0])), Math.max(0,Math.min(1,w[1]))]; }
+
+ovc.addEventListener('pointerdown',e=>{
+  ovc.setPointerCapture(e.pointerId);
+  const w=evW(e);
+  const panning = e.button===1 || spaceDown || S.tool.current==='pan';
+  if(panning){ drawing={tool:'pan',sx:e.clientX,sy:e.clientY,cx:S.view.cx,cy:S.view.cy}; vp.classList.add('panning'); return; }
+  if(e.button===2) return;
+
+  if(calibMode){
+    calibPts.push(clamp01(w));
+    if(calibPts.length===2){ openCalib(); }
+    return;
+  }
+  if(zoneMode){ drawing={tool:'zone',u0:w[0],v0:w[1]}; rectPre={u0:w[0],v0:w[1],u1:w[0],v1:w[1],kind:'zone'}; return; }
+
+  const T=S.tool.current;
+  if(T==='select'){
+    const nm = 'Sonda '+(S.probes.length+1);
+    S.probes.push({id:Date.now()+Math.random(), u:w[0], v:w[1], name:nm});
+    renderProbes();
+    return;
+  }
+  if(T==='rect'){ drawing={tool:'rect',u0:w[0],v0:w[1]}; rectPre={u0:w[0],v0:w[1],u1:w[0],v1:w[1]}; return; }
+  if(T==='draw'||T==='erase'){
+    drawing={tool:T,lu:w[0],lv:w[1]};
+    Mask.paintDisc(w[0],w[1],S.tool.brush/2,T==='draw'?1:0);
+    needObs=true;
+    return;
+  }
+});
+ovc.addEventListener('pointermove',e=>{
+  const w=evW(e);
+  hoverW=w;
+  if(drawing){
+    if(drawing.tool==='pan'){
+      const V=makeView(glc.width,glc.height,34*DPR);
+      S.view.cx = drawing.cx - (e.clientX-drawing.sx)*DPR/V.w;
+      S.view.cy = drawing.cy - (e.clientY-drawing.sy)*DPR/V.h;
+      return;
+    }
+    if(drawing.tool==='rect'||drawing.tool==='zone'){ rectPre.u1=w[0]; rectPre.v1=w[1]; return; }
+    if(drawing.tool==='draw'||drawing.tool==='erase'){
+      Mask.paintLine(drawing.lu,drawing.lv,w[0],w[1],S.tool.brush/2,drawing.tool==='draw'?1:0);
+      drawing.lu=w[0]; drawing.lv=w[1]; needObs=true; return;
+    }
+  }
+  updateReadout(w);
+});
+ovc.addEventListener('pointerup',e=>{
+  const w=evW(e);
+  vp.classList.remove('panning');
+  if(!drawing) return;
+  const d=drawing; drawing=null;
+  if(d.tool==='rect'){
+    rectPre=null;
+    if(Math.abs(w[0]-d.u0)>0.002 && Math.abs(w[1]-d.v0)>0.002){
+      Mask.paintRect(d.u0,d.v0,w[0],w[1],1); needObs=true; Mask.push();
+    }
+  } else if(d.tool==='zone'){
+    rectPre=null; zoneMode=false; vp.classList.remove('draw');
+    if(Math.abs(w[0]-d.u0)>0.01 && Math.abs(w[1]-d.v0)>0.01){
+      S.zones.push({id:Date.now(),name:'Zona '+(S.zones.length+1),u0:d.u0,v0:d.v0,u1:w[0],v1:w[1]});
+      renderZones();
+    }
+  } else if(d.tool==='draw'||d.tool==='erase'){ Mask.push(); }
+});
+ovc.addEventListener('pointerleave',()=>{ $('#readout').classList.remove('show'); hoverW=null; });
+ovc.addEventListener('contextmenu',e=>e.preventDefault());
+ovc.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const r=ovc.getBoundingClientRect();
+  const px=(e.clientX-r.left)*DPR, py=(e.clientY-r.top)*DPR;
+  const V=makeView(glc.width,glc.height,34*DPR);
+  const before=V.toW(px,py);
+  const f=Math.exp(-e.deltaY*0.0016);
+  S.view.zoom=Math.max(0.35,Math.min(24,S.view.zoom*f));
+  const V2=makeView(glc.width,glc.height,34*DPR);
+  const after=V2.toW(px,py);
+  S.view.cx += before[0]-after[0];
+  S.view.cy += before[1]-after[1];
+},{passive:false});
+
+function updateReadout(w){
+  const ro=$('#readout');
+  if(w[0]<0||w[0]>1||w[1]<0||w[1]>1||!Solver.macroReady){ ro.classList.remove('show'); return; }
+  const s=Solver.sample(w[0],w[1]);
+  if(!s){ ro.classList.remove('show'); return; }
+  const K=uDesign()/U_LAT, U=uDesign();
+  const spd=Math.hypot(s.ux,s.uy)*K;
+  const hM=S.domain.widthM/S.domain.aspect;
+  const p=(s.rho-1)*RHO_AIR*(U/U_LAT)*(U/U_LAT)/3;
+  ro.innerHTML =
+   `<span class="k">Sonda</span>`+
+   `<div class="r"><span>X</span><b>${(w[0]*S.domain.widthM).toFixed(2)} m</b></div>`+
+   `<div class="r"><span>Y</span><b>${((1-w[1])*hM).toFixed(2)} m</b></div>`+
+   (s.solid
+     ? `<div class="r" style="margin-top:4px"><span>—</span><b>Obstáculo</b></div>`
+     : `<div class="r" style="margin-top:4px"><span>Velocidad</span><b>${spd.toFixed(2)} m/s</b></div>`+
+       `<div class="r"><span>Relativa</span><b>${(spd/Math.max(U,1e-6)).toFixed(2)} × U<sub>ref</sub></b></div>`+
+       `<div class="r"><span>Presión</span><b>${p>=0?'+':''}${p.toFixed(2)} Pa</b></div>`);
+  ro.classList.add('show');
+}
+
+/* ---- teclado ------------------------------------------------------------- */
+window.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return;
+  const m=e.ctrlKey||e.metaKey;
+  if(m && e.key.toLowerCase()==='z'){
+    e.preventDefault();
+    if(e.shiftKey){ if(Mask.redo()) needObs=true; } else { if(Mask.undo()) needObs=true; }
+    return;
+  }
+  if(e.code==='Space'){ spaceDown=true; vp.classList.add('pan'); e.preventDefault(); return; }
+  const k=e.key.toLowerCase();
+  if(k==='s') setTool('select'); else if(k==='d') setTool('draw');
+  else if(k==='r') setTool('rect'); else if(k==='e') setTool('erase');
+  else if(k==='m') setTool('pan');  else if(k==='f') fitView();
+  else if(e.key==='Delete'||e.key==='Backspace'){
+    if(S.probes.length||S.zones.length){ S.probes=[]; S.zones=[]; renderProbes(); renderZones(); }
+  }
+});
+window.addEventListener('keyup',e=>{ if(e.code==='Space'){ spaceDown=false; vp.classList.remove('pan'); } });
+
+function fitView(){ S.view.zoom=1; S.view.cx=0.5; S.view.cy=0.5; }
+function setTool(t){
+  S.tool.current=t; zoneMode=false; calibMode=false; calibPts=[];
+  $$('#toolSeg button').forEach(b=>b.classList.toggle('on',b.dataset.tool===t));
+  $$('#tbar button[data-tool]').forEach(b=>b.classList.toggle('on',b.dataset.tool===t));
+  $('#toolName').textContent={select:'Sondear',draw:'Pintar',rect:'Rectángulo',erase:'Borrar',pan:'Mover'}[t];
+  $('#brushGrp').style.display=(t==='draw'||t==='erase')?'':'none';
+  vp.classList.toggle('pan',t==='pan');
+  vp.classList.toggle('draw',t==='draw'||t==='erase'||t==='rect'||t==='select');
+}
+
+/* ============================================================================
+   MÓDULO 11 · UI — cableado de controles y refrescos
+   ========================================================================== */
+function bindUI(){
+  /* secciones colapsables */
+  $$('.sec-h').forEach(h=>h.addEventListener('click',()=>h.parentElement.classList.toggle('open')));
+  $('#mobToggle').addEventListener('click',()=>$('#sidebar').classList.toggle('open'));
+
+  /* proyecto */
+  $('#pjName').addEventListener('input',e=>{S.project.name=e.target.value; refreshTop();});
+  $('#pjClient').addEventListener('input',e=>{S.project.client=e.target.value; refreshTop();});
+
+  /* geometría */
+  $('#preset').addEventListener('change',e=>{ applyPreset(e.target.value); Mask.push(); needObs=true; });
+  $('#toolSeg').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) setTool(b.dataset.tool); });
+  $('#tbar').addEventListener('click',e=>{ const b=e.target.closest('button[data-tool]'); if(b) setTool(b.dataset.tool); });
+  $('#brush').addEventListener('input',e=>{ S.tool.brush=+e.target.value; $('#brushVal').textContent=S.tool.brush+' celdas'; });
+  $('#btnUndo').addEventListener('click',()=>{ if(Mask.undo()) needObs=true; });
+  $('#btnRedo').addEventListener('click',()=>{ if(Mask.redo()) needObs=true; });
+  $('#btnClear').addEventListener('click',()=>{ Mask.clear(); Mask.push(); needObs=true; $('#preset').value='empty'; });
+  $('#btnFit').addEventListener('click',fitView);
+  $('#btnZoomIn').addEventListener('click',()=>{S.view.zoom=Math.min(24,S.view.zoom*1.3);});
+  $('#btnZoomOut').addEventListener('click',()=>{S.view.zoom=Math.max(0.35,S.view.zoom/1.3);});
+
+  /* escala */
+  $('#domW').addEventListener('input',e=>{
+    const v=parseFloat(e.target.value); if(!isFinite(v)||v<=0) return;
+    S.domain.widthM=v; refreshScale();
+  });
+  $('#btnCalib').addEventListener('click',()=>{ calibMode=true; calibPts=[]; zoneMode=false; vp.classList.add('draw'); });
+
+  /* viento */
+  const setSpeed=v=>{
+    S.wind.speed=Math.max(0.5,Math.min(S.wind.unit==='kmh'?144:40,v));
+    $('#spd').value=S.wind.speed; $('#spdNum').value=S.wind.speed.toFixed(1);
+    refreshWind(); markCalculating();
+  };
+  $('#spd').addEventListener('input',e=>setSpeed(+e.target.value));
+  $('#spdNum').addEventListener('input',e=>setSpeed(+e.target.value));
+  $('#unitBtn').addEventListener('click',()=>{
+    if(S.wind.unit==='ms'){ S.wind.unit='kmh'; S.wind.speed=+(S.wind.speed*3.6).toFixed(1); }
+    else { S.wind.unit='ms'; S.wind.speed=+(S.wind.speed/3.6).toFixed(1); }
+    const mx=S.wind.unit==='kmh'?144:40, mn=S.wind.unit==='kmh'?1.8:0.5;
+    $('#unitBtn').textContent=S.wind.unit==='kmh'?'km/h':'m/s';
+    $('#spd').min=mn; $('#spd').max=mx; $('#spdNum').min=mn; $('#spdNum').max=mx;
+    setSpeed(S.wind.speed);
+  });
+  $('#dir').addEventListener('input',e=>{ S.wind.dirFrom=+e.target.value; refreshWind(); markCalculating(); });
+  $('#dirChips').addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    S.wind.dirFrom=+b.dataset.d; $('#dir').value=S.wind.dirFrom; refreshWind(); markCalculating();
+  });
+  $('#north').addEventListener('input',e=>{ S.north.rot=+e.target.value; refreshWind(); markCalculating(); });
+
+  /* entorno */
+  $('#env').addEventListener('change',e=>{
+    S.env.preset=e.target.value; S.env.manualAlpha=false;
+    S.env.alpha=ENVS[S.env.preset].alpha; $('#alpha').value=S.env.alpha;
+    refreshEnv(); markCalculating();
+  });
+  $('#height').addEventListener('input',e=>{ S.wind.heightM=+e.target.value; refreshEnv(); });
+  $('#alpha').addEventListener('input',e=>{ S.env.alpha=+e.target.value; S.env.manualAlpha=true; refreshEnv(); });
+
+  /* visualización */
+  $('#fieldSeg').addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    S.view.field=+b.dataset.f;
+    $$('#fieldSeg button').forEach(x=>x.classList.toggle('on',x===b));
+    const r=Analysis.autoRange(); if(r){ S.view.min=r[0]; S.view.max=r[1]; }
+    refreshLegend();
+  });
+  $('#modeSeg').addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    S.view.mode=b.dataset.m;
+    $$('#modeSeg button').forEach(x=>x.classList.toggle('on',x===b));
+    if(S.view.mode!=='map' && Streams.P.length===0) Streams.reset(700);
+  });
+  $$('.chip[data-ov]').forEach(c=>c.addEventListener('click',()=>{
+    const k=c.dataset.ov; S.view.overlays[k]=!S.view.overlays[k]; c.classList.toggle('on',S.view.overlays[k]);
+  }));
+  $('#btnAuto').addEventListener('click',()=>{ S.view.autoScale=true; $('#btnAuto').classList.add('on'); $('#btnLock').classList.remove('on'); });
+  $('#btnLock').addEventListener('click',()=>{
+    S.view.lockMin=S.view.min; S.view.lockMax=S.view.max; S.view.autoScale=false;
+    $('#btnLock').classList.add('on'); $('#btnAuto').classList.remove('on');
+  });
+
+  /* solver */
+  $('#resSeg').addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    S.solver.res=+b.dataset.r;
+    $$('#resSeg button').forEach(x=>x.classList.toggle('on',x===b));
+    rebuildGrid(true);
+  });
+  $('#qualSeg').addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    S.solver.quality=b.dataset.q;
+    $$('#qualSeg button').forEach(x=>x.classList.toggle('on',x===b));
+    refreshSolverInfo(); markCalculating();
+  });
+  const togglePause=()=>{
+    S.solver.running=!S.solver.running;
+    const t=S.solver.running?'Pausar':'Reanudar';
+    $('#btnPause').textContent=t; $('#btnPause2').textContent=t;
+    $('#btnPause').classList.toggle('on',!S.solver.running);
+    if(S.solver.running) markCalculating();
+  };
+  $('#btnPause').addEventListener('click',togglePause);
+  $('#btnPause2').addEventListener('click',togglePause);
+  const doReset=()=>{ Solver.init(u0vec()); markCalculating(); Streams.reset(700); };
+  $('#btnReset').addEventListener('click',doReset);
+  $('#btnReset2').addEventListener('click',doReset);
+  $('#btnAdvanced').addEventListener('click',()=>{
+    S.advanced=!S.advanced;
+    document.body.classList.toggle('advanced',S.advanced);
+    $('#btnAdvanced').classList.toggle('on',S.advanced);
+  });
+
+  /* análisis */
+  $('#btnZone').addEventListener('click',()=>{ zoneMode=true; calibMode=false; vp.classList.add('draw'); });
+  $('#btnSaveA').addEventListener('click',()=>saveScenario('A'));
+  $('#btnSaveB').addEventListener('click',()=>saveScenario('B'));
+  $('#scenSeg').addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    const m=b.dataset.s;
+    if((m==='A'&&!S.scenarios.A)||(m==='B'&&!S.scenarios.B)||(m==='AB'&&(!S.scenarios.A||!S.scenarios.B))) return;
+    S.scenarios.mode=m;
+    $$('#scenSeg button').forEach(x=>x.classList.toggle('on',x===b));
+    $('#splitHandle').classList.toggle('show',m==='AB');
+    if(m!=='live'){ S.view.lockMin=S.view.min; S.view.lockMax=S.view.max; S.view.autoScale=false;
+      $('#btnLock').classList.add('on'); $('#btnAuto').classList.remove('on'); }
+  });
+  /* arrastre del separador A/B */
+  (function(){
+    const h=$('#splitHandle'); let dragging=false;
+    h.addEventListener('pointerdown',e=>{ dragging=true; h.setPointerCapture(e.pointerId); });
+    h.addEventListener('pointermove',e=>{
+      if(!dragging) return;
+      const r=vp.getBoundingClientRect();
+      S.scenarios.split=Math.max(0.03,Math.min(0.97,(e.clientX-r.left)/r.width));
+    });
+    h.addEventListener('pointerup',()=>{dragging=false;});
+  })();
+
+  /* exportar */
+  $$('.chip[data-ex]').forEach(c=>c.addEventListener('click',()=>{
+    const k=c.dataset.ex; S.export[k]=!S.export[k]; c.classList.toggle('on',S.export[k]);
+  }));
+  $('#btnPng').addEventListener('click',()=>exportPNG(1));
+  $('#btnPngHi').addEventListener('click',()=>exportPNG(3));
+
+  /* modales */
+  $$('[data-close]').forEach(b=>b.addEventListener('click',()=>{
+    b.closest('.modal').classList.remove('show'); calibMode=false; calibPts=[];
+  }));
+  $('#btnImport').addEventListener('click',()=>$('#mImport').classList.add('show'));
+  bindImport(); bindCalib();
+}
+
+/* ---- refrescos ---------------------------------------------------------- */
+function refreshAll(){ refreshTop(); refreshScale(); refreshWind(); refreshEnv(); refreshLegend(); refreshSolverInfo(); renderProbes(); renderZones(); renderScenarios(); }
+function refreshTop(){
+  const p=S.project.name||'Estudio sin título';
+  $('#topMeta').innerHTML=`<b>${esc(p)}</b>${S.project.client?' · '+esc(S.project.client):''}`
+    +` &nbsp;·&nbsp; ${S.domain.widthM.toFixed(1)} × ${(S.domain.widthM/S.domain.aspect).toFixed(1)} m`
+    +` &nbsp;·&nbsp; ${cardinal(S.wind.dirFrom)} ${fmtSpeed()}`;
+}
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fmtSpeed(){ return S.wind.unit==='kmh'? S.wind.speed.toFixed(1)+' km/h' : S.wind.speed.toFixed(1)+' m/s'; }
+function refreshScale(){
+  const hM=S.domain.widthM/S.domain.aspect;
+  $('#domWVal').textContent=S.domain.widthM.toFixed(1)+' m';
+  $('#domHHint').textContent=`Alto del dominio: ${hM.toFixed(1)} m (según la proporción del visor).`;
+  $('#scaleBadge').textContent=S.domain.widthM.toFixed(0)+' m';
+  $('#cellVal').textContent=`${S.domain.nx}×${S.domain.ny} · ${(dxM()*100).toFixed(1)} cm/celda`;
+  refreshTop(); refreshSolverInfo();
+}
+function refreshWind(){
+  $('#spdVal').textContent=fmtSpeed();
+  $('#dirVal').textContent=`${S.wind.dirFrom}° · ${cardinal(S.wind.dirFrom)} → ${cardinalTo(S.wind.dirFrom)}`;
+  $('#northVal').textContent=S.north.rot+'°';
+  $('#windBadge').textContent=`${cardinal(S.wind.dirFrom)} ${fmtSpeed()}`;
+  $$('#dirChips .chip').forEach(c=>c.classList.toggle('on',+c.dataset.d===S.wind.dirFrom));
+  refreshTop(); refreshEnv();
+}
+function refreshEnv(){
+  const e=ENVS[S.env.preset];
+  const a=S.env.manualAlpha?S.env.alpha:e.alpha;
+  $('#envHint').innerHTML=`${e.name} · α = ${a.toFixed(3)} · z₀ ≈ ${e.z0}. Describe cómo el entorno frena y agita el viento con la altura.`;
+  $('#envBadge').textContent='α '+a.toFixed(2);
+  $('#alphaVal').textContent=a.toFixed(3);
+  $('#hVal').textContent=S.wind.heightM.toFixed(1)+' m';
+  $('#uDesign').textContent=uDesign().toFixed(2)+' m/s';
+  refreshSolverInfo();
+}
+function refreshLegend(){
+  $('#legTitle').textContent=fieldName();
+  $('#legRamp').style.background=rampCSS(S.view.field===0?BRAND.seq:BRAND.div);
+  const [a,b]=curRange();
+  const dec=S.view.field===2?1:(Math.abs(b)<5?2:1);
+  $('#legMin').textContent=a.toFixed(dec)+(S.view.field===0?'':'');
+  $('#legMax').textContent=b.toFixed(dec)+' '+fieldUnit();
+}
+function refreshSolverInfo(){
+  $('#resVal').textContent=`${S.domain.nx} × ${S.domain.ny}`;
+  $('#qualHint').textContent=QUALITY[S.solver.quality].note;
+  $('#solverBadge').textContent=`${S.domain.nx}×${S.domain.ny} · ${QUALITY[S.solver.quality].name}`;
+  $('#tauVal').textContent=tau0().toFixed(4);
+  $('#ulatVal').textContent=U_LAT.toFixed(3);
+  $('#dxVal').textContent=(dxM()*100).toFixed(1)+' cm';
+  $('#dtVal').textContent=(dtS()*1000).toFixed(2)+' ms';
+  $('#cellVal').textContent=`${S.domain.nx}×${S.domain.ny} · ${(dxM()*100).toFixed(1)} cm/celda`;
+}
+function refreshLive(){
+  const m=Analysis.m, U=uDesign();
+  $('#mMean').textContent=m.mean.toFixed(2)+' m/s';
+  $('#mMax').textContent=m.max.toFixed(2)+' m/s';
+  const cols=['#2A6E88','#7FA0A6','#E89A3C','#FC4C02'];
+  const names=[`< 0.5 × U<sub>ref</sub>`,`0.5 – 1.0 × U<sub>ref</sub>`,`1.0 – 1.5 × U<sub>ref</sub>`,`> 1.5 × U<sub>ref</sub>`];
+  $('#bands').innerHTML=m.bands.map((v,i)=>
+    `<div class="bar-row"><div><div class="nm">${names[i]}</div><div class="tr"><div class="fl" style="width:${v.toFixed(1)}%;background:${cols[i]}"></div></div></div><div class="pc">${v.toFixed(1)}%</div></div>`
+  ).join('');
+  $('#mAcc').textContent=m.acc.toFixed(1)+'% de la superficie';
+  $('#mShel').textContent=m.shel.toFixed(1)+'% de la superficie';
+  $('#mRec').textContent=m.rec.toFixed(1)+'% de la superficie';
+  $('#anBadge').textContent=m.mean.toFixed(1)+' m/s med.';
+  $('#itVal').textContent=S.solver.iters.toLocaleString('es-CL');
+  $('#ipsVal').textContent=S.solver.ips.toFixed(0);
+  $('#fpsVal').textContent=S.solver.fps.toFixed(0);
+  $('#resiVal').textContent=(S.solver.residual*100).toFixed(2)+'%';
+  $('#perfMeta').textContent=`${S.solver.fps.toFixed(0)} fps · ${S.solver.ips.toFixed(0)} it/s · ${Math.round(subSteps)} pasos/cuadro`;
+  $('#geoBadge').textContent=(Mask.coverage()*100).toFixed(1)+'% ocupado';
+  refreshLegend();
+  updateProbeValues(); updateZoneValues();
+}
+
+/* ---- sondas -------------------------------------------------------------- */
+function renderProbes(){
+  const L=$('#probeList');
+  $('#probeCount').textContent=S.probes.length;
+  if(!S.probes.length){ L.innerHTML='<div class="empty">Sin sondas.</div>'; return; }
+  L.innerHTML=S.probes.map(p=>
+    `<div class="item" data-id="${p.id}"><span class="sw"></span>`+
+    `<input value="${esc(p.name)}" data-role="nm"><span class="v" data-role="v">—</span>`+
+    `<button class="x" data-role="del">&times;</button></div>`).join('');
+  L.querySelectorAll('.item').forEach(it=>{
+    const id=+it.dataset.id;
+    it.querySelector('[data-role=nm]').addEventListener('input',e=>{
+      const p=S.probes.find(x=>x.id===id||String(x.id)===it.dataset.id); if(p) p.name=e.target.value;
+    });
+    it.querySelector('[data-role=del]').addEventListener('click',()=>{
+      S.probes=S.probes.filter(x=>String(x.id)!==it.dataset.id); renderProbes();
+    });
+  });
+  updateProbeValues();
+}
+function updateProbeValues(){
+  const K=uDesign()/U_LAT;
+  $('#probeList').querySelectorAll('.item').forEach(it=>{
+    const p=S.probes.find(x=>String(x.id)===it.dataset.id); if(!p) return;
+    const s=Solver.sample(p.u,p.v);
+    it.querySelector('[data-role=v]').textContent = s? (s.solid?'sólido':(Math.hypot(s.ux,s.uy)*K).toFixed(2)+' m/s') : '—';
+  });
+}
+/* ---- zonas --------------------------------------------------------------- */
+function renderZones(){
+  const L=$('#zoneList');
+  $('#zoneCount').textContent=S.zones.length;
+  if(!S.zones.length){ L.innerHTML='<div class="empty">Sin zonas. Dibuja una región (una terraza, un patio, un acceso) para leer sus estadísticas.</div>'; return; }
+  L.innerHTML=S.zones.map(z=>
+    `<div class="item" data-id="${z.id}" style="flex-wrap:wrap"><span class="sw"></span>`+
+    `<input value="${esc(z.name)}" data-role="nm"><button class="x" data-role="del">&times;</button>`+
+    `<div class="v" data-role="v" style="flex-basis:100%;padding-left:15px;color:var(--txt-3)">—</div></div>`).join('');
+  L.querySelectorAll('.item').forEach(it=>{
+    it.querySelector('[data-role=nm]').addEventListener('input',e=>{
+      const z=S.zones.find(x=>String(x.id)===it.dataset.id); if(z) z.name=e.target.value;
+    });
+    it.querySelector('[data-role=del]').addEventListener('click',()=>{
+      S.zones=S.zones.filter(x=>String(x.id)!==it.dataset.id); renderZones();
+    });
+  });
+  updateZoneValues();
+}
+function updateZoneValues(){
+  $('#zoneList').querySelectorAll('.item').forEach(it=>{
+    const z=S.zones.find(x=>String(x.id)===it.dataset.id); if(!z) return;
+    const s=Analysis.zoneStats(z);
+    it.querySelector('[data-role=v]').textContent = s
+      ? `med ${s.mean.toFixed(2)} · máx ${s.max.toFixed(2)} · mín ${s.min.toFixed(2)} · p90 ${s.p90.toFixed(2)} m/s`
+      : '—';
+  });
+}
+
+/* ============================================================================
+   MÓDULO 12 · SCENARIOS — comparador A/B
+   ========================================================================== */
+function makeObsTex(nx,ny,data){
+  const t=gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D,t);
+  gl.texStorage2D(gl.TEXTURE_2D,1,gl.R8,nx,ny);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT,1);
+  const up=new Uint8Array(nx*ny);
+  for(let i=0;i<data.length;i++) up[i]=data[i]?255:0;
+  gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,nx,ny,gl.RED,gl.UNSIGNED_BYTE,up);
+  return t;
+}
+function saveScenario(slot){
+  if(!Solver.macroReady){ return; }
+  const nx=Solver.nx, ny=Solver.ny;
+  const old=S.scenarios[slot];
+  if(old){ gl.deleteTexture(old.tex); gl.deleteTexture(old.obsTex); }
+  const macro=Solver.macro.slice(), obs=Solver.obs.slice();
+  const tex=Solver.makeTex(nx,ny);
+  gl.bindTexture(gl.TEXTURE_2D,tex);
+  gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,nx,ny,gl.RGBA,gl.FLOAT,macro);
+  S.scenarios[slot]={
+    slot, name: slot==='A'?'Estado original':'Alternativa',
+    nx,ny,macro,obs,tex,obsTex:makeObsTex(nx,ny,obs),
+    maskRLE:Mask.encode(),
+    params:{ speed:S.wind.speed, unit:S.wind.unit, dir:S.wind.dirFrom, north:S.north.rot,
+             env:S.env.preset, h:S.wind.heightM, widthM:S.domain.widthM, U:uDesign() }
+  };
+  /* al guardar por primera vez se fija la escala cromática para comparar */
+  if(S.view.autoScale){ S.view.lockMin=S.view.min; S.view.lockMax=S.view.max; }
+  renderScenarios();
+}
+function renderScenarios(){
+  const L=$('#scenList'); const out=[];
+  ['A','B'].forEach(k=>{
+    const s=S.scenarios[k];
+    if(!s){ out.push(`<div class="empty">${k} — sin guardar.</div>`); return; }
+    out.push(`<div class="item" data-slot="${k}"><span class="sw"></span>`+
+      `<input value="${esc(s.name)}" data-role="nm">`+
+      `<button class="x" data-role="load" title="Restaurar geometría" style="font-size:11px;letter-spacing:.1em">↺</button>`+
+      `<span class="v">${s.params.U.toFixed(1)} m/s · ${cardinal(s.params.dir)}</span></div>`);
+  });
+  L.innerHTML=out.join('');
+  L.querySelectorAll('.item').forEach(it=>{
+    const k=it.dataset.slot;
+    it.querySelector('[data-role=nm]').addEventListener('input',e=>{ S.scenarios[k].name=e.target.value; });
+    it.querySelector('[data-role=load]').addEventListener('click',()=>{
+      const s=S.scenarios[k];
+      Mask.decode({w:s.maskRLE.w,h:s.maskRLE.h,r:s.maskRLE.r}); Mask.push(); needObs=true;
+      S.wind.speed=s.params.speed; S.wind.unit=s.params.unit; S.wind.dirFrom=s.params.dir;
+      S.north.rot=s.params.north; S.env.preset=s.params.env; S.wind.heightM=s.params.h;
+      S.domain.widthM=s.params.widthM;
+      $('#spd').value=S.wind.speed; $('#spdNum').value=S.wind.speed.toFixed(1);
+      $('#dir').value=S.wind.dirFrom; $('#north').value=S.north.rot;
+      $('#env').value=S.env.preset; $('#height').value=S.wind.heightM; $('#domW').value=S.domain.widthM;
+      $('#unitBtn').textContent=S.wind.unit==='kmh'?'km/h':'m/s';
+      refreshAll(); markCalculating();
+    });
+  });
+  const ex=$('#exScope');
+  ex.innerHTML='<option value="current">Vista actual</option>'
+    +(S.scenarios.A?'<option value="A">Escenario A</option>':'')
+    +(S.scenarios.B?'<option value="B">Escenario B</option>':'')
+    +(S.scenarios.A&&S.scenarios.B?'<option value="AB">Comparación A / B</option>':'');
+}
+
+/* ============================================================================
+   MÓDULO 13 · IO — importar planta y calibrar escala
+   ========================================================================== */
+const Imp = { img:null, thr:0.5, invert:false, alpha:true, replace:true, mask:null };
+function bindImport(){
+  $('#fileInput').addEventListener('change',e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const url=URL.createObjectURL(f);
+    const im=new Image();
+    im.onload=()=>{ Imp.img=im; buildImportMask(); URL.revokeObjectURL(url); };
+    im.onerror=()=>{ $('#impInfo').textContent='No se pudo leer el archivo. Si es un SVG, revisa que no dependa de recursos externos.'; };
+    im.src=url;
+  });
+  $('#thr').addEventListener('input',e=>{ Imp.thr=+e.target.value; $('#thrVal').textContent=Imp.thr.toFixed(2); buildImportMask(); });
+  $('#chipInvert').addEventListener('click',e=>{ Imp.invert=!Imp.invert; e.target.classList.toggle('on',Imp.invert); buildImportMask(); });
+  $('#chipAlpha').addEventListener('click',e=>{ Imp.alpha=!Imp.alpha; e.target.classList.toggle('on',Imp.alpha); buildImportMask(); });
+  $('#chipReplace').addEventListener('click',()=>{ Imp.replace=true; $('#chipReplace').classList.add('on'); $('#chipAdd').classList.remove('on'); });
+  $('#chipAdd').addEventListener('click',()=>{ Imp.replace=false; $('#chipAdd').classList.add('on'); $('#chipReplace').classList.remove('on'); });
+  $('#btnImpOk').addEventListener('click',()=>{
+    if(!Imp.mask){ return; }
+    if(Imp.replace) Mask.clear();
+    const d=S.mask.data;
+    for(let i=0;i<d.length;i++) if(Imp.mask[i]) d[i]=1;
+    Mask.push(); needObs=true;
+    $('#mImport').classList.remove('show');
+    $('#preset').value='empty';
+  });
+}
+function buildImportMask(){
+  if(!Imp.img) return;
+  const MW=S.mask.w, MH=S.mask.h;
+  const c=document.createElement('canvas'); c.width=MW; c.height=MH;
+  const x=c.getContext('2d',{willReadFrequently:true});
+  x.clearRect(0,0,MW,MH);
+  /* la planta se encaja sin deformar, centrada en el dominio */
+  const iw=Imp.img.naturalWidth||Imp.img.width, ih=Imp.img.naturalHeight||Imp.img.height;
+  const s=Math.min(MW/iw, MH/ih);
+  const dw=iw*s, dh=ih*s;
+  x.drawImage(Imp.img,(MW-dw)/2,(MH-dh)/2,dw,dh);
+  const px=x.getImageData(0,0,MW,MH).data;
+  const m=new Uint8Array(MW*MH);
+  let n=0;
+  for(let i=0,j=0;i<m.length;i++,j+=4){
+    const a=px[j+3]/255;
+    let solid;
+    if(Imp.alpha && a<0.5) solid=false;               /* fondo transparente = vacío */
+    else{
+      const lum=(0.2126*px[j]+0.7152*px[j+1]+0.0722*px[j+2])/255;
+      const eff=Imp.alpha? lum*a + (1-a) : lum;       /* compone sobre blanco */
+      solid = eff < Imp.thr;
+    }
+    if(Imp.invert) solid=!solid;
+    m[i]=solid?1:0; n+=m[i];
+  }
+  Imp.mask=m;
+  /* previsualización */
+  const pc=$('#impPreview');
+  const pw=Math.min(560,MW), ph=Math.round(pw*MH/MW);
+  pc.width=pw; pc.height=ph;
+  const pctx=pc.getContext('2d');
+  const id=pctx.createImageData(pw,ph);
+  for(let y=0;y<ph;y++) for(let xx=0;xx<pw;xx++){
+    const sy=Math.floor(y*MH/ph), sx=Math.floor(xx*MW/pw);
+    const v=m[sy*MW+sx], o=(y*pw+xx)*4;
+    id.data[o]=v?0x21:0xF7; id.data[o+1]=v?0x23:0xF7; id.data[o+2]=v?0x22:0xF5; id.data[o+3]=v?255:60;
+  }
+  pctx.putImageData(id,0,0);
+  $('#impInfo').innerHTML=`Máscara: <b>${(100*n/m.length).toFixed(1)}%</b> de la superficie como obstáculo. `+
+    `Ajusta el umbral hasta que solo los muros y volúmenes queden en grafito.`;
+}
+
+function bindCalib(){
+  $('#btnCalOk').addEventListener('click',()=>{
+    const real=parseFloat($('#calReal').value);
+    if(!(real>0) || calibPts.length<2) return;
+    const [p,q]=calibPts;
+    const du=q[0]-p[0], dv=(q[1]-p[1])/S.domain.aspect;
+    const dn=Math.hypot(du,dv);
+    if(dn<1e-4) return;
+    S.domain.widthM = real/dn;
+    $('#domW').value=S.domain.widthM.toFixed(2);
+    refreshScale();
+    $('#mCalib').classList.remove('show');
+    calibMode=false; calibPts=[];
+  });
+}
+function openCalib(){
+  const V=makeView(glc.width,glc.height,34*DPR);
+  const a=V.toS(calibPts[0][0],calibPts[0][1]), b=V.toS(calibPts[1][0],calibPts[1][1]);
+  const px=Math.hypot(b[0]-a[0],b[1]-a[1])/DPR;
+  $('#calPx').textContent=px.toFixed(0)+' px';
+  const du=calibPts[1][0]-calibPts[0][0], dv=(calibPts[1][1]-calibPts[0][1])/S.domain.aspect;
+  const dn=Math.hypot(du,dv);
+  $('#calResult').innerHTML=`Con la escala actual esa distancia mide <b>${(dn*S.domain.widthM).toFixed(2)} m</b>. `+
+    `Al aplicar, el ancho del dominio pasará a <b id="calNew">—</b>.`;
+  const upd=()=>{
+    const r=parseFloat($('#calReal').value);
+    const el=$('#calNew'); if(el) el.textContent = (r>0&&dn>1e-4)? (r/dn).toFixed(2)+' m' : '—';
+  };
+  $('#calReal').oninput=upd; upd();
+  $('#mCalib').classList.add('show');
+}
+
+/* ============================================================================
+   MÓDULO 14 · EXPORT — lámina PNG con formato gráfico Averarq
+   ========================================================================== */
+const ISO_PATH='M 57.574219 52.507812 L 46.25 52.507812 L 51.9375 38.394531 L 53.53125 42.492188 L 56.828125 42.492188 L 53.164062 33.398438 L 50.796875 33.398438 L 41.816406 55.308594 L 45.125 55.304688 L 58.695312 55.304688 L 59.8125 58.101562 L 63.183594 58.101562 L 60.898438 52.464844 Z';
+function drawIsotipo(ctx,x,y,h,color){
+  const s=h/25.4;
+  ctx.save(); ctx.translate(x,y); ctx.scale(s,s); ctx.translate(-41.6,-33.0);
+  ctx.fillStyle=color; ctx.fill(new Path2D(ISO_PATH));
+  ctx.restore();
+}
+function exportPNG(scale){
+  const r=vp.getBoundingClientRect();
+  const k=scale*Math.min(DPR,2);
+  const W=Math.round(r.width*k), H=Math.round(r.height*k);
+  const headH = S.export.header? Math.round(78*k) : 0;
+  const footH = Math.round(30*k);
+
+  const ow=glc.width, oh=glc.height;
+  glc.width=W; glc.height=H;
+  const V=makeView(W,H,34*k);
+  const [mn,mx]=curRange();
+  const mode=S.scenarios.mode, A=S.scenarios.A, B=S.scenarios.B;
+  gl.disable(gl.SCISSOR_TEST);
+  if(mode==='AB'&&A&&B){
+    const sx=Math.round(S.scenarios.split*W);
+    gl.enable(gl.SCISSOR_TEST);
+    gl.scissor(0,0,sx,H);    Render.draw(V,W,H,S.view.field,mn,mx,fieldK(),A.tex,A.obsTex);
+    gl.scissor(sx,0,W-sx,H); Render.draw(V,W,H,S.view.field,mn,mx,fieldK(),B.tex,B.obsTex);
+    gl.disable(gl.SCISSOR_TEST);
+  } else if(mode==='A'&&A){ Render.draw(V,W,H,S.view.field,mn,mx,fieldK(),A.tex,A.obsTex); }
+  else if(mode==='B'&&B){ Render.draw(V,W,H,S.view.field,mn,mx,fieldK(),B.tex,B.obsTex); }
+  else Render.draw(V,W,H,S.view.field,mn,mx,fieldK());
+
+  const out=document.createElement('canvas');
+  out.width=W; out.height=H+headH+footH;
+  const c=out.getContext('2d');
+  c.fillStyle='#FBFBFA'; c.fillRect(0,0,out.width,out.height);
+  c.drawImage(glc,0,headH);
+
+  c.save(); c.translate(0,headH);
+  drawOverlay(c,V,{k, grid:S.view.overlays.grid, north:S.export.wind&&S.view.overlays.north,
+    rose:S.export.wind&&S.view.overlays.rose, scalebar:S.view.overlays.scalebar,
+    probes:S.export.probes, streamlines:(S.view.mode!=='map')&&mode==='live'});
+  c.restore();
+
+  /* ---- encabezado editorial Averarq ---- */
+  if(S.export.header){
+    const P=24*k;
+    drawIsotipo(c,P,headH/2-2*k,26*k,BRAND.naranjo);
+    c.textBaseline='alphabetic';
+    c.font=`700 ${15*k}px 'Outfit',sans-serif`;
+    c.fillStyle=BRAND.grafito;
+    c.fillText('AVER',P+22*k,headH/2-4*k);
+    const wA=c.measureText('AVER').width;
+    c.fillStyle=BRAND.naranjo; c.fillText('ARQ',P+22*k+wA,headH/2-4*k);
+    c.font=`400 ${9.5*k}px 'Outfit',sans-serif`;
+    c.fillStyle=BRAND.coolgray;
+    c.fillText('WIND STUDY · SIMULACIÓN PRELIMINAR DE VIENTO',P+22*k,headH/2+11*k);
+
+    const cols=[
+      ['PROYECTO', S.project.name||'—'],
+      ['MANDANTE', S.project.client||'—'],
+      ['VIENTO', `${cardinal(S.wind.dirFrom)} ${S.wind.dirFrom}° · ${fmtSpeed()}`],
+      ['ENTORNO', `${ENVS[S.env.preset].name} · ${S.wind.heightM.toFixed(1)} m`],
+      ['ESCENARIO', mode==='live'?'Vista actual':(mode==='AB'?'Comparación A / B':'Escenario '+mode)]
+    ];
+    const x0=W*0.40, colw=(W-x0-P)/cols.length;
+    cols.forEach((cc,i)=>{
+      const x=x0+i*colw;
+      c.font=`600 ${7.5*k}px 'Outfit',sans-serif`; c.fillStyle=BRAND.coolgray;
+      c.fillText(cc[0],x,headH/2-4*k);
+      c.font=`500 ${10.5*k}px 'Outfit',sans-serif`; c.fillStyle=BRAND.grafito;
+      const t=String(cc[1]); const maxw=colw-10*k;
+      let s=t; while(c.measureText(s).width>maxw && s.length>4) s=s.slice(0,-2);
+      c.fillText(s===t?t:s+'…',x,headH/2+11*k);
+    });
+    c.strokeStyle='#DCDCD8'; c.lineWidth=1*k;
+    c.beginPath(); c.moveTo(0,headH-0.5*k); c.lineTo(W,headH-0.5*k); c.stroke();
+  }
+
+  /* ---- leyenda ---- */
+  if(S.export.legend){
+    const lw=210*k, lh=44*k, x=W-lw-24*k, y=headH+H-lh-24*k;
+    c.fillStyle='rgba(251,251,250,0.95)'; c.fillRect(x,y,lw,lh);
+    c.strokeStyle='#DCDCD8'; c.lineWidth=1*k; c.strokeRect(x+0.5,y+0.5,lw,lh);
+    c.font=`600 ${8*k}px 'Outfit',sans-serif`; c.fillStyle=BRAND.coolgray; c.textBaseline='top';
+    c.fillText(fieldName().toUpperCase(),x+11*k,y+8*k);
+    const g=c.createLinearGradient(x+11*k,0,x+lw-11*k,0);
+    (S.view.field===0?BRAND.seq:BRAND.div).forEach(s=>g.addColorStop(s[0],`rgb(${s[1]},${s[2]},${s[3]})`));
+    c.fillStyle=g; c.fillRect(x+11*k,y+20*k,lw-22*k,8*k);
+    const [a,b]=curRange(); const dec=Math.abs(b)<5?2:1;
+    c.font=`500 ${9*k}px 'Outfit',sans-serif`; c.fillStyle=BRAND.grafito;
+    c.fillText(a.toFixed(dec),x+11*k,y+31*k);
+    c.textAlign='right'; c.fillText(b.toFixed(dec)+' '+fieldUnit(),x+lw-11*k,y+31*k); c.textAlign='left';
+  }
+
+  /* ---- pie con el disclaimer ---- */
+  c.fillStyle='#FBFBFA'; c.fillRect(0,headH+H,W,footH);
+  c.strokeStyle='#DCDCD8'; c.lineWidth=1*k;
+  c.beginPath(); c.moveTo(0,headH+H+0.5*k); c.lineTo(W,headH+H+0.5*k); c.stroke();
+  c.font=`400 ${8.5*k}px 'Outfit',sans-serif`; c.fillStyle='#8E918E'; c.textBaseline='middle';
+  c.fillText('Simulación preliminar orientada a decisiones de diseño. No reemplaza un estudio CFD especializado ni una ingeniería de viento.',24*k,headH+H+footH/2);
+  c.textAlign='right';
+  c.fillText(`averarq.cl · Dominio ${S.domain.widthM.toFixed(1)} × ${(S.domain.widthM/S.domain.aspect).toFixed(1)} m · Malla ${S.domain.nx}×${S.domain.ny}`,W-24*k,headH+H+footH/2);
+  c.textAlign='left';
+
+  /* restaura el canvas de pantalla */
+  glc.width=ow; glc.height=oh;
+
+  const slug=(S.project.name||'wind-study').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,48);
+  out.toBlob(bl=>{
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(bl);
+    a.download=`AVERARQ_WindLab_${slug||'estudio'}_${cardinal(S.wind.dirFrom)}${Math.round(uDesign()*10)/10}ms${scale>1?'_HR':''}.png`;
+    a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  },'image/png');
+}
+
+/* ========================================================================== */
+window.addEventListener('resize',()=>{ resize(); });
+boot();
+</script>
+</body>
+</html>
