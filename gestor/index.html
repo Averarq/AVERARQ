@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.05</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.11</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -224,7 +224,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.05</span></a>
+    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.11</span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <div class="sep"></div>
   <button class="btn" id="btnPDF">📄 Cargar PDF</button>
@@ -274,6 +274,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
       <div class="tab" data-tab="comparar">COMPARAR</div>
       <div class="tab" data-tab="radiografia">RADIOGRAFÍA</div>
       <div class="tab" data-tab="recibo">RECIBO</div>
+      <div class="tab" data-tab="control">CONTROL</div>
     </div>
     <div id="tabContent"></div>
   </div>
@@ -307,11 +308,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.05 =================
+/* ================= GESTOR AVERARQ v3.11 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.05";
+const GESTOR_VERSION="v3.11";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -478,6 +479,7 @@ function defaultEETT(){return{
   inst:{elec:true,elecModo:"estandar",agua:"red",alc:"fosa",gas:true,gasModo:"estandar",acs:"calefont",acsOn:true,obs:""},
   radio:null,
   recibo:{nro:"",fecha:"",cliente:"",rut:"",monto:"",concepto:"",medio:"efectivo",proyecto:"",obs:"",saldoOn:false,saldo:""},
+  control:{contrato:"", gastos:[], tarM1:55000, tarM2:40000, usaM2:true, meta:{on:false, utilPct:20, pctMat:45, pctMo:35, pctGG:0}},
   prelim:{faena:true,trazado:true},post:{cierre:false,aseo:true,obs:""},
   presup:{incluir:true,manual:0,plazo:""}
 };}
@@ -494,7 +496,7 @@ let state={
   costos:{m1:55000, m2:40000, gg:12, utilDia:70000, iva:true, utilModo:"dia", utilPct:15},
   incluirTE1:true,
   gantt:{inicio:"", feriadosExtra:[]},
-  planPago:{on:true, retencionOn:false, retencionPct:5, retencionMeses:6, hitos:[
+  planPago:{on:true, retencionOn:false, retencionPct:5, retencionMeses:6, cobrado:0, epN:1, hitos:[
     {pago:30, avance:20, label:"Anticipo para inicio y materiales"},
     {pago:30, avance:40, label:"Segundo estado de avance"},
     {pago:30, avance:60, label:"Tercer estado de avance"},
@@ -1127,6 +1129,41 @@ function obraTotales(){
   return {presup,valor,gMat,gMo,gastoReal,avanceFisico,desvio:valor-gastoReal,f,valorVenta,
           ventaTotal:presup*f};
 }
+/* ---- ESTADO DE PAGO: plan de pago × avance real (regla POR TRAMO) ----
+   Cada pago financia su tramo de obra:
+   · el 1er hito se cobra al inicio (0 %)
+   · los hitos intermedios, al alcanzar el avance del hito anterior
+   · el último hito (saldo), solo al alcanzar su propio avance (normalmente 100 % = recepción)
+   Montos sobre el total del presupuesto (con IVA si aplica), igual que el plan de pago del cliente. */
+function estadoPagoCalc(){
+  const pp=state.planPago||{hitos:[]};
+  if(pp.cobrado===undefined)pp.cobrado=0;
+  if(pp.epN===undefined)pp.epN=1;
+  const t=totales(); const A=obraTotales().avanceFisico;
+  const ret=pp.retencionOn?(+pp.retencionPct||0):0;
+  const hs=pp.hitos||[]; const n=hs.length;
+  const hitos=hs.map((hi,i)=>{
+    const umbral=(i===n-1)?(+hi.avance||0):(i===0?0:(+hs[i-1].avance||0));
+    const cobrable=A+1e-6>=umbral;
+    const bruto=t.total*(+hi.pago||0)/100;
+    const r=bruto*ret/100;
+    return {label:hi.label||("Hito "+(i+1)),pago:+hi.pago||0,umbral,cobrable,bruto,ret:r,neto:bruto-r};
+  });
+  const dev=hitos.filter(h=>h.cobrable);
+  const devPct=dev.reduce((a,h)=>a+h.pago,0);
+  const devBruto=dev.reduce((a,h)=>a+h.bruto,0);
+  const devRet=dev.reduce((a,h)=>a+h.ret,0);
+  const devNeto=devBruto-devRet;
+  const cobrado=Math.max(0,+pp.cobrado||0);
+  const aCobrar=Math.max(0,devNeto-cobrado);
+  const sobrepago=Math.max(0,cobrado-devNeto);
+  const retTotal=t.total*ret/100;
+  const netoContrato=t.total*hitos.reduce((a,h)=>a+h.pago,0)/100-hitos.reduce((a,h)=>a+h.ret,0);
+  const saldo=Math.max(0,netoContrato-cobrado-aCobrar);
+  const prox=hitos.find(h=>!h.cobrable)||null;
+  const sumaPago=hitos.reduce((a,h)=>a+h.pago,0);
+  return {t,A,ret,hitos,devPct,devBruto,devRet,devNeto,cobrado,aCobrar,sobrepago,retTotal,netoContrato,saldo,prox,sumaPago,epN:pp.epN,meses:pp.retencionMeses};
+}
 function totales(){
   let mat=0,mo=0,dias=0;
   state.partidas.forEach(p=>{const c=partidaCalc(p);mat+=c.mat;mo+=c.mo;dias+=c.dias;});
@@ -1414,6 +1451,7 @@ function renderTab(){
   if(curTab==="comparar")el.innerHTML=htmlComparar();
   if(curTab==="radiografia")el.innerHTML=htmlRadiografia();
   if(curTab==="recibo")el.innerHTML=htmlRecibo();
+  if(curTab==="control")el.innerHTML=htmlControl();
   bindTab();
 }
 const TRZ={area:"m² (superficie)",linea:"ml (línea)",punto:"un (conteo)"};
@@ -1610,8 +1648,30 @@ function htmlCostos(){
   <p class="small">${co.utilModo==="pct"
     ? "La utilidad se calcula como un porcentaje sobre el costo directo más los gastos generales — tu margen crece con el tamaño de la obra, no con su duración."
     : "La utilidad se calcula por día pactado: suma de días de todas las partidas × valor día. Ajuste rendimientos en cada APU para calibrar los plazos."}</p>`;
+  h+=valorDiaHTML();
   h+=planPagoHTML();
   return h;
+}
+function valorDiaHTML(){
+  const co=state.costos;
+  // Valor día facturado de M1 = jornal + GG% + utilidad%. La utilidad usa el % (utilPct), no el modo día.
+  const jornalM1=+co.m1||0;
+  const jornalM2=+co.m2||0;
+  const ggP=+co.gg||0;
+  const utP=+co.utilPct||0;
+  const facturado=(jornal)=>{
+    const conGG=jornal*(1+ggP/100);
+    return conGG*(1+utP/100);
+  };
+  const fM1=facturado(jornalM1);
+  const fM2=facturado(jornalM2);
+  return `<h3 style="margin-top:16px">VALOR DÍA FACTURADO</h3>
+  <p class="small" style="margin-bottom:6px">Cuánto cobrar por una jornada cuando te contratan por día (no por trato ni por material). Toma el jornal que pagas al maestro y le suma gastos generales (${ggP}%) y utilidad (${utP}%). Ajusta esos valores arriba.</p>
+  <div class="card">
+    <div class="tot"><span>Maestro 1ª — pagas ${CLP(jornalM1)}/día</span><span class="money">factura <b style="color:var(--naranja2)">${CLP(fM1)}</b></span></div>
+    <div class="tot"><span>Maestro 2ª — pagas ${CLP(jornalM2)}/día</span><span class="money">factura <b style="color:var(--naranja2)">${CLP(fM2)}</b></span></div>
+    <div class="small" style="color:var(--muted);margin-top:6px">Fórmula: jornal × (1 + ${ggP}% GG) × (1 + ${utP}% utilidad). Referencia de mercado: una jornada facturada de maestro ronda $85.000–$120.000 en Chile.</div>
+  </div>`;
 }
 function planPagoHTML(){
   const pp=state.planPago; const t=totales();
@@ -2191,6 +2251,131 @@ function htmlRecibo(){
   </div>
   <div class="row" style="margin-top:10px"><button class="btn primary grow" id="recEmitir">🖨 Emitir recibo</button></div>`;
 }
+function controlTotales(){
+  if(!state.control)state.control={contrato:"",gastos:[]};
+  const c=state.control;
+  const g=c.gastos||[];
+  const mat=g.filter(x=>x.cat==="material").reduce((s,x)=>s+(+x.monto||0),0);
+  const mo=g.filter(x=>x.cat==="mano_obra").reduce((s,x)=>s+(+x.monto||0),0);
+  const gg=g.filter(x=>x.cat==="gasto_general").reduce((s,x)=>s+(+x.monto||0),0);
+  const otro=g.filter(x=>x.cat==="otro").reduce((s,x)=>s+(+x.monto||0),0);
+  const gastoTotal=mat+mo+gg+otro;
+  const contrato=+c.contrato||0;
+  const utilidad=contrato-gastoTotal;
+  const pct=n=>contrato>0?(n/contrato*100):0;
+  return {mat,mo,gg,otro,gastoTotal,contrato,utilidad,pctMat:pct(mat),pctMo:pct(mo),pctGG:pct(gg),pctOtro:pct(otro),pctUtil:pct(utilidad)};
+}
+function htmlControl(){
+  if(!state.control)state.control={contrato:"",gastos:[]};
+  if(state.control.tarM1===undefined)state.control.tarM1=55000;
+  if(state.control.tarM2===undefined)state.control.tarM2=40000;
+  if(state.control.usaM2===undefined)state.control.usaM2=true;
+  if(!state.control.meta)state.control.meta={on:false,utilPct:20,pctMat:45,pctMo:35,pctGG:0};
+  const c=state.control; const t=controlTotales();
+  const CATNOM={material:"Material",mano_obra:"Mano de obra",gasto_general:"Gasto general",otro:"Otro"};
+  const CATCOL={material:"#e8a33d",mano_obra:"#fc4c02",gasto_general:"#4f9dc4",otro:"#6b7280"};
+  let h=`<h3>CONTROL DE OBRA — GASTO REAL</h3>
+  <p class="small" style="margin-bottom:8px">Registra los gastos reales del proyecto (boletas, compras, pago de maestros) a medida que ocurren. Compara contra el monto del contrato para ver tu utilidad real y en qué se fue.</p>
+  <div class="card">
+    <div class="row"><label style="width:150px">Monto del contrato/venta $</label><input type="number" style="width:150px" value="${c.contrato}" data-ctrl="contrato" placeholder="lo que cobras por la obra"></div>
+  </div>
+  <div class="card">
+    <div class="row"><b class="small" style="letter-spacing:1px;color:var(--txt2)">AGREGAR GASTO</b></div>
+    <div class="row">
+      <input type="date" id="ctrlFecha" style="width:140px" value="${new Date().toISOString().slice(0,10)}">
+      <input type="number" id="ctrlMonto" style="width:110px" placeholder="monto $">
+      <select id="ctrlCat" style="width:120px"><option value="material">Material</option><option value="mano_obra">Mano de obra</option><option value="gasto_general">Gasto general</option><option value="otro">Otro</option></select>
+    </div>
+    <div class="row"><input type="text" id="ctrlNota" class="grow" placeholder="nota (ej: fierro y cemento Sodimac)"><button class="btn primary" id="ctrlAdd">+ agregar</button></div>
+  </div>
+  <div class="card" style="border-left:3px solid var(--naranja)">
+    <div class="row"><b class="small" style="letter-spacing:1px;color:var(--txt2)">CÁLCULO SEMANAL DE MAESTROS</b></div>
+    <div class="row"><label style="width:auto;font-size:11px;color:var(--txt);cursor:pointer"><input type="checkbox" style="width:auto" id="ctrlUsaM2" ${c.usaM2?"checked":""}> Incluir maestro de 2ª (M2) esta semana</label></div>
+    <div class="row">
+      <label style="width:auto">M1 $/día</label><input type="number" style="width:80px" value="${c.tarM1}" data-ctrltar="tarM1">
+      <label style="width:auto">× </label><input type="number" id="ctrlDiasM1" style="width:44px" value="5" min="0" max="7"><label style="width:auto">días</label>
+    </div>
+    ${c.usaM2?`<div class="row">
+      <label style="width:auto">M2 $/día</label><input type="number" style="width:80px" value="${c.tarM2}" data-ctrltar="tarM2">
+      <label style="width:auto">× </label><input type="number" id="ctrlDiasM2" style="width:44px" value="5" min="0" max="7"><label style="width:auto">días</label>
+    </div>`:""}
+    <div class="row">
+      <label style="width:auto"># M1</label><input type="number" id="ctrlNM1" style="width:44px" value="1" min="0">
+      ${c.usaM2?`<label style="width:auto"># M2</label><input type="number" id="ctrlNM2" style="width:44px" value="1" min="0">`:`<span class="small" style="color:var(--muted)">semana solo con M1</span>`}
+      <span class="small grow" style="text-align:right;color:var(--muted)" id="ctrlSemPrev">—</span>
+    </div>
+    <div class="row"><button class="btn primary grow" id="ctrlSemAdd">+ agregar semana de maestros</button></div>
+  </div>`;
+  // lista de gastos (más reciente primero)
+  const g=(c.gastos||[]).map((x,i)=>({...x,_i:i})).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
+  if(g.length){
+    h+=`<div class="card"><div class="row"><b class="small" style="letter-spacing:1px;color:var(--txt2)">GASTOS REGISTRADOS (${g.length})</b><span class="small grow" style="text-align:right">Total: ${CLP(t.gastoTotal)}</span></div>
+    <table style="font-size:11px;width:100%"><tr style="color:var(--muted)"><th style="text-align:left">Fecha</th><th style="text-align:left">Categoría</th><th style="text-align:left">Nota</th><th class="money">Monto</th><th style="width:20px"></th></tr>`;
+    g.forEach(x=>{
+      h+=`<tr>
+        <td><input type="date" value="${x.fecha||""}" data-ctrledit="${x._i}" data-ck="fecha" style="width:120px;font-size:10px"></td>
+        <td><select data-ctrledit="${x._i}" data-ck="cat" style="width:110px;font-size:10px;color:${CATCOL[x.cat]||'#999'}">
+          <option value="material" ${x.cat==="material"?"selected":""}>Material</option>
+          <option value="mano_obra" ${x.cat==="mano_obra"?"selected":""}>Mano de obra</option>
+          <option value="gasto_general" ${x.cat==="gasto_general"?"selected":""}>Gasto general</option>
+          <option value="otro" ${x.cat==="otro"?"selected":""}>Otro</option></select></td>
+        <td><input type="text" value="${esc(x.nota||"")}" data-ctrledit="${x._i}" data-ck="nota" style="width:100%;font-size:11px"></td>
+        <td><input type="number" value="${x.monto}" data-ctrledit="${x._i}" data-ck="monto" style="width:90px;font-size:11px;text-align:right"></td>
+        <td class="tdel" data-ctrldel="${x._i}">✕</td></tr>`;
+    });
+    h+=`</table></div>`;
+  }
+  // resumen con porcentajes
+  if(t.contrato>0||t.gastoTotal>0){
+    const barra=(pct,col)=>`<div style="height:10px;background:var(--panel2,#1a1c1a);border-radius:3px;overflow:hidden;margin:2px 0"><div style="height:10px;background:${col};width:${Math.max(0,Math.min(100,pct))}%"></div></div>`;
+    h+=`<h3 style="margin-top:14px">RESULTADO</h3><div class="card">
+      <div class="tot"><span>Contrato / venta</span><span class="money">${CLP(t.contrato)}</span></div>
+      <div class="tot"><span style="color:${CATCOL.material}">Material (${F(t.pctMat,1)}%)</span><span class="money">${CLP(t.mat)}</span></div>${barra(t.pctMat,CATCOL.material)}
+      <div class="tot"><span style="color:${CATCOL.mano_obra}">Mano de obra (${F(t.pctMo,1)}%)</span><span class="money">${CLP(t.mo)}</span></div>${barra(t.pctMo,CATCOL.mano_obra)}
+      ${t.gg>0?`<div class="tot"><span style="color:${CATCOL.gasto_general}">Gasto general (${F(t.pctGG,1)}%)</span><span class="money">${CLP(t.gg)}</span></div>${barra(t.pctGG,CATCOL.gasto_general)}`:""}
+      ${t.otro>0?`<div class="tot"><span style="color:${CATCOL.otro}">Otro (${F(t.pctOtro,1)}%)</span><span class="money">${CLP(t.otro)}</span></div>${barra(t.pctOtro,CATCOL.otro)}`:""}
+      <div class="tot big" style="color:${t.utilidad>=0?'var(--ok,#7fb069)':'#c0392b'}"><span>Utilidad real (${F(t.pctUtil,1)}%)</span><span class="money">${CLP(t.utilidad)}</span></div>${barra(t.pctUtil,t.utilidad>=0?'#7fb069':'#c0392b')}
+    </div>`;
+  }
+  // META DE RENTABILIDAD (cálculo inverso)
+  const m=c.meta;
+  h+=`<h3 style="margin-top:14px">META DE RENTABILIDAD</h3>
+  <div class="card">
+    <div class="row"><label style="font-size:11px;color:var(--txt);cursor:pointer"><input type="checkbox" style="width:auto" id="metaOn" ${m.on?"checked":""}> Fijar meta para no desviarme de la utilidad ${m.on?"▾":"▸"}</label></div>`;
+  if(m.on){
+    const contrato=+c.contrato||0;
+    const utilObj=contrato*(+m.utilPct||0)/100;
+    const topeGasto=contrato-utilObj;
+    const topeMat=topeGasto*(+m.pctMat||0)/100;
+    const topeMo=topeGasto*(+m.pctMo||0)/100;
+    const topeGG=topeGasto*(+m.pctGG||0)/100;
+    const sumaRep=(+m.pctMat||0)+(+m.pctMo||0)+(+m.pctGG||0);
+    const fila=(lbl,gastado,tope,col)=>{
+      const pct=tope>0?(gastado/tope*100):0;
+      const exc=gastado>tope;
+      return `<div class="tot"><span style="color:${col}">${lbl}</span><span class="money">${CLP(gastado)} / ${CLP(tope)}${exc?" ⚠":""}</span></div>
+        <div style="height:8px;background:var(--panel2,#1a1c1a);border-radius:3px;overflow:hidden;margin:2px 0"><div style="height:8px;background:${exc?'#c0392b':col};width:${Math.max(0,Math.min(100,pct))}%"></div></div>`;
+    };
+    h+=`<div class="row"><label style="width:150px">Utilidad objetivo %</label><input type="number" style="width:60px" value="${m.utilPct}" data-meta="utilPct"><span class="small" style="color:var(--muted)">= ${CLP(utilObj)} de utilidad</span></div>
+      <div class="row"><label style="width:150px">Reparto del gasto %</label>
+        <span class="small">Mat</span><input type="number" style="width:48px" value="${m.pctMat}" data-meta="pctMat">
+        <span class="small">M.O.</span><input type="number" style="width:48px" value="${m.pctMo}" data-meta="pctMo">
+        <span class="small">GG</span><input type="number" style="width:48px" value="${m.pctGG}" data-meta="pctGG">
+        <span class="small" style="color:${sumaRep===100?'var(--muted)':'var(--warn,#e8b12c)'}">${sumaRep}%${sumaRep!==100?" ⚠":""}</span></div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line)">
+        <div class="tot"><span>Tope de gasto total</span><span class="money">${CLP(t.gastoTotal)} / ${CLP(topeGasto)}${t.gastoTotal>topeGasto?" ⚠":""}</span></div>
+        ${fila("Material",t.mat,topeMat,CATCOL.material)}
+        ${fila("Mano de obra",t.mo,topeMo,CATCOL.mano_obra)}
+        ${(+m.pctGG>0)?fila("Gastos generales",t.gg,topeGG,CATCOL.gasto_general):""}
+      </div>
+      <p class="small" style="margin-top:6px;color:var(--muted)">"Gastado / tope". La barra roja y ⚠ indican que te pasaste del tope para llegar a tu ${m.utilPct}% de utilidad.</p>`;
+  }
+  h+=`</div>`;
+  if(t.contrato>0||t.gastoTotal>0){
+    h+=`<div class="row" style="margin-top:8px"><button class="btn grow" id="ctrlEmitir">🖨 Emitir informe de control</button></div>`;
+  }
+  return h;
+}
 function htmlComparar(){
   if(!state.compM2)state.compM2=100;
   if(!state.compAlcance)state.compAlcance="estructural";
@@ -2261,6 +2446,8 @@ function htmlObra(){
     <div class="tot"><span class="small">de un total de venta ${CLP(t.ventaTotal)}</span><span class="small money">saldo por cobrar ${CLP(t.ventaTotal-t.valorVenta)}</span></div>
   </div>
 
+  ${estadoPagoHTML()}
+
   <h3>AVANCE Y GASTO POR PARTIDA</h3>
   <p class="small" style="margin-bottom:6px">Ajusta el <b>% de avance</b> real y registra el <b>gasto real</b> en materiales y mano de obra de cada partida. El desvío verde = vas bajo presupuesto; naranja = sobregasto.</p>`;
 
@@ -2307,6 +2494,40 @@ function htmlObra(){
   h+=`<div class="row" style="margin-top:6px"><button class="btn grow" id="ganttEmitir" ${state.gantt.inicio?"":"disabled title='Marca la fecha de inicio primero'"}>📅 Emitir carta Gantt detallada</button></div>`;
   return h;
 }
+function estadoPagoHTML(){
+  const pp=state.planPago;
+  if(!pp||!pp.on||!(pp.hitos||[]).length)
+    return `<h3 style="margin-top:14px">ESTADO DE PAGO</h3><p class="small" style="color:var(--muted)">Activa el <b>plan de pago por avance</b> en ADMINISTRACIÓN para calcular aquí cuánto cobrar según el avance real.</p>`;
+  const e=estadoPagoCalc();
+  const filas=e.hitos.map(h=>`<tr>
+      <td style="color:${h.cobrable?'var(--txt)':'var(--muted)'}">${h.cobrable?'✓':'·'} ${esc(h.label)}</td>
+      <td class="money">${h.pago}%</td>
+      <td class="money">${h.umbral<=0?'inicio':'al '+F(h.umbral,0)+'%'}</td>
+      <td class="money" style="color:${h.cobrable?'var(--txt)':'var(--muted)'}">${CLP(h.neto)}</td></tr>`).join("");
+  return `<h3 style="margin-top:14px">ESTADO DE PAGO (plan de pago × avance real)</h3>
+  <div class="card" style="border-left:3px solid var(--naranja)">
+    <p class="small" style="margin-bottom:6px">Cada pago financia su tramo: el primero se cobra al inicio, los siguientes al alcanzar el avance del hito anterior y el saldo final solo al llegar a su avance (recepción). Avance real actual: <b class="qty">${F(e.A,1)}%</b>.</p>
+    <table style="width:100%;font-size:11px">
+      <tr style="color:var(--muted)"><th style="text-align:left">Hito</th><th class="money">Pago</th><th class="money">Se cobra</th><th class="money">${e.ret?'Neto (−'+e.ret+'%)':'Monto'}</th></tr>
+      ${filas}
+    </table>
+    ${e.sumaPago!==100?`<p class="small" style="color:var(--warn,#e8a33d);margin-top:4px">⚠ El plan de pago suma ${e.sumaPago}%, no 100%. Corrígelo en ADMINISTRACIÓN.</p>`:""}
+    <div class="row" style="margin-top:8px">
+      <label style="width:130px">Pagado por el cliente $</label><input type="number" step="1000" style="width:110px" value="${e.cobrado||""}" placeholder="0" data-ep="cobrado"></div>
+    <div class="row">
+      <label style="width:130px">Estado de pago N°</label><input type="number" min="1" style="width:50px" value="${e.epN}" data-ep="epN"><span class="small" style="color:var(--muted)">súbelo al emitir el siguiente</span></div>
+    <div style="margin-top:6px">
+      <div class="tot"><span>Devengado a la fecha (${e.devPct}% del contrato)</span><span class="money">${CLP(e.devNeto)}</span></div>
+      ${e.ret?`<div class="tot"><span class="small">retención acumulada ${e.ret}% (se libera a los ${e.meses} meses de la recepción)</span><span class="small money">${CLP(e.devRet)}</span></div>`:""}
+      <div class="tot"><span>Pagado anteriormente</span><span class="money">− ${CLP(e.cobrado)}</span></div>
+      <div class="tot big"><span>A cobrar en este estado de pago</span><span class="money">${CLP(e.aCobrar)}</span></div>
+      ${e.sobrepago>0?`<div class="tot"><span class="small" style="color:var(--warn,#e8a33d)">⚠ El cliente ha pagado ${CLP(e.sobrepago)} más de lo devengado (anticipo adicional)</span><span></span></div>`:""}
+      <div class="tot"><span class="small">saldo del contrato después de este pago${e.ret?' (sin retención)':''}</span><span class="small money">${CLP(e.saldo)}</span></div>
+      ${e.prox?`<p class="small" style="margin-top:4px;color:var(--muted)">Próximo pago: <b>${esc(e.prox.label)}</b> (${CLP(e.prox.neto)}) al llegar al ${F(e.prox.umbral,0)}% — faltan ${F(Math.max(0,e.prox.umbral-e.A),1)} puntos de avance.</p>`:`<p class="small" style="margin-top:4px;color:var(--ok,#7fb069)">Todos los hitos del plan están devengados.</p>`}
+    </div>
+    <div class="row" style="margin-top:8px"><button class="btn primary grow" id="epEmitir">🧾 Emitir estado de pago N° ${e.epN} (cliente)</button></div>
+  </div>`;
+}
 function ganttHTML(){
   const g=state.gantt;
   let h=`<h3 style="margin-top:16px">CARTA GANTT — PLANIFICACIÓN</h3>
@@ -2342,10 +2563,21 @@ function ganttHTML(){
     const offDias=Math.round((fila.ini-cron.inicio)/msDia);
     const durDias=Math.round((fila.fin-fila.ini)/msDia)+1;
     const col=colores[i%colores.length];
+    const bwpx=Math.max(durDias*pxDia,6);
+    // Degradado por segmentos: relleno en días hábiles, transparente en no laborables
+    let stops=[];
+    for(let dd=0; dd<durDias; dd++){
+      const dt=new Date(fila.ini); dt.setDate(fila.ini.getDate()+dd);
+      const hab=esDiaHabil(dt);
+      const x1=(dd/durDias*100), x2=((dd+1)/durDias*100);
+      const c=hab?col:"transparent";
+      stops.push(`${c} ${x1}%, ${c} ${x2}%`);
+    }
+    const grad=`linear-gradient(90deg, ${stops.join(", ")})`;
     h+=`<div style="display:flex;align-items:center;margin:3px 0;font-size:11px">
       <div style="width:110px;flex:0 0 110px;color:var(--txt2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fila.grupo}</div>
       <div style="position:relative;flex:1;height:20px;background:var(--panel2,#1a1c1a);border-radius:3px">
-        <div style="position:absolute;left:${offDias*pxDia}px;width:${Math.max(durDias*pxDia,6)}px;height:20px;background:${col};border-radius:3px;display:flex;align-items:center;padding-left:5px;color:#fff;font-size:9px;white-space:nowrap;overflow:hidden" title="${fila.grupo}: ${fmtF(fila.ini)} → ${fmtF(fila.fin)} (${F(fila.dias,1)} días)">${F(fila.dias,1)}d</div>
+        <div style="position:absolute;left:${offDias*pxDia}px;width:${bwpx}px;height:20px;background:${grad};border:1px solid ${col};border-radius:3px;box-sizing:border-box;display:flex;align-items:center;padding-left:5px;color:#fff;font-size:9px;white-space:nowrap;overflow:hidden;text-shadow:0 0 2px rgba(0,0,0,.6)" title="${fila.grupo}: ${fmtF(fila.ini)} → ${fmtF(fila.fin)} (${F(fila.dias,1)} días · huecos = fin de semana/feriado)">${F(fila.dias,1)}d</div>
       </div>
       <div style="width:96px;flex:0 0 96px;text-align:right;color:var(--muted);font-size:10px">${fmtF(fila.ini)}–${fmtF(fila.fin)}</div>
     </div>`;
@@ -2627,6 +2859,13 @@ function bindTab(){
     obraData().info[i.dataset.obrainfo]=i.value;autosave();
   }));
   const obEm=$("#obraEmitir");if(obEm)obEm.onclick=emitirObra;
+  // Estado de pago
+  $$("#tabContent [data-ep]").forEach(i=>i.addEventListener("change",()=>{
+    const k=i.dataset.ep; let v=parseFloat(i.value)||0;
+    if(k==="epN")v=Math.max(1,Math.round(v));
+    state.planPago[k]=Math.max(0,v);renderTab();autosave();
+  }));
+  const epEm=$("#epEmitir");if(epEm)epEm.onclick=emitirEstadoPago;
   // Gantt
   const gIni=$("#ganttInicio");if(gIni)gIni.addEventListener("change",()=>{state.gantt.inicio=gIni.value;renderTab();autosave();});
   const gFerBtn=$("#ganttFerBtn");if(gFerBtn)gFerBtn.onclick=()=>{
@@ -2666,6 +2905,58 @@ function bindTab(){
     renderTab();autosave();hint("Monto importado desde HONORARIOS");
   };
   const recEm=$("#recEmitir");if(recEm)recEm.onclick=emitirRecibo;
+  // Control de obra
+  const ctrlC=$('[data-ctrl="contrato"]');if(ctrlC)ctrlC.addEventListener("change",()=>{state.control.contrato=parseFloat(ctrlC.value)||"";renderTab();autosave();});
+  const ctrlAdd=$("#ctrlAdd");if(ctrlAdd)ctrlAdd.onclick=()=>{
+    const monto=parseFloat($("#ctrlMonto").value)||0;
+    if(monto<=0){hint("Ingresa un monto válido.");return;}
+    state.control.gastos.push({fecha:$("#ctrlFecha").value,monto,cat:$("#ctrlCat").value,nota:$("#ctrlNota").value});
+    renderTab();autosave();hint("Gasto registrado.");
+  };
+  $$("#tabContent [data-ctrldel]").forEach(x=>x.onclick=()=>{
+    state.control.gastos.splice(+x.dataset.ctrldel,1);renderTab();autosave();
+  });
+  $$("#tabContent [data-ctrledit]").forEach(i=>i.addEventListener("change",()=>{
+    const g=state.control.gastos[+i.dataset.ctrledit];if(!g)return;
+    const k=i.dataset.ck;
+    g[k]=(k==="monto")?(parseFloat(i.value)||0):i.value;
+    renderTab();autosave();
+  }));
+  // Calculadora semanal de maestros
+  $$('#tabContent [data-ctrltar]').forEach(i=>i.addEventListener("change",()=>{
+    state.control[i.dataset.ctrltar]=parseFloat(i.value)||0;actualizarSemPrev();autosave();
+  }));
+  // lee la calculadora; si M2 está desactivado (o sus campos no existen) cuenta 0 para M2
+  function leerSemana(){
+    const val=id=>{const e=$("#"+id);return e?(parseFloat(e.value)||0):0;};
+    const usaM2=!!state.control.usaM2;
+    const m1=state.control.tarM1, m2=state.control.tarM2;
+    const dM1=val("ctrlDiasM1"), nM1=val("ctrlNM1");
+    const dM2=usaM2?val("ctrlDiasM2"):0, nM2=usaM2?val("ctrlNM2"):0;
+    return {usaM2,dM1,nM1,dM2,nM2,tot:nM1*m1*dM1 + nM2*m2*dM2};
+  }
+  function actualizarSemPrev(){
+    const prev=$("#ctrlSemPrev");if(!prev)return;
+    prev.textContent="= "+CLP(leerSemana().tot);
+  }
+  const usaM2El=$("#ctrlUsaM2");if(usaM2El)usaM2El.onchange=()=>{state.control.usaM2=usaM2El.checked;renderTab();autosave();};
+  ["ctrlDiasM1","ctrlDiasM2","ctrlNM1","ctrlNM2"].forEach(id=>{const e=$("#"+id);if(e)e.addEventListener("input",actualizarSemPrev);});
+  actualizarSemPrev();
+  const semAdd=$("#ctrlSemAdd");if(semAdd)semAdd.onclick=()=>{
+    const {usaM2,dM1,nM1,dM2,nM2,tot}=leerSemana();
+    if(tot<=0){hint("Revisa días y cantidad de maestros.");return;}
+    // numerar la semana consecutivamente contando las notas que empiezan con "Maestros semana"
+    const nSem=(state.control.gastos.filter(x=>/^Maestros semana/i.test(x.nota||"")).length)+1;
+    const detalle=`Maestros semana ${nSem} (${nM1}×M1 ${dM1}d${(usaM2&&nM2>0)?` + ${nM2}×M2 ${dM2}d`:""})`;
+    state.control.gastos.push({fecha:new Date().toISOString().slice(0,10),monto:tot,cat:"mano_obra",nota:detalle});
+    renderTab();autosave();hint("Semana "+nSem+" de maestros agregada: "+CLP(tot));
+  };
+  // Meta de rentabilidad
+  const metaOn=$("#metaOn");if(metaOn)metaOn.onchange=()=>{state.control.meta.on=metaOn.checked;renderTab();autosave();};
+  $$('#tabContent [data-meta]').forEach(i=>i.addEventListener("change",()=>{
+    state.control.meta[i.dataset.meta]=parseFloat(i.value)||0;renderTab();autosave();
+  }));
+  const ctrlEm=$("#ctrlEmitir");if(ctrlEm)ctrlEm.onclick=emitirControl;
   const cEm=$("#compEmitir");if(cEm)cEm.onclick=emitirComparativa;
   const medAdd=$("#medAdd");if(medAdd)medAdd.onclick=()=>{
     const sem=parseFloat($("#medSem").value), pct=parseFloat($("#medPct").value);
@@ -2814,6 +3105,12 @@ function loadState(s){
   if(state.eett.inst.acsOn===undefined)state.eett.inst.acsOn=true;
   if(!Array.isArray(state.eett.pj.volumenes))state.eett.pj.volumenes=[];
   if(!state.recibo)state.recibo={nro:"",fecha:"",cliente:"",rut:"",monto:"",concepto:"",medio:"efectivo",proyecto:"",obs:"",saldoOn:false,saldo:""};
+  if(!state.control)state.control={contrato:"", gastos:[]};
+  if(!Array.isArray(state.control.gastos))state.control.gastos=[];
+  if(state.control.tarM1===undefined)state.control.tarM1=55000;
+  if(state.control.tarM2===undefined)state.control.tarM2=40000;
+  if(state.control.usaM2===undefined)state.control.usaM2=true;
+  if(!state.control.meta)state.control.meta={on:false, utilPct:20, pctMat:45, pctMo:35, pctGG:0};
   if(state.incluirTE1===undefined)state.incluirTE1=true;
   if(state.costos.utilModo===undefined)state.costos.utilModo="dia";
   if(state.costos.utilPct===undefined)state.costos.utilPct=15;
@@ -2828,6 +3125,8 @@ function loadState(s){
   if(!Array.isArray(state.gantt.feriadosExtra))state.gantt.feriadosExtra=[];
   if(state.planPago.retencionPct===undefined)state.planPago.retencionPct=5;
   if(state.planPago.retencionMeses===undefined)state.planPago.retencionMeses=6;
+  if(state.planPago.cobrado===undefined)state.planPago.cobrado=0;
+  if(state.planPago.epN===undefined)state.planPago.epN=1;
   state.partidas.forEach(p=>{if(!p.grupo)p.grupo=grupoAuto(p);});activePid=state.partidas[0]?.id;selShape=null;drawPts=[];
   $("#nomProyecto").value=state.proyecto||"";
   let mx=1;JSON.stringify(state).replace(/"p(\d+)"/g,(m,n)=>{mx=Math.max(mx,+n+1);return m;});uid=mx;
@@ -3010,6 +3309,7 @@ function emitir(modo){
       ${state.costos.iva?`<div class="pr-tot"><span>IVA 19%</span><span>${CLP(t.iva)}</span></div>`:""}
       <div class="pr-tot big"><span>TOTAL VENTA</span><span>${CLP(t.total)}</span></div>
       <div class="pr-tot"><span>Margen bruto (GG + utilidad)</span><span>${CLP(t.gg+t.util)} · ${F(margenPct,1)}% del neto</span></div>
+      ${planPagoInternoHTML(t)}
       `+prFoot()+`</div>`+apusHtml;
   }
   $("#printArea").innerHTML=html;
@@ -3520,6 +3820,48 @@ function emitirEETT(){
 }
 
 /* ---------- COMPARATIVA DE SISTEMAS (impresión) ---------- */
+function emitirControl(){
+  const c=state.control; const t=controlTotales();
+  const fecha=new Date().toLocaleDateString("es-CL");
+  const CATCOL={material:"#e8a33d",mano_obra:"#fc4c02",gasto_general:"#4f9dc4",otro:"#6b7280"};
+  const CATNOM={material:"Material",mano_obra:"Mano de obra",gasto_general:"Gasto general",otro:"Otro"};
+  // barra de distribución horizontal (100% = contrato)
+  const seg=(pct,col,lbl)=>pct>0?`<div style="width:${Math.min(100,pct)}%;background:${col};height:26px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:600;min-width:0;overflow:hidden">${pct>=8?lbl:""}</div>`:"";
+  const barraDist=`<div style="display:flex;width:100%;border-radius:4px;overflow:hidden;border:1px solid #ddd">
+    ${seg(t.pctMat,CATCOL.material,"Material "+F(t.pctMat,0)+"%")}
+    ${seg(t.pctMo,CATCOL.mano_obra,"M. de obra "+F(t.pctMo,0)+"%")}
+    ${seg(t.pctGG,CATCOL.gasto_general,"G. general "+F(t.pctGG,0)+"%")}
+    ${seg(t.pctOtro,CATCOL.otro,"Otro "+F(t.pctOtro,0)+"%")}
+    ${seg(t.pctUtil>0?t.pctUtil:0,t.utilidad>=0?"#3a8a5a":"#c0392b","Utilidad "+F(t.pctUtil,0)+"%")}
+  </div>`;
+  // lista de gastos ordenada por fecha
+  const g=(c.gastos||[]).slice().sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||""));
+  let filas=g.map(x=>`<tr><td style="padding:3px 6px">${x.fecha||"—"}</td><td style="padding:3px 6px;color:${CATCOL[x.cat]||'#999'}">${CATNOM[x.cat]||"—"}</td><td style="padding:3px 6px">${esc(x.nota||"")}</td><td style="padding:3px 6px;text-align:right">${CLP(x.monto)}</td></tr>`).join("");
+  $("#printArea").innerHTML=`<div class="pr-page">`+prHead("CONTROL DE OBRA — RESULTADO",fecha)+`
+    <div style="margin:10px 0 18px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>Contrato / venta</span><b>${CLP(t.contrato)}</b></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>Gasto total ejecutado</span><b>${CLP(t.gastoTotal)}</b></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px;margin-top:6px;padding-top:6px;border-top:2px solid #fc4c02"><span><b>Utilidad real</b></span><b style="color:${t.utilidad>=0?'#3a8a5a':'#c0392b'}">${CLP(t.utilidad)} (${F(t.pctUtil,1)}%)</b></div>
+    </div>
+    <h2 style="font-size:13px;color:#fc4c02;letter-spacing:1px;margin-bottom:6px">DISTRIBUCIÓN DEL CONTRATO</h2>
+    ${barraDist}
+    <div style="display:flex;gap:16px;margin-top:8px;font-size:10px;color:#555;flex-wrap:wrap">
+      <span><b style="color:${CATCOL.material}">■</b> Material: ${CLP(t.mat)} (${F(t.pctMat,1)}%)</span>
+      <span><b style="color:${CATCOL.mano_obra}">■</b> Mano de obra: ${CLP(t.mo)} (${F(t.pctMo,1)}%)</span>
+      ${t.gg>0?`<span><b style="color:${CATCOL.gasto_general}">■</b> Gasto general: ${CLP(t.gg)} (${F(t.pctGG,1)}%)</span>`:""}
+      ${t.otro>0?`<span><b style="color:${CATCOL.otro}">■</b> Otro: ${CLP(t.otro)} (${F(t.pctOtro,1)}%)</span>`:""}
+      <span><b style="color:${t.utilidad>=0?'#3a8a5a':'#c0392b'}">■</b> Utilidad: ${CLP(t.utilidad)} (${F(t.pctUtil,1)}%)</span>
+    </div>
+    ${filas?`<h2 style="font-size:13px;color:#fc4c02;letter-spacing:1px;margin:18px 0 6px">DETALLE DE GASTOS</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:10.5px">
+      <tr style="background:#f7f6f2;color:#555"><th style="padding:4px 6px;text-align:left">Fecha</th><th style="padding:4px 6px;text-align:left">Categoría</th><th style="padding:4px 6px;text-align:left">Nota</th><th style="padding:4px 6px;text-align:right">Monto</th></tr>
+      ${filas}
+      <tr style="border-top:2px solid #333"><td colspan="3" style="padding:4px 6px;font-weight:bold">TOTAL GASTOS</td><td style="padding:4px 6px;text-align:right;font-weight:bold">${CLP(t.gastoTotal)}</td></tr>
+    </table>`:""}
+    <p style="margin-top:16px;font-size:9px;color:#999">Control de gastos reales del proyecto. Documento de uso interno para seguimiento de rentabilidad.</p>
+    `+prFoot()+`</div>`;
+  window.print();
+}
 function emitirRecibo(){
   const r=state.recibo;
   const fecha=r.fecha||new Date().toLocaleDateString("es-CL");
@@ -3625,6 +3967,24 @@ function emitirComparativa(){
 }
 
 /* ---------- ESTADO DE OBRA (impresión) ---------- */
+// Informe interno: mismo plan de pago del cliente + efecto de la retención en la caja de la obra
+function planPagoInternoHTML(t){
+  const pp=state.planPago;
+  if(!pp||!pp.on||!pp.hitos||!pp.hitos.length)return "";
+  const ret=pp.retencionOn?(+pp.retencionPct||0):0;
+  let extra="";
+  if(ret){
+    const retTotal=t.total*ret/100;
+    const cobrable=t.total-retTotal;
+    const margen=t.gg+t.util;
+    extra=`<div style="margin-top:8px;padding:8px 10px;border:1px solid #f3c9b5;background:#fff7f2;border-radius:4px;font-size:10.5px;color:#555">
+      <b style="color:#fc4c02">Efecto de la retención en la caja (uso interno)</b><br>
+      Durante la obra cobras ${CLP(cobrable)}; quedan retenidos ${CLP(retTotal)} (${ret}% del total${state.costos.iva?" con IVA":""}) hasta ${pp.retencionMeses} meses después de la recepción.
+      ${margen>0?`La retención equivale al ${F(retTotal/margen*100,0)}% de tu margen bruto (${CLP(margen)})${retTotal>=margen?" — <b style=\"color:#c0392b\">el margen completo queda retenido: la obra se financia sin utilidad hasta la liberación</b>":""}.`:""}
+    </div>`;
+  }
+  return planPagoDocHTML(t)+extra;
+}
 function planPagoDocHTML(t){
   const pp=state.planPago;
   if(!pp||!pp.on||!pp.hitos||!pp.hitos.length)return "";
@@ -3719,9 +4079,20 @@ function emitirGantt(){
     const col=colores[i%colores.length];
     // etiqueta del grupo
     barras+=`<text x="10" y="${y+14}" font-size="11" fill="#333" font-weight="600">${esc(fila.grupo)}</text>`;
-    // barra
-    barras+=`<rect x="${bx}" y="${y}" width="${bw}" height="${rowH-8}" rx="3" fill="${col}"/>`;
-    barras+=`<text x="${bx+4}" y="${y+13}" font-size="9" fill="#fff" font-weight="600">${F(fila.dias,1)}d</text>`;
+    // barra: contorno completo (base hueca) + relleno solo en días hábiles
+    const bh=rowH-8;
+    barras+=`<rect x="${bx}" y="${y}" width="${bw}" height="${bh}" rx="3" fill="#fff" stroke="${col}" stroke-width="1.2"/>`;
+    // segmentos rellenos por cada día hábil dentro del rango de la barra
+    for(let dd=0; dd<durDias; dd++){
+      const dt=new Date(fila.ini); dt.setDate(fila.ini.getDate()+dd);
+      if(esDiaHabil(dt)){
+        const sx=bx+dd*pxDia;
+        barras+=`<rect x="${sx}" y="${y}" width="${pxDia}" height="${bh}" fill="${col}"/>`;
+      }
+    }
+    // re-trazar el contorno redondeado por encima para que se vea limpio
+    barras+=`<rect x="${bx}" y="${y}" width="${bw}" height="${bh}" rx="3" fill="none" stroke="${col}" stroke-width="1.2"/>`;
+    barras+=`<text x="${bx+4}" y="${y+13}" font-size="9" fill="#fff" font-weight="600" style="paint-order:stroke" stroke="${col}" stroke-width="2">${F(fila.dias,1)}d</text>`;
     // fechas a la derecha
     barras+=`<text x="${W-dateW+4}" y="${y+14}" font-size="9" fill="#666">${fmtCorta(fila.ini)}–${fmtCorta(fila.fin)}</text>`;
     // línea separadora tenue
@@ -3747,6 +4118,48 @@ function emitirGantt(){
       ${uniqFer.length?`<span style="color:#999">Feriados en el período: ${uniqFer.join(" · ")}</span>`:""}
     </div>
     <p style="margin-top:12px;font-size:10px;color:#777">Planificación referencial basada en los rendimientos estimados de cada partida. Los grupos se ejecutan en secuencia lógica de obra; las partidas de un mismo grupo, en paralelo. El cronograma considera solo días hábiles (excluye fines de semana y feriados de Chile). Los plazos pueden variar según condiciones de obra, clima, disponibilidad de materiales y tiempos de aprobación.</p>
+    `+prFoot()+`</div>`;
+  window.print();
+}
+function emitirEstadoPago(){
+  const pp=state.planPago;
+  if(!pp||!pp.on||!(pp.hitos||[]).length){hint("Activa el plan de pago en ADMINISTRACIÓN.");return;}
+  if(!partsPorGrupo().length){hint("No hay partidas cubicadas.");return;}
+  const e=estadoPagoCalc(); const o=obraData();
+  if(e.sumaPago!==100 && !confirm("El plan de pago suma "+e.sumaPago+"%, no 100%.\n\n¿Emitir de todas formas?"))return;
+  const fecha=new Date().toLocaleDateString("es-CL");
+  const td='style="padding:4px 8px"', tdr='style="padding:4px 8px;text-align:right"', tdc='style="padding:4px 8px;text-align:center"';
+  const filas=e.hitos.map(h=>`<tr style="color:${h.cobrable?'#222':'#999'}">
+      <td ${td}>${esc(h.label)}</td><td ${tdc}>${h.pago}%</td>
+      <td ${tdc}>${h.umbral<=0?'Al inicio de obra':'Al '+F(h.umbral,0)+'% de avance'}</td>
+      <td ${tdc}>${h.cobrable?'<b style="color:#fc4c02">Devengado</b>':'Pendiente'}</td>
+      ${e.ret?`<td ${tdr}>− ${CLP(h.ret)}</td>`:""}
+      <td ${tdr}><b>${CLP(h.neto)}</b></td></tr>`).join("");
+  const nom=$("#nomProyecto").value;
+  $("#printArea").innerHTML=`<div class="pr-page">`+prHead("ESTADO DE PAGO N° "+e.epN,fecha)+`
+    <div style="display:flex;justify-content:space-between;color:#555;font-size:11px;margin-bottom:12px;gap:12px">
+      <span>${o.info.cliente?"Mandante: <b>"+esc(o.info.cliente)+"</b>":""}${nom?(o.info.cliente?" · ":"")+"Obra: "+esc(nom):""}</span>
+      <span>${o.info.inicio?"Inicio de obra: "+esc(o.info.inicio):""}</span></div>
+    <h2>AVANCE DE OBRA</h2>
+    <div class="pr-tot big"><span>Avance físico a la fecha</span><span>${F(e.A,1)}%</span></div>
+    <h2>PLAN DE PAGO CONVENIDO</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:11px">
+      <tr style="background:#f7f6f2;color:#555"><th ${td}>Hito</th><th ${tdc}>Pago</th><th ${tdc}>Se cobra</th><th ${tdc}>Estado</th>${e.ret?`<th ${tdr}>Retención ${e.ret}%</th>`:""}<th ${tdr}>${e.ret?"Neto":"Monto"}</th></tr>
+      ${filas}
+    </table>
+    <h2>LIQUIDACIÓN</h2>
+    <div class="pr-tot"><span>Total del contrato</span><span>${CLP(e.t.total)}</span></div>
+    <div class="pr-tot"><span>Devengado a la fecha (${e.devPct}% del contrato${e.ret?", neto de retención":""})</span><span>${CLP(e.devNeto)}</span></div>
+    ${e.ret?`<div class="pr-tot"><span>Retención en garantía acumulada (se libera a los ${e.meses} meses de la recepción)</span><span>${CLP(e.devRet)}</span></div>`:""}
+    <div class="pr-tot"><span>Pagado anteriormente</span><span>− ${CLP(e.cobrado)}</span></div>
+    <div class="pr-tot big"><span>MONTO DE ESTE ESTADO DE PAGO</span><span>${CLP(e.aCobrar)}</span></div>
+    <div class="pr-tot"><span>Saldo del contrato por pagar${e.ret?" (sin retención)":""}</span><span>${CLP(e.saldo)}</span></div>
+    ${e.prox?`<p style="margin-top:10px;font-size:10.5px;color:#555">Próximo pago: <b>${esc(e.prox.label)}</b>, al alcanzar el ${F(e.prox.umbral,0)}% de avance.</p>`:""}
+    <p style="margin-top:10px;font-size:10px;color:#777">Estado de pago emitido conforme al plan de pago por avance del presupuesto aceptado. El avance físico corresponde al ejecutado a la fecha, ponderado según el valor de cada partida.${state.costos.iva?" Montos con IVA incluido.":""}</p>
+    <div style="display:flex;justify-content:space-between;gap:40px;margin-top:56px;font-size:11px">
+      <div style="flex:1;text-align:center;border-top:1px solid #333;padding-top:6px"><b>ALEJANDRO VERA DONOSO</b><br>Arquitecto · Averarq</div>
+      <div style="flex:1;text-align:center;border-top:1px solid #333;padding-top:6px"><b>${o.info.cliente?esc(o.info.cliente):"MANDANTE"}</b><br>Aprobación del estado de pago</div>
+    </div>
     `+prFoot()+`</div>`;
   window.print();
 }
