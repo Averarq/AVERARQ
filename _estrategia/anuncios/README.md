@@ -193,7 +193,7 @@ node render.mjs        # regenera los JPG en ../piezas/
 
 ## Videos · reels 9:16 (lote 1)
 
-Cinco reels de 13 a 24 s en `videos/`, cada uno con su miniatura (`-portada.jpg`). Son 1080×1920, H.264, 30 fps. **V1 a V4 van sin audio**: al subirlos, agrega música desde la biblioteca de audio de Meta (así queda licenciada) o déjalos en silencio. **V5 trae música original** compuesta y sintetizada para el video (hip-hop/trap sobrio: 808, hi-hats con redobles, piano eléctrico oscuro y textura de vinilo; sin samples de terceros), así que se puede subir tal cual. También lleva la **línea visual AVERARQ**: LUT de color propia, grano y viñeta sobre todo el material. El texto de todos se lee sin sonido.
+Cinco reels de 13 a 24 s en `videos/`, cada uno con su miniatura (`-portada.jpg`). Son 1080×1920, H.264, 30 fps. **V1 a V4 van sin audio**: al subirlos, agrega música desde la biblioteca de audio de Meta (así queda licenciada) o déjalos en silencio. **V5 trae música original** compuesta y sintetizada para el video (hip-hop/trap sobrio: 808, hi-hats con redobles, piano eléctrico oscuro y textura de vinilo; sin samples de terceros), así que se puede subir tal cual. Hay además una variante `V5-render-vs-realidad-nocturna.mp4` con música deep house nocturna (cálida y bailable, sin voz). También lleva la **línea visual AVERARQ**: LUT de color propia, grano y viñeta sobre todo el material. El texto de todos se lee sin sonido.
 
 | Video | Campaña | Código | Qué muestra |
 |---|---|---|---|
@@ -222,6 +222,9 @@ cd _estrategia/anuncios/_fuente
 npm i --no-save playwright-core      # una vez; usa Edge o Chrome instalados
 python3 extraer_secuencias.py        # una vez: tramos de video para V5 → secuencias/ (no va a git)
 python3 musica/v5_musica.py          # regenera la música de V5 (musica/V5-musica.wav, −14 LUFS)
+python3 musica/v5_musica_nocturna.py # variante deep house nocturna (musica/V5-musica-nocturna.wav)
+# para montar una variante sobre el video ya renderizado, sin volver a renderizar:
+# ffmpeg -i ../videos/V5-render-vs-realidad.mp4 -i musica/V5-musica-nocturna.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 192k -shortest ../videos/V5-render-vs-realidad-nocturna.mp4
 python3 color/crear_lut.py           # regenera la LUT (color/averarq.cube); luego extraer_secuencias.py --forzar
 node render-video.mjs                # todos → ../videos/
 node render-video.mjs V2 --cuadros   # uno solo, y guarda cuadros de control en frames/
