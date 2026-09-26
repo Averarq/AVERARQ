@@ -200,7 +200,7 @@ Cinco reels de 13 a 24 s en `videos/`, cada uno con su miniatura (`-portada.jpg`
 | **V1 · Del render a la obra** (16,5 s) | `AVQ_CASA` | `VCASA` | Casa La Colonia (Catemu): render → 4 fotos reales de obra (oct–nov 2025) → render y obra lado a lado → cierre "¿Tienes la parcela? Conversemos." |
 | **V2 · ¿Ampliaste sin permiso?** (14 s) | `AVQ_REG_MSG` | `VREG` | Tipográfico: pregunta → "tu casa no existe para el sistema" → Ley del Mono vigente hasta el 31 DIC 2027 → "En 24 h te digo por dónde va tu caso". |
 | **V3 · ¿Cuánto cuesta diseñar tu casa?** (13 s) | `AVQ_CASA` | `VCALC` | El estimador en acción: 60 → 120 m², luego "con ingenierías" (120–144 → 192–230 UF) → "Calcula el tuyo en 1 minuto · averarq.cl". |
-| **V5 · Render vs. realidad** (24 s, con música) ★ | `AVQ_CASA` | `VSC` | Casa San Carlos (Catemu): render aéreo contra foto de dron del mismo ángulo → modelo 3D contra vista cenital → órbita de dron real → recorrido de obra → Alejandro recibe el dron en la mano → cierre. Los cortes caen cada 2 compases de la música y el impacto coincide con el dron llegando a la mano (19,0 s). Es el más fuerte del lote: usa material propio grabado en agosto de 2026. |
+| **V5 · Render vs. realidad** (26 s, con música) ★ | `AVQ_CASA` | `VSC` | Casa San Carlos (Catemu): la planta se dibuja y aterriza sobre el cenital real del dron (septiembre 2026) → render aéreo contra dron del mismo ángulo → órbita y fachada de ladrillo → interiores (cielo de madera, ventanales, puerta principal) → Alejandro recibe el dron en la mano → cierre sobre el patrón de plantas. Cortes cada 2 compases; la caída del 808 coincide con el dron llegando a la mano (21,0 s). |
 | **V4 · Del local vacío al negocio** (13 s) | `AVQ_COM_MSG` | `VCOM` | Tríptico del Restobar Esmeralda (Los Andes) con diseño interior, remodelación y permisos → "¿Tienes un local? Lo dejamos listo para abrir en regla." |
 
 **Textos para el anuncio**
@@ -208,7 +208,7 @@ Cinco reels de 13 a 24 s en `videos/`, cada uno con su miniatura (`-portada.jpg`
 - **V1** · Texto principal: *En Catemu la dibujamos en julio de 2025 y en noviembre ya tenía techumbre. Diseño, permiso e inspección de obra hasta la recepción final, con el mismo arquitecto de principio a fin.* · Título: *De tu parcela a tu casa* · Botón: Enviar mensaje.
 - **V2** · Texto principal: *Si construiste un dormitorio, un segundo piso o un quincho sin permiso, revisemos si tu caso califica para la Ley del Mono. Revisión gratis por WhatsApp.* · Título: *¿Ampliaste sin permiso?* · Botón: Enviar mensaje.
 - **V3** · Texto principal: *Servicio, superficie y nivel de detalle: el estimador de averarq.cl te da una referencia en UF en un minuto. Sin letra chica.* · Título: *¿Cuánto cuesta diseñar tu casa?* · Botón: Más información.
-- **V5** · Texto principal: *Así la dibujamos en 2025 y así se ve hoy desde el dron. Casa San Carlos, Catemu: 144 m² de ladrillo, madera y teja, con diseño, permiso e inspección de obra del mismo arquitecto.* · Título: *Del render a la realidad* · Botón: Enviar mensaje.
+- **V5** · Texto principal: *De la planta a la obra: así dibujamos Casa San Carlos y así se ve hoy desde el dron. 144 m² de ladrillo, madera y teja en Catemu, con diseño, permiso e inspección de obra del mismo arquitecto.* · Título: *Del render a la realidad* · Botón: Enviar mensaje.
 - **V4** · Texto principal: *Diseño interior, remodelación, cambio de destino y recepción final en un solo equipo, para que abras en regla.* · Título: *Del local vacío al negocio funcionando* · Botón: Enviar mensaje.
 
 **Qué probar primero:** V5 y V1 contra B1 (misma campaña, video contra imagen) y V2 contra A2. Si el video baja el costo por conversación más de un 20 %, pasa el presupuesto del conjunto a video.
@@ -228,7 +228,7 @@ node render-video.mjs V2 --cuadros   # uno solo, y guarda cuadros de control en 
 ```
 
 - Cada video es un HTML en `_fuente/video/` con una función `frame(t)`. Ábrelo en el navegador para verlo en bucle (clic = reiniciar). Los tiempos de cada escena están al inicio del `<script>`.
-- Las fotos de obra de V1 vienen de `2025/2025_Oscar Aguilera/FOTOS` y los renders de `RENDERS` (`v-lc-*.jpg` en `_fuente/img/`). Las de V4, de `0.WEB/Proyectos Seleccionados` (`v-esmeralda-*.jpg`). Las de V5, de `2025/2025_Andrés Martinez` (`RENDERS`, `portafolio` y `audiovisual`, en `v-sc-*.jpg`); sus tramos de video se definen en `TRAMOS` dentro de `extraer_secuencias.py`.
+- Las fotos de obra de V1 vienen de `2025/2025_Oscar Aguilera/FOTOS` y los renders de `RENDERS` (`v-lc-*.jpg` en `_fuente/img/`). Las de V4, de `0.WEB/Proyectos Seleccionados` (`v-esmeralda-*.jpg`). Las de V5 salen de `2025/2025_Andrés Martinez` (`RENDERS/Escena 4.png`, `audiovisual/` y `audiovisual/Septiembre 2026/`, más las láminas `Patrón AVERARQ-08/09/10.png`); tramos, fotos y gráficas se definen en `TRAMOS`, `FIJAS` y `GRAFICAS` dentro de `extraer_secuencias.py`. La posición de la planta sobre el cenital está en la clase `.planta` de `V5-render-vs-realidad.html`.
 - El texto importante queda entre y≈250 y y≈1450 px, fuera de lo que tapa la interfaz de Reels.
 
 ## Línea visual (LUT AVERARQ)

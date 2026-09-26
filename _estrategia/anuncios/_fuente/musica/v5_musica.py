@@ -5,13 +5,13 @@ v5_musica.py — pista original para el reel V5 (sintetizada desde cero, sin sam
 Estilo: hip-hop / trap sobrio, moderno y algo urbano, pensado como fondo (no protagonista).
 120 BPM con snare en el tercer tiempo (half-time), 808 con deslizamientos, hi-hats en
 semicorcheas con redobles, piano eléctrico oscuro (Am9 – Fmaj7 – Dm9 – Em7) y textura de vinilo.
-Compases de 2 s alineados con los cortes del video:
-   0– 4 s  piano filtrado, vinilo y hats suaves
-   4– 8 s  entran 808, bombo y snare
-   8–16 s  groove completo (órbita y recorrido)
-  16–19 s  quiebre: sin batería; a los 18,75 s silencio seco y a los 19,0 s cae el 808
+Compases de 2 s alineados con los cortes del video (26 s):
+   0– 4 s  piano filtrado, vinilo y hats suaves (la planta se dibuja)
+   4– 6 s  entran 808, bombo y snare (el dron asciende)
+   6–18 s  groove completo (render vs dron, órbita, fachada, interiores)
+  18–21 s  quiebre: sin batería; a los 20,75 s silencio seco y a los 21,0 s cae el 808
            (el dron llega a la mano)
-  20–24 s  groove de cierre; golpe final a los 23 s y cola
+  22–26 s  groove de cierre; golpe final a los 25 s y cola
 
 Uso:  python3 v5_musica.py      → V5-musica.wav (44,1 kHz, estéreo, normalizada a −14 LUFS)
 Requiere numpy, scipy y ffmpeg.
@@ -25,7 +25,8 @@ SR = 44100
 BEAT = 0.5
 PASO = BEAT / 4            # semicorchea = 0,125 s
 BAR = 2.0
-DUR = 24.0
+DUR = 26.0
+T_CORTE, T_CAIDA, T_FIN = 20.75, 21.0, 25.0
 N = int(SR * (DUR + 0.3))
 rng = np.random.default_rng(11)
 AQUI = os.path.dirname(os.path.abspath(__file__))
@@ -53,7 +54,7 @@ def pon(buf, sig, t, gan=1.0, pan=0.0):
 # ------------------------------------------------------------------ armonía
 # (raíz del 808 en MIDI, voces del piano sin fundamental)
 AM, F, DM, EM = (33, [60, 64, 67, 71]), (29, [57, 60, 64, 67]), (38, [57, 60, 64, 65]), (40, [55, 59, 62, 66])
-COMPASES = [AM, F, DM, EM, AM, F, DM, EM, F, EM, F, EM]      # 12 compases de 2 s
+COMPASES = [AM, F, DM, EM, AM, F, DM, EM, AM, F, EM, F, EM]  # 13 compases de 2 s
 
 # ------------------------------------------------------------------ instrumentos
 def piano(m, dur, vel=1.0, corte=3000):
@@ -144,16 +145,14 @@ pon(fx, vinilo(DUR), 0.0, 1.0)
 
 for bar, (raiz, voces) in enumerate(COMPASES):
     t0 = bar * BAR
-    intro, entra, groove, quiebre, cierre = bar < 2, bar in (2, 3), 4 <= bar < 8, bar in (8, 9), bar >= 10
-    if bar == 11:                                    # el último compás resuelve en Am a los 23 s
-        pass
+    intro, entra, groove, quiebre, cierre = bar < 2, bar == 2, 3 <= bar < 9, bar in (9, 10), bar >= 11
 
     # piano: acorde al inicio y reataque suave en el "y" del 2
     corte = 1200 if intro else (2200 if entra else (1600 if quiebre else 3200))
     for dt, vel, dur in ((0.0, 1.0, 1.25), (1.25, 0.55, 0.75)):
-        if quiebre and bar == 9 and t0 + dt >= 18.75:
+        if quiebre and t0 + dt >= T_CORTE:
             continue
-        if cierre and t0 + dt >= 23.0:
+        if cierre and t0 + dt >= T_FIN:
             continue
         a = acorde(voces, dur, vel, corte)
         pon(teclas, a, t0 + dt, 0.5); pon(envio, a, t0 + dt, 0.35)
@@ -162,14 +161,14 @@ for bar, (raiz, voces) in enumerate(COMPASES):
         # hats suaves en corcheas hasta el corte
         for s in range(0, 16, 2):
             ts = t0 + s * PASO
-            if ts < 18.75:
+            if ts < T_CORTE:
                 pon(bat, hat(0.35), ts, 1.0, 0.3)
         continue
 
     patron = KICK[bar % 2]
     for s in range(16):
         ts = t0 + s * PASO
-        if ts >= 23.0:
+        if ts >= T_FIN:
             break
         # 808 + bombo
         if not intro and s in patron:
@@ -203,25 +202,25 @@ for bar, (raiz, voces) in enumerate(COMPASES):
         for s, m in MOTIVO:
             if (bar % 2) * 16 <= s < (bar % 2 + 1) * 16:
                 ts = t0 + (s - (bar % 2) * 16) * PASO
-                if ts < 23.0:
+                if ts < T_FIN:
                     c = campana(m)
                     pon(fx, c, ts, 0.12, -0.35); pon(fx, c, ts + 0.375, 0.05, 0.35); pon(envio, c, ts, 0.15)
 
 # transición al groove (8 s): platillo invertido
-pon(fx, swell(1.0), 7.0, 0.8)
+pon(fx, swell(1.0), 5.0, 0.8)
 # quiebre: platillo invertido hacia el corte, silencio seco 18,75–19,0 y caída del 808 a los 19,0
-pon(fx, swell(1.5), 17.25, 1.0)
+pon(fx, swell(1.5), T_CORTE - 1.5, 1.0)
 am_raiz, am_voces = AM
-pon(bajo, ochoocho(am_raiz, 1.0, am_raiz + 12), 19.0, 0.9)
-pon(bat, bombo(), 19.0, 1.0); golpes.append(19.0)
-sn = snare(); pon(bat, sn, 19.0, 0.5); pon(envio, sn, 19.0, 0.4)
-a = acorde(am_voces, 1.0, 0.9, 3200); pon(teclas, a, 19.0, 0.5); pon(envio, a, 19.0, 0.4)
-for s in range(8, 16):                               # hats vuelven a los 19,5
-    pon(bat, hat(0.3 + 0.05 * (s - 8)), 19.0 + (s - 8) * PASO + 0.5, 1.0, 0.2)
-# final en Am a los 23 s
-pon(bajo, ochoocho(am_raiz, 1.0), 23.0, 0.9)
-pon(bat, bombo(), 23.0, 1.0); golpes.append(23.0)
-a = acorde(am_voces, 1.0, 1.0, 3000); pon(teclas, a, 23.0, 0.55); pon(envio, a, 23.0, 0.6)
+pon(bajo, ochoocho(am_raiz, 1.0, am_raiz + 12), T_CAIDA, 0.9)
+pon(bat, bombo(), T_CAIDA, 1.0); golpes.append(T_CAIDA)
+sn = snare(); pon(bat, sn, T_CAIDA, 0.5); pon(envio, sn, T_CAIDA, 0.4)
+a = acorde(am_voces, 1.0, 0.9, 3200); pon(teclas, a, T_CAIDA, 0.5); pon(envio, a, T_CAIDA, 0.4)
+for s in range(8, 16):                               # hats vuelven medio segundo después
+    pon(bat, hat(0.3 + 0.05 * (s - 8)), T_CAIDA + (s - 8) * PASO + 0.5, 1.0, 0.2)
+# final en Am
+pon(bajo, ochoocho(am_raiz, 1.0), T_FIN, 0.9)
+pon(bat, bombo(), T_FIN, 1.0); golpes.append(T_FIN)
+a = acorde(am_voces, 1.0, 1.0, 3000); pon(teclas, a, T_FIN, 0.55); pon(envio, a, T_FIN, 0.6)
 
 # ------------------------------------------------------------------ mezcla
 tt = t_(N)
@@ -237,7 +236,7 @@ verb = np.stack([hp(fftconvolve(envio[:, c], ir[:, c])[:N], 300) for c in range(
 
 mezcla = teclas * duck * 1.1 + bajo * 0.55 + bat * 1.0 + fx * 0.8 + verb
 # silencio seco antes de la caída (deja solo el vinilo)
-i0, i1 = int(18.75 * SR), int(19.0 * SR)
+i0, i1 = int(T_CORTE * SR), int(T_CAIDA * SR)
 mezcla[i0:i1] *= 0.0
 mezcla[i0:i1] += fx[i0:i1] * 0.3
 mezcla = np.stack([hp(mezcla[:, c], 30) for c in range(2)], 1)
