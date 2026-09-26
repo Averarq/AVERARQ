@@ -56,6 +56,13 @@
     return el.decode().catch(function () {});
   };
 
+  // grano: se desplaza a una posición pseudoaleatoria distinta en cada cuadro (determinista)
+  window.grano = function (t) {
+    var f = Math.floor(t * 30);
+    var x = (f * 97) % 256, y = (f * 181) % 256;
+    $$('.grano').forEach(function (g) { g.style.transform = 'translate(' + x + 'px,' + y + 'px)'; });
+  };
+
   // espera fuentes e imágenes
   window.listo = (async function () {
     await new Promise(function (r) { if (document.readyState === 'complete') r(); else addEventListener('load', r); });

@@ -193,7 +193,7 @@ node render.mjs        # regenera los JPG en ../piezas/
 
 ## Videos · reels 9:16 (lote 1)
 
-Cinco reels de 13 a 24 s en `videos/`, cada uno con su miniatura (`-portada.jpg`). Son 1080×1920, H.264, 30 fps. **V1 a V4 van sin audio**: al subirlos, agrega música desde la biblioteca de audio de Meta (así queda licenciada) o déjalos en silencio. **V5 trae música original** compuesta y sintetizada para el video (sin samples de terceros), así que se puede subir tal cual. El texto de todos se lee sin sonido.
+Cinco reels de 13 a 24 s en `videos/`, cada uno con su miniatura (`-portada.jpg`). Son 1080×1920, H.264, 30 fps. **V1 a V4 van sin audio**: al subirlos, agrega música desde la biblioteca de audio de Meta (así queda licenciada) o déjalos en silencio. **V5 trae música original** compuesta y sintetizada para el video (hip-hop/trap sobrio: 808, hi-hats con redobles, piano eléctrico oscuro y textura de vinilo; sin samples de terceros), así que se puede subir tal cual. También lleva la **línea visual AVERARQ**: LUT de color propia, grano y viñeta sobre todo el material. El texto de todos se lee sin sonido.
 
 | Video | Campaña | Código | Qué muestra |
 |---|---|---|---|
@@ -221,7 +221,8 @@ Cinco reels de 13 a 24 s en `videos/`, cada uno con su miniatura (`-portada.jpg`
 cd _estrategia/anuncios/_fuente
 npm i --no-save playwright-core      # una vez; usa Edge o Chrome instalados
 python3 extraer_secuencias.py        # una vez: tramos de video para V5 → secuencias/ (no va a git)
-python3 musica/v5_musica.py          # regenera la música de V5 (musica/V5-musica.wav)
+python3 musica/v5_musica.py          # regenera la música de V5 (musica/V5-musica.wav, −14 LUFS)
+python3 color/crear_lut.py           # regenera la LUT (color/averarq.cube); luego extraer_secuencias.py --forzar
 node render-video.mjs                # todos → ../videos/
 node render-video.mjs V2 --cuadros   # uno solo, y guarda cuadros de control en frames/
 ```
@@ -229,3 +230,9 @@ node render-video.mjs V2 --cuadros   # uno solo, y guarda cuadros de control en 
 - Cada video es un HTML en `_fuente/video/` con una función `frame(t)`. Ábrelo en el navegador para verlo en bucle (clic = reiniciar). Los tiempos de cada escena están al inicio del `<script>`.
 - Las fotos de obra de V1 vienen de `2025/2025_Oscar Aguilera/FOTOS` y los renders de `RENDERS` (`v-lc-*.jpg` en `_fuente/img/`). Las de V4, de `0.WEB/Proyectos Seleccionados` (`v-esmeralda-*.jpg`). Las de V5, de `2025/2025_Andrés Martinez` (`RENDERS`, `portafolio` y `audiovisual`, en `v-sc-*.jpg`); sus tramos de video se definen en `TRAMOS` dentro de `extraer_secuencias.py`.
 - El texto importante queda entre y≈250 y y≈1450 px, fuera de lo que tapa la interfaz de Reels.
+
+## Línea visual (LUT AVERARQ)
+
+`_fuente/color/averarq.cube` es la LUT de color de la marca (Rec.709, 33³): verdes a oliva y más apagados, cielos a azul petróleo, naranjos y terracotas intactos (tejas, ladrillo y el naranjo de marca como acento), curva de película con negros levantados, sombras frías y luces cálidas. `extraer_secuencias.py` la aplica a todo el material de V5 (el video del iPhone viene en HDR y se convierte a SDR antes), y el motor suma grano (`color/grano.png`) y viñeta encima de la imagen, bajo los textos.
+
+La misma `.cube` sirve para grabaciones futuras en CapCut, Premiere, DaVinci o Photoshop (Ajuste › Consulta de colores), así fotos y videos de obra mantienen la misma línea.

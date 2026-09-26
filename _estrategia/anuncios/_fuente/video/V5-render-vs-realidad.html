@@ -17,17 +17,19 @@
 
 <!-- 1 · Render aéreo vs dron -->
 <div class="escena" id="s1" style="background:var(--oscuro)">
-  <div class="mitad marco arriba" id="s1a"><img src="../img/v-sc-render-aereo.jpg" style="object-position:38% center"></div>
-  <div class="mitad marco abajo" id="s1b"><img src="../img/v-sc-dron-oblicua.jpg" style="object-position:40% 55%"></div>
+  <div class="mitad marco arriba" id="s1a"><img src="../secuencias/_fijas/render-aereo.jpg" style="object-position:38% center"></div>
+  <div class="mitad marco abajo" id="s1b"><img src="../secuencias/_fijas/dron-oblicua.jpg" style="object-position:40% 55%"></div>
+  <div class="grano"></div><div class="vineta"></div>
   <div class="abs" id="s1la" style="left:60px;top:290px"><span class="etiqueta">Render · 2025</span></div>
   <div class="abs" id="s1lb" style="left:60px;top:1070px"><span class="etiqueta"><b>Dron</b> · agosto 2026</span></div>
   <div class="banda" id="s1band"><div class="h1">Lo dibujamos. Lo construimos.</div></div>
 </div>
 
 <!-- 2 · Modelo 3D vs cenital -->
-<div class="escena" id="s2" style="background:#000">
-  <div class="mitad marco arriba" id="s2a" style="background:#000"><img src="../img/v-sc-axonometrica.jpg" style="object-fit:contain;transform-origin:center"></div>
-  <div class="mitad marco abajo" id="s2b"><img src="../img/v-sc-dron-cenital.jpg" style="object-position:center 45%"></div>
+<div class="escena" id="s2" style="background:#060c11">
+  <div class="mitad marco arriba" id="s2a" style="background:#060c11"><img src="../secuencias/_fijas/axonometrica.jpg" style="object-fit:contain;transform-origin:center"></div>
+  <div class="mitad marco abajo" id="s2b"><img src="../secuencias/_fijas/dron-cenital.jpg" style="object-position:center 45%"></div>
+  <div class="grano"></div><div class="vineta"></div>
   <div class="abs" id="s2la" style="left:60px;top:290px"><span class="etiqueta">Modelo 3D</span></div>
   <div class="abs" id="s2lb" style="left:60px;top:1070px"><span class="etiqueta"><b>Dron</b> · vista cenital</span></div>
   <div class="banda" id="s2band"><div class="h1">La misma planta en L.</div></div>
@@ -36,6 +38,7 @@
 <!-- 3 · Órbita de dron -->
 <div class="escena" id="s3">
   <div class="full"><img id="s3v" alt=""></div>
+  <div class="grano"></div><div class="vineta"></div>
   <div class="sombra-arriba" style="height:960px;background:linear-gradient(180deg,rgba(17,17,16,.9),rgba(17,17,16,.55) 55%,rgba(17,17,16,0))"></div>
   <div class="abs" id="s3c" style="left:80px;top:280px"><span class="chip">Casa San Carlos · Catemu</span></div>
   <div class="abs h1" id="s3h" style="left:80px;top:390px;font-size:128px">144 m² de ladrillo,<br><span class="o">madera y teja.</span></div>
@@ -44,6 +47,7 @@
 <!-- 4 · Recorrido de obra -->
 <div class="escena" id="s4">
   <div class="full"><img id="s4v" alt=""></div>
+  <div class="grano"></div><div class="vineta"></div>
   <div class="sombra-arriba"></div>
   <div class="abs h1" id="s4h" style="left:80px;top:280px;font-size:128px">Así va<br><span class="o">por dentro.</span></div>
   <div class="abs" id="s4e" style="left:80px;top:1290px"><span class="etiqueta" id="s4et"></span></div>
@@ -52,6 +56,7 @@
 <!-- 5 · Arquitecto -->
 <div class="escena" id="s5">
   <div class="full"><img id="s5v" alt=""></div>
+  <div class="grano"></div><div class="vineta"></div>
   <div class="sombra-arriba" style="height:760px"></div>
   <div class="abs h1" id="s5h" style="left:80px;top:280px;font-size:104px">El mismo arquitecto,<br><span class="o">de principio a fin.</span></div>
   <div class="abs" id="s5e" style="left:80px;top:520px"><span class="etiqueta">Alejandro Vera · <b>Arquitecto PUCV</b></span></div>
@@ -96,6 +101,7 @@ function par(pre, t, a, b) {
 
 frame = function (t) {
   var espera = [];
+  grano(t);
 
   if (escena('#s1', t, 0, T1)) par('#s1', t, 0, T1);
   if (escena('#s2', t, T1, T2)) par('#s2', t, T1, T2);

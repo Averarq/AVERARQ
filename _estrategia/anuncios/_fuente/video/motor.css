@@ -31,3 +31,8 @@ body{font-family:'Barlow',sans-serif;color:#fff;position:relative;-webkit-font-s
 .wsp.naranjo{background:var(--naranjo);color:#fff}
 .sombra-arriba{position:absolute;left:0;right:0;top:0;height:720px;background:linear-gradient(180deg,rgba(17,17,16,.85),rgba(17,17,16,0))}
 .sombra-abajo{position:absolute;left:0;right:0;bottom:0;height:900px;background:linear-gradient(0deg,rgba(17,17,16,.9),rgba(17,17,16,0))}
+
+/* Línea visual: grano de película y viñeta sobre la imagen (debajo de textos y bandas) */
+.grano{position:absolute;left:-256px;top:-256px;right:-256px;bottom:-256px;background:url(../color/grano.png);
+  mix-blend-mode:overlay;opacity:.13;pointer-events:none}
+.vineta{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 75% 65% at 50% 45%,rgba(6,12,17,0) 55%,rgba(6,12,17,.42) 100%)}
