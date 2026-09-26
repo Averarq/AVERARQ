@@ -82,6 +82,29 @@
 
   /* Documentos */
   .doc-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
+  /* Galería de imágenes */
+  .gal-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
+  .gal-item{ position:relative; padding:0; border:1px solid var(--grafito3); border-radius:10px; overflow:hidden; cursor:pointer; background:var(--grafito2); aspect-ratio:4/3; display:block; transition:transform .12s, border-color .12s; }
+  .gal-item:hover{ transform:translateY(-2px); border-color:var(--naranja); }
+  .gal-item img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .gal-nombre{ position:absolute; left:0; right:0; bottom:0; font-size:11px; color:#fff; padding:14px 8px 6px; text-align:left;
+    background:linear-gradient(to top, rgba(0,0,0,.78), rgba(0,0,0,0)); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* Lightbox */
+  .lb{ display:none; position:fixed; inset:0; z-index:10000; background:rgba(10,10,9,.94); align-items:center; justify-content:center; }
+  .lb.open{ display:flex; }
+  .lb-stage{ max-width:92vw; max-height:92vh; display:flex; flex-direction:column; align-items:center; gap:12px; }
+  .lb-stage img{ max-width:92vw; max-height:80vh; object-fit:contain; border-radius:8px; box-shadow:0 10px 40px rgba(0,0,0,.5); }
+  .lb-info{ display:flex; align-items:center; justify-content:space-between; gap:20px; width:100%; max-width:700px; }
+  .lb-nombre{ font-weight:700; font-size:15px; color:#fff; }
+  .lb-meta{ font-size:12px; color:var(--gris); margin-top:2px; }
+  .lb-dl{ background:var(--naranja); color:#fff; text-decoration:none; font-weight:700; font-size:13px; padding:10px 18px; border-radius:8px; white-space:nowrap; flex-shrink:0; }
+  .lb-dl:hover{ background:var(--naranja); filter:brightness(1.1); }
+  .lb-close{ position:absolute; top:16px; right:20px; background:rgba(255,255,255,.12); border:none; color:#fff; font-size:20px; width:42px; height:42px; border-radius:50%; cursor:pointer; }
+  .lb-close:hover{ background:rgba(255,255,255,.22); }
+  .lb-nav{ position:absolute; top:50%; transform:translateY(-50%); background:rgba(255,255,255,.12); border:none; color:#fff; font-size:34px; width:52px; height:52px; border-radius:50%; cursor:pointer; align-items:center; justify-content:center; line-height:1; }
+  .lb-nav:hover{ background:rgba(255,255,255,.22); }
+  .lb-prev{ left:20px; } .lb-next{ right:20px; }
+  @media(max-width:600px){ .lb-nav{ width:42px; height:42px; font-size:26px; } .lb-prev{ left:8px; } .lb-next{ right:8px; } .lb-info{ flex-direction:column; align-items:flex-start; gap:10px; } }
   .doc-folder{ margin-bottom:12px; }
   .doc-folder-head{ display:flex; align-items:center; gap:10px; padding:11px 14px; background:var(--ink); border-radius:10px; border:1px solid var(--grafito3); transition:border-color .12s; }
   .doc-folder-head:hover{ border-color:var(--naranja); }
@@ -225,16 +248,33 @@
       });
       docsHtml = cats.map(cat=>{
         const docsOrd = ordenarDocs(grupos[cat]);
-        const cards = docsOrd.map(d=>docCard(d, cod)).join("");
         const ids = docsOrd.map(d=>d.id).join(',');
+        // ¿Es una categoría de imágenes? (todos o casi todos sus archivos son imágenes)
+        const imgs = docsOrd.filter(d=>esImagen(d));
+        const esGaleria = imgs.length>0 && imgs.length===docsOrd.length;
+        let cuerpo;
+        if(esGaleria){
+          const galIds = imgs.map(d=>d.id);
+          const miniaturas = imgs.map((d,ix)=>{
+            const url = docUrl(d.id, cod);
+            return '<button class="gal-item" onclick="abrirLightbox(\''+cod+'\',\''+cat.replace(/'/g,"")+'\','+ix+')">'+
+              '<img loading="lazy" src="'+url+'" alt="'+esc(d.nombre||d.fileName)+'">'+
+              '<span class="gal-nombre">'+esc(d.nombre||d.fileName)+'</span></button>';
+          }).join("");
+          // registrar las imágenes de esta categoría para el lightbox
+          GALERIAS[cat] = imgs.map(d=>({id:d.id, nombre:d.nombre||d.fileName, fecha:d.fecha||"", size:d.size||0}));
+          cuerpo = '<div class="gal-grid">'+miniaturas+'</div>';
+        } else {
+          cuerpo = '<div class="doc-grid">'+docsOrd.map(d=>docCard(d, cod)).join("")+'</div>';
+        }
         return '<div class="doc-folder open">'+
           '<div class="doc-folder-head">'+
-            '<span class="df-toggle" onclick="toggleFolder(this)"><span class="df-arrow">▾</span><span class="df-ico">📁</span>'+
+            '<span class="df-toggle" onclick="toggleFolder(this)"><span class="df-arrow">▾</span><span class="df-ico">'+(esGaleria?'🖼️':'📁')+'</span>'+
             '<span class="df-name">'+esc(cat)+'</span>'+
             '<span class="df-count">'+grupos[cat].length+'</span></span>'+
             '<button class="df-dlall" onclick="descargarCategoria(\''+ids+'\',\''+cod+'\',this)">⬇ Descargar todas</button>'+
           '</div>'+
-          '<div class="doc-folder-body"><div class="doc-grid">'+cards+'</div></div></div>';
+          '<div class="doc-folder-body">'+cuerpo+'</div></div>';
       }).join("");
     } else {
       docsHtml = '<div class="vacio">Aún no hay documentos disponibles para descargar.</div>';
@@ -319,8 +359,13 @@
              : '<span class="exp-ic pend"></span>';
     return '<div class="exp-row '+estado+'">'+ic+'<span class="exp-txt">'+esc(label)+'</span></div>';
   }
+  function docUrl(id, cod){ return API + "/api/seguimiento/" + encodeURIComponent(cod) + "/documento/" + encodeURIComponent(id); }
+  function esImagen(d){
+    const t = ((d.type||"")+" "+(d.fileName||"")+" "+(d.nombre||"")).toLowerCase();
+    return /(image\/|\.jpe?g|\.png|\.webp|\.gif|\.bmp|\.avif|\.heic)/.test(t);
+  }
   function docCard(d, cod){
-    const url = API + "/api/seguimiento/" + encodeURIComponent(cod) + "/documento/" + encodeURIComponent(d.id);
+    const url = docUrl(d.id, cod);
     const ico = docIco(d.type, d.fileName);
     const kb = d.size ? (d.size>1048576 ? (d.size/1048576).toFixed(1)+" MB" : Math.round(d.size/1024)+" KB") : "";
     return '<div class="doc-card">'+
@@ -375,8 +420,65 @@
     setTimeout(()=>{ btn.textContent = orig; btn.disabled = false; }, 2500);
   };
 
+  /* ===== GALERÍA / LIGHTBOX ===== */
+  const GALERIAS = {};           // { categoria: [{id,nombre,fecha,size}] }
+  let _lbCod=null, _lbCat=null, _lbIx=0;
+
+  window.abrirLightbox = function(cod, cat, ix){
+    _lbCod=cod; _lbCat=cat; _lbIx=ix;
+    document.getElementById('lightbox').classList.add('open');
+    document.body.style.overflow='hidden';
+    lbRender();
+  };
+  window.cerrarLightbox = function(){
+    document.getElementById('lightbox').classList.remove('open');
+    document.body.style.overflow='';
+  };
+  window.lbNav = function(dir){
+    const arr = GALERIAS[_lbCat]||[];
+    if(!arr.length) return;
+    _lbIx = (_lbIx + dir + arr.length) % arr.length;
+    lbRender();
+  };
+  function lbRender(){
+    const arr = GALERIAS[_lbCat]||[];
+    const d = arr[_lbIx]; if(!d) return;
+    const url = docUrl(d.id, _lbCod);
+    const kb = d.size ? (d.size>1048576 ? (d.size/1048576).toFixed(1)+" MB" : Math.round(d.size/1024)+" KB") : "";
+    document.getElementById('lbImg').src = url;
+    document.getElementById('lbNombre').textContent = d.nombre || "";
+    document.getElementById('lbMeta').textContent = (d.fecha||"") + (kb?" · "+kb:"") + "  ·  "+(_lbIx+1)+"/"+arr.length;
+    document.getElementById('lbDl').href = url;
+    document.getElementById('lbDl').setAttribute('download', d.nombre || 'imagen');
+    const multi = arr.length>1;
+    document.getElementById('lbPrev').style.display = multi?'flex':'none';
+    document.getElementById('lbNext').style.display = multi?'flex':'none';
+  }
+  // Teclado: ← → y Esc
+  document.addEventListener('keydown', function(e){
+    if(!document.getElementById('lightbox').classList.contains('open')) return;
+    if(e.key==='Escape') cerrarLightbox();
+    else if(e.key==='ArrowLeft') lbNav(-1);
+    else if(e.key==='ArrowRight') lbNav(1);
+  });
+
   // auto-entrar si viene con código en la URL
   if(params.get("c")){ entrar(); }
 </script>
+<div id="lightbox" class="lb" onclick="if(event.target===this)cerrarLightbox()">
+  <button class="lb-close" onclick="cerrarLightbox()" title="Cerrar (Esc)">✕</button>
+  <button id="lbPrev" class="lb-nav lb-prev" onclick="lbNav(-1)" title="Anterior (←)">‹</button>
+  <div class="lb-stage">
+    <img id="lbImg" src="" alt="">
+    <div class="lb-info">
+      <div class="lb-texto">
+        <div id="lbNombre" class="lb-nombre"></div>
+        <div id="lbMeta" class="lb-meta"></div>
+      </div>
+      <a id="lbDl" class="lb-dl" href="" download>⬇ Descargar</a>
+    </div>
+  </div>
+  <button id="lbNext" class="lb-nav lb-next" onclick="lbNav(1)" title="Siguiente (→)">›</button>
+</div>
 </body>
 </html>
