@@ -33,8 +33,9 @@ HDR_A_SDR = ('zscale=tin=arib-std-b67:pin=bt2020:min=bt2020nc:t=linear:npl=203,f
 #          ajuste previo de exposición/contraste para igualar fuentes)
 SEP = 'Septiembre 2026/'
 TRAMOS = {
-    # cenital del 16-sep que asciende; el cuadro inicial (36,0 s) calza con la planta rotada (ver V5, escena 1)
-    'sc-cenital':   (SEP + 'DJI_20260916111716_0203_D.MP4', 36.0, 3.0, 0.50, 0.50, 'eq=brightness=0.0'),
+    # cenital del 16-sep que asciende, girado 90° horario ('cw': el 16:9 queda 9:16 completo, sin recorte)
+    # para que el ala larga quede vertical como en la planta; el cuadro inicial (28,5 s) calza con ella
+    'sc-cenital':   (SEP + 'DJI_20260916111716_0203_D.MP4', 28.5, 3.0, 'cw', None, 'eq=brightness=0.0'),
     'sc-orbita':    (SEP + 'DJI_20260916112103_0209_D.MP4', 3.0, 2.1, 0.50, 0.50, 'eq=brightness=0.0'),
     'sc-fachada':   (SEP + 'DJI_20260916113524_0216_D.MP4', 6.0, 2.1, 0.50, 0.50, 'eq=brightness=0.0'),
     # Alejandro recibe el dron en la mano; corta a los 24,4 s, antes de que sonría
@@ -50,7 +51,7 @@ FIJAS = {
     'int-puerta':   ('/audiovisual/' + SEP + '1790392290481.jpg', 'eq=brightness=0.0'),
 }
 
-# gráficas de marca (sin LUT). Las plantas se recortan al dibujo y se rotan 90° para calzar con el cenital.
+# gráficas de marca (sin LUT). Las plantas se recortan al dibujo (misma caja para ambas), en su orientación original.
 GRAFICAS = {
     'planta-naranjo': ('/audiovisual/Patr*-08.png', True),
     'planta-blanca':  ('/audiovisual/Patr*-09.png', True),
@@ -80,7 +81,9 @@ def extraer(nombre, archivo, inicio, dur, c0, c1, ajuste, forzar):
     w, h, tr = info(ruta)
     cadena = [HDR_A_SDR] if tr == 'arib-std-b67' else []
     cadena.append('fps=%d' % FPS)
-    if c0 is not None:
+    if c0 == 'cw':
+        cadena.append('transpose=1')
+    elif c0 is not None:
         cw = round(h * 9 / 16)
         # el centro del encuadre se desplaza linealmente durante el tramo (sigue al sujeto)
         x = "max(0,min(iw-{cw},({c0}+({c1}-{c0})*t/{d})*iw-{cw}/2))".format(cw=cw, c0=c0, c1=c1, d=dur)
@@ -126,7 +129,14 @@ def graficas(forzar):
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         im = Image.open(glob.glob(PROYECTO + patron)[0])
         if es_planta:
-            im = im.crop(caja).rotate(90, expand=True)
+            im = im.crop(caja).convert('RGBA')
+            if nombre == 'planta-blanca':
+                # el fondo gris de la lámina pasa a transparente: solo quedan las líneas (sin "caja" en el fundido)
+                px = np.asarray(im).astype(float)
+                lum = px[..., :3].max(-1)
+                px[..., 3] = np.clip((lum - 45) / 170, 0, 1) * 255
+                px[..., :3] = 255
+                im = Image.fromarray(px.astype(np.uint8), 'RGBA')
             im = im.resize((im.width // 2, im.height // 2), Image.LANCZOS)
             im.save(dst, optimize=True)
         else:
