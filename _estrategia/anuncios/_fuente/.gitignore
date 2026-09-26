@@ -1,0 +1,6 @@
+html/
+node_modules/
+frames/
+secuencias/
+__pycache__/
+musica/_tmp.wav

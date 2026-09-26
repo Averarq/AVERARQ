@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<title>V5 · Render vs. realidad · Casa San Carlos</title>
+<link rel="stylesheet" href="../fonts/fonts.css">
+<link rel="stylesheet" href="motor.css">
+<style>
+  .mitad{position:absolute;left:0;width:1080px;height:900px}
+  .arriba{top:0}
+  .abajo{top:1020px}
+  .banda{position:absolute;left:0;top:900px;width:1080px;height:120px;background:var(--naranjo);display:flex;align-items:center;padding-left:80px}
+  .banda .h1{font-size:78px}
+  .full{position:absolute;inset:0}
+  .full img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  /* planta en su orientación original, calzada sobre el cuadro inicial del cenital girado (sc-cenital/0001) */
+  .planta{position:absolute;left:98px;top:552px;width:858px;height:1099px}
+  /* fondo desenfocado de la misma imagen: permite mostrar tomas y fotos completas sin barras negras */
+  .difuso{position:absolute;inset:-80px;width:calc(100% + 160px);height:calc(100% + 160px);object-fit:cover;filter:blur(38px) brightness(.5) saturate(1.1)}
+  .franja{position:absolute;left:0;top:600px;width:1080px;height:720px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+  .franja img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .completa{position:absolute;inset:0;overflow:hidden}
+  .completa img.foto{position:absolute;top:0;height:1920px;width:auto;left:50%;transform-origin:50% 50%;box-shadow:0 0 60px rgba(0,0,0,.5)}
+  #s0scan{position:absolute;left:0;width:1080px;height:4px;background:var(--naranjo);box-shadow:0 0 18px rgba(252,76,2,.8)}
+</style>
+</head><body>
+
+<!-- 0 · La planta se dibuja y se funde con el cenital real -->
+<div class="escena" id="s0" style="background:#212322">
+  <img id="s0v" class="abs" style="left:0;top:0;width:1080px;height:1920px" alt="">
+  <div class="abs" id="s0g" style="inset:0;transform-origin:527px 1101px">
+    <img id="s0b" class="planta" src="../secuencias/_fijas/planta-blanca.png" alt="">
+    <img id="s0n" class="planta" src="../secuencias/_fijas/planta-naranjo.png" alt="">
+    <div id="s0scan"></div>
+  </div>
+  <div class="grano"></div><div class="vineta"></div>
+  <div class="sombra-arriba" id="s0s" style="height:980px;background:linear-gradient(180deg,rgba(17,17,16,.95),rgba(17,17,16,.72) 50%,rgba(17,17,16,0))"></div>
+  <div class="abs" id="s0c" style="left:80px;top:250px"><span class="chip">Casa San Carlos · Catemu</span></div>
+  <div class="abs h1" id="s0h1" style="left:80px;top:345px;font-size:124px">Así la<br><span class="o">dibujamos.</span></div>
+  <div class="abs" id="s0h2" style="left:80px;top:345px"><div class="h1" style="font-size:124px">Así la<br>construimos.</div><div class="rule" style="margin-top:26px;width:180px"></div></div>
+</div>
+
+<!-- 1 · Render aéreo vs dron (mismo ángulo) -->
+<div class="escena" id="s1" style="background:var(--oscuro)">
+  <div class="mitad marco arriba" id="s1a"><img src="../secuencias/_fijas/render-aereo.jpg" style="object-position:38% center"></div>
+  <div class="mitad marco abajo" id="s1b"><img src="../secuencias/_fijas/dron-oblicua.jpg" style="object-position:55% 60%"></div>
+  <div class="grano"></div><div class="vineta"></div>
+  <div class="abs" id="s1la" style="left:60px;top:290px"><span class="etiqueta">Render · 2025</span></div>
+  <div class="abs" id="s1lb" style="left:60px;top:1070px"><span class="etiqueta"><b>Dron</b> · septiembre 2026</span></div>
+  <div class="banda" id="s1band"><div class="h1">Tal como se diseñó.</div></div>
+</div>
+
+<!-- 2 · Órbita y fachada: toma horizontal amplia en una franja, sobre su propio fondo desenfocado -->
+<div class="escena" id="s2" style="background:var(--oscuro)">
+  <img id="s2f" class="difuso" alt="">
+  <div class="franja" id="s2m"><img id="s2v" alt=""></div>
+  <div class="grano"></div><div class="vineta"></div>
+  <div class="abs" id="s2c" style="left:80px;top:250px"><span class="chip">Catemu · 144 m²</span></div>
+  <div class="abs h1" id="s2h" style="left:80px;top:345px;font-size:112px">Ladrillo, madera<br><span class="o">y teja.</span></div>
+  <div class="abs" id="s2e" style="left:80px;top:1360px"><span class="etiqueta" id="s2et"></span></div>
+</div>
+
+<!-- 3 · Interiores -->
+<div class="escena" id="s3">
+  <div class="completa" id="i1"><img class="difuso" src="../secuencias/_fijas/int-cielo.jpg"><img class="foto" src="../secuencias/_fijas/int-cielo.jpg"></div>
+  <div class="completa" id="i2"><img class="difuso" src="../secuencias/_fijas/int-ventanal.jpg"><img class="foto" src="../secuencias/_fijas/int-ventanal.jpg"></div>
+  <div class="completa" id="i3"><img class="difuso" src="../secuencias/_fijas/int-puerta.jpg"><img class="foto" src="../secuencias/_fijas/int-puerta.jpg"></div>
+  <div class="grano"></div><div class="vineta"></div>
+  <div class="sombra-arriba" style="height:620px"></div>
+  <div class="abs h1" id="s3h" style="left:80px;top:280px;font-size:118px">Así va<br><span class="o">por dentro.</span></div>
+  <div class="abs" id="s3e" style="left:80px;top:1290px"><span class="etiqueta" id="s3et"></span></div>
+</div>
+
+<!-- 4 · Arquitecto -->
+<div class="escena" id="s4">
+  <div class="full"><img id="s4v" alt=""></div>
+  <div class="grano"></div><div class="vineta"></div>
+  <div class="sombra-arriba" style="height:760px"></div>
+  <div class="abs h1" id="s4h" style="left:80px;top:280px;font-size:104px">El mismo arquitecto,<br><span class="o">de principio a fin.</span></div>
+  <div class="abs" id="s4e" style="left:80px;top:520px"><span class="etiqueta">Alejandro Vera · <b>Arquitecto PUCV</b></span></div>
+</div>
+
+<!-- 5 · Cierre sobre el patrón de plantas -->
+<div class="escena" id="s5" style="background:#212322">
+  <div class="marco" style="inset:0"><img id="s5img" src="../secuencias/_fijas/patron.jpg"></div>
+  <div class="abs" style="inset:0;background:rgba(17,17,16,.62)"></div>
+  <div class="abs brand" id="s5b" style="left:80px;top:280px">
+    <svg viewBox="41.6 33.0 21.9 25.4"><path fill="currentColor" d="M 57.574219 52.507812 L 46.25 52.507812 L 51.9375 38.394531 L 53.53125 42.492188 L 56.828125 42.492188 L 53.164062 33.398438 L 50.796875 33.398438 L 41.816406 55.308594 L 45.125 55.304688 L 58.695312 55.304688 L 59.8125 58.101562 L 63.183594 58.101562 L 60.898438 52.464844 Z"/></svg>
+    <img src="../img/wordmark-blanco.png" alt="AVERARQ">
+  </div>
+  <div class="abs h1" id="s5h" style="left:80px;top:470px;font-size:150px">¿Tienes<br>la parcela?<br><span class="o">Conversemos.</span></div>
+  <div class="abs p" id="s5p" style="left:80px;top:990px;width:900px">Diseño, permiso e inspección de obra hasta la recepción final.</div>
+  <div class="abs" id="s5w" style="left:80px;top:1190px"><span class="wsp naranjo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/></svg>
+    +56 9 5431 7945</span></div>
+  <div class="abs h2" id="s5u" style="left:80px;top:1360px;font-size:44px;letter-spacing:.06em">averarq.cl</div>
+</div>
+
+<script src="motor.js"></script>
+<script>
+DURACION = 26;
+PORTADA = 8.2;
+AUDIO = '../musica/V5-musica.wav';
+// cortes en compases de 2 s de la música (120 BPM); el dron llega a la mano en t = 21,0 (caída del 808)
+var T1 = 6, T2 = 10, T3 = 14, T4 = 18, T5 = 22;
+var PLANTA = { top: 552, alto: 1099 };
+var INT = [['#i1', 'Sep 2026 · <b>Cielo de madera</b>'], ['#i2', 'Sep 2026 · <b>Ventanales instalados</b>'], ['#i3', 'Sep 2026 · <b>Puerta principal</b>']];
+
+function par(pre, t, a, b) {
+  var ka = ease.out(p(t, a, a + 0.5));
+  $(pre + 'a').style.transform = 'translateY(' + ((1 - ka) * -900) + 'px)';
+  var kb2 = ease.inOut(p(t, a + 0.7, a + 1.2));
+  $(pre + 'b').style.clipPath = 'inset(' + ((1 - kb2) * 100) + '% 0 0 0)';
+  kb($(pre + 'a img'), t, a, b, 1.0, 1.08);
+  kb($(pre + 'b img'), t, a, b, 1.08, 1.0);
+  sube(pre + 'la', t, a + 0.4, 0.3, 20);
+  sube(pre + 'lb', t, a + 1.1, 0.3, 20);
+  var kband = ease.out(p(t, a + 1.3, a + 1.7));
+  $(pre + 'band').style.clipPath = 'inset(0 ' + (100 - kband * 100) + '% 0 0)';
+}
+
+frame = function (t) {
+  var espera = [];
+  grano(t);
+
+  if (escena('#s0', t, 0, T1)) {
+    // la planta se dibuja ya en su lugar (bajo el titular) con un leve acercamiento; al fundirse queda calzada sobre el techo
+    $('#s0g').style.transform = 'scale(' + lerp(1.06, 1.0, ease.out(p(t, 0, 2.9))) + ')';
+    // pasada 1: líneas blancas; pasada 2: muros naranjos
+    var k1 = ease.inOut(p(t, 0.15, 1.35)), k2 = ease.inOut(p(t, 1.15, 2.25));
+    $('#s0b').style.clipPath = 'inset(0 0 ' + ((1 - k1) * 100) + '% 0)';
+    $('#s0n').style.clipPath = 'inset(0 0 ' + ((1 - k2) * 100) + '% 0)';
+    var ks = t < 1.25 ? k1 : k2;
+    var scan = $('#s0scan');
+    scan.style.top = (PLANTA.top + ks * PLANTA.alto) + 'px';
+    scan.style.opacity = (t > 0.15 && t < 2.3) ? (t < 1.25 ? 0.6 : 1) : 0;
+    // fundido: con la planta ya calzada aparece el cenital real; lo blanco se va y los muros naranjos quedan un instante sobre el techo
+    $('#s0v').style.opacity = ease.inOut(p(t, 2.9, 3.35));
+    $('#s0b').style.opacity = 1 - ease.inOut(p(t, 3.0, 3.4));
+    $('#s0n').style.opacity = 1 - ease.inOut(p(t, 3.45, 3.95));
+    $('#s0s').style.opacity = ease.inOut(p(t, 3.0, 3.4));
+    espera.push(secuencia('#s0v', 'sc-cenital', 90, Math.max(t, 3.4), 3.4));
+    sube('#s0c', t, 0.05, 0.4, 30);
+    sube('#s0h1', t, 0.3, 0.5);
+    if (t > 2.3) $('#s0h1').style.opacity = 1 - p(t, 2.3, 2.6);
+    sube('#s0h2', t, 3.35, 0.5);
+    if (t < 3.35) $('#s0h2').style.opacity = 0;
+  }
+
+  if (escena('#s1', t, T1, T2)) par('#s1', t, T1, T2);
+
+  if (escena('#s2', t, T2, T3)) {
+    var tramo = t < T2 + 2 ? ['sc-orbita', T2, 'Sep 2026 · <b>Vista aérea</b>'] : ['sc-fachada', T2 + 2, 'Sep 2026 · <b>Fachada de ladrillo</b>'];
+    espera.push(secuencia('#s2v', tramo[0], 63, t, tramo[1]));
+    espera.push(secuencia('#s2f', tramo[0], 63, t, tramo[1]));
+    $('#s2et').innerHTML = tramo[2];
+    var kf = ease.out(p(t, T2, T2 + 0.5));
+    $('#s2m').style.clipPath = 'inset(' + ((1 - kf) * 50) + '% 0 ' + ((1 - kf) * 50) + '% 0)';
+    var ke2 = ease.out(p((t - T2) % 2, 0.15, 0.5));
+    $('#s2e').style.opacity = ke2;
+    $('#s2e').style.transform = 'translateX(' + ((1 - ke2) * -40) + 'px)';
+    sube('#s2c', t, T2 + 0.2, 0.4, 30);
+    sube('#s2h', t, T2 + 0.35, 0.5);
+  }
+
+  if (escena('#s3', t, T3, T4)) {
+    var paso = (T4 - T3) / INT.length;
+    var i = Math.min(INT.length - 1, Math.floor((t - T3) / paso));
+    INT.forEach(function (f, j) {
+      $(f[0]).style.display = j === i ? '' : 'none';
+      var foto = $(f[0] + ' img.foto');
+      var kk = ease.inOut(p(t, T3 + j * paso, T3 + (j + 1) * paso));
+      foto.style.transform = 'translateX(-50%) scale(' + lerp(1.04, 1.0, kk) + ')';
+    });
+    $('#s3et').innerHTML = INT[i][1];
+    sube('#s3h', t, T3 + 0.1, 0.5);
+    var ke = ease.out(p((t - T3) - i * paso, 0.1, 0.45));
+    $('#s3e').style.opacity = ke;
+    $('#s3e').style.transform = 'translateX(' + ((1 - ke) * -40) + 'px)';
+  }
+
+  if (escena('#s4', t, T4, T5)) {
+    espera.push(secuencia('#s4v', 'sc-dron-mano', 120, t, T4));
+    sube('#s4h', t, T4 + 0.15, 0.5);
+    sube('#s4e', t, T4 + 0.6, 0.4, 20);
+  }
+
+  if (escena('#s5', t, T5, 99)) {
+    kb('#s5img', t, T5, DURACION, 1.15, 1.0, 0, 0, 60, -60);
+    sube('#s5b', t, T5 + 0.05, 0.4, 30);
+    sube('#s5h', t, T5 + 0.15, 0.5);
+    sube('#s5p', t, T5 + 0.45, 0.4, 30);
+    sube('#s5w', t, T5 + 0.65, 0.4, 30);
+    if (t > T5 + 1.2) {
+      $('#s5w').style.transform = 'scale(' + (1 + 0.035 * Math.max(0, Math.sin((t - T5 - 1.2) * 5))) + ')';
+      $('#s5w').style.transformOrigin = 'left center';
+    }
+    sube('#s5u', t, T5 + 0.8, 0.4, 20);
+  }
+
+  return Promise.all(espera);
+};
+</script>
+</body></html>
