@@ -44,11 +44,24 @@
     el.style.transform = 'translate(' + lerp(x0 || 0, x1 || 0, k) + 'px,' + lerp(y0 || 0, y1 || 0, k) + 'px) scale(' + lerp(s0, s1, k) + ')';
   };
 
+  // tramo de video: muestra en el <img> el cuadro que corresponde al segundo t
+  // (las carpetas las genera extraer_secuencias.py a 30 fps). Devuelve una promesa
+  // que el render espera, para no capturar un cuadro sin decodificar.
+  window.secuencia = function (el, carpeta, n, t, a) {
+    if (typeof el === 'string') el = $(el);
+    var i = Math.min(n, Math.max(1, Math.floor((t - a) * 30) + 1));
+    var src = '../secuencias/' + carpeta + '/' + ('000' + i).slice(-4) + '.jpg';
+    if (el.getAttribute('src') === src) return Promise.resolve();
+    el.setAttribute('src', src);
+    return el.decode().catch(function () {});
+  };
+
   // espera fuentes e imágenes
   window.listo = (async function () {
     await new Promise(function (r) { if (document.readyState === 'complete') r(); else addEventListener('load', r); });
     await document.fonts.ready;
-    await Promise.all($$('img').map(function (i) { return i.decode().catch(function () {}); }));
+    await Promise.all($$('img').filter(function (i) { return i.getAttribute('src'); })
+      .map(function (i) { return i.decode().catch(function () {}); }));
     return true;
   })();
 

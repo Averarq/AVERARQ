@@ -29,6 +29,7 @@ Hay 30 piezas listas para subir en `piezas/`, y `vista-general.jpg` las muestra 
 | `VREG` | WhatsApp | Hola Averarq, vi el video y quiero regularizar mi casa [VREG] |
 | `VCALC` | `https://averarq.cl/?utm_source=meta&utm_medium=paid&utm_campaign=AVQ_CASA&utm_content=V3#cotizador` | — (sitio web, estimador) |
 | `VCOM` | WhatsApp | Hola Averarq, vi el video del restobar y tengo un local [VCOM] |
+| `VSC` | WhatsApp | Hola Averarq, vi el video de la casa en Catemu y tengo una parcela [VSC] |
 
 > **Cuando exista `/casa-en-tu-parcela`**, cambia el destino de `CASA2` a esa landing y conserva los mismos UTM. Hoy apunta al estimador de la portada (`#cotizador`), que desde la Semana 0 pesa 64 KB de HTML (las imágenes ya no van embebidas).
 
@@ -192,13 +193,14 @@ node render.mjs        # regenera los JPG en ../piezas/
 
 ## Videos · reels 9:16 (lote 1)
 
-Cuatro reels animados de 13 a 16,5 s en `videos/`, cada uno con su miniatura (`-portada.jpg`). Son 1080×1920, H.264, 30 fps, **sin audio**: al subirlos, agrega música desde la biblioteca de audio de Meta (así queda licenciada) o déjalos en silencio. El texto se lee sin sonido.
+Cinco reels de 13 a 22 s en `videos/`, cada uno con su miniatura (`-portada.jpg`). Son 1080×1920, H.264, 30 fps, **sin audio**: al subirlos, agrega música desde la biblioteca de audio de Meta (así queda licenciada) o déjalos en silencio. El texto se lee sin sonido.
 
 | Video | Campaña | Código | Qué muestra |
 |---|---|---|---|
 | **V1 · Del render a la obra** (16,5 s) | `AVQ_CASA` | `VCASA` | Casa La Colonia (Catemu): render → 4 fotos reales de obra (oct–nov 2025) → render y obra lado a lado → cierre "¿Tienes la parcela? Conversemos." |
 | **V2 · ¿Ampliaste sin permiso?** (14 s) | `AVQ_REG_MSG` | `VREG` | Tipográfico: pregunta → "tu casa no existe para el sistema" → Ley del Mono vigente hasta el 31 DIC 2027 → "En 24 h te digo por dónde va tu caso". |
 | **V3 · ¿Cuánto cuesta diseñar tu casa?** (13 s) | `AVQ_CASA` | `VCALC` | El estimador en acción: 60 → 120 m², luego "con ingenierías" (120–144 → 192–230 UF) → "Calcula el tuyo en 1 minuto · averarq.cl". |
+| **V5 · Render vs. realidad** (22 s) ★ | `AVQ_CASA` | `VSC` | Casa San Carlos (Catemu): render aéreo contra foto de dron del mismo ángulo → modelo 3D contra vista cenital → órbita de dron real → recorrido de obra → Alejandro pilotando el dron → cierre. Es el más fuerte del lote: usa material propio grabado en agosto de 2026. |
 | **V4 · Del local vacío al negocio** (13 s) | `AVQ_COM_MSG` | `VCOM` | Tríptico del Restobar Esmeralda (Los Andes) con diseño interior, remodelación y permisos → "¿Tienes un local? Lo dejamos listo para abrir en regla." |
 
 **Textos para el anuncio**
@@ -206,9 +208,10 @@ Cuatro reels animados de 13 a 16,5 s en `videos/`, cada uno con su miniatura (`-
 - **V1** · Texto principal: *En Catemu la dibujamos en julio de 2025 y en noviembre ya tenía techumbre. Diseño, permiso e inspección de obra hasta la recepción final, con el mismo arquitecto de principio a fin.* · Título: *De tu parcela a tu casa* · Botón: Enviar mensaje.
 - **V2** · Texto principal: *Si construiste un dormitorio, un segundo piso o un quincho sin permiso, revisemos si tu caso califica para la Ley del Mono. Revisión gratis por WhatsApp.* · Título: *¿Ampliaste sin permiso?* · Botón: Enviar mensaje.
 - **V3** · Texto principal: *Servicio, superficie y nivel de detalle: el estimador de averarq.cl te da una referencia en UF en un minuto. Sin letra chica.* · Título: *¿Cuánto cuesta diseñar tu casa?* · Botón: Más información.
+- **V5** · Texto principal: *Así la dibujamos en 2025 y así se ve hoy desde el dron. Casa San Carlos, Catemu: 144 m² de ladrillo, madera y teja, con diseño, permiso e inspección de obra del mismo arquitecto.* · Título: *Del render a la realidad* · Botón: Enviar mensaje.
 - **V4** · Texto principal: *Diseño interior, remodelación, cambio de destino y recepción final en un solo equipo, para que abras en regla.* · Título: *Del local vacío al negocio funcionando* · Botón: Enviar mensaje.
 
-**Qué probar primero:** V1 contra B1 (misma campaña, video contra imagen) y V2 contra A2. Si el video baja el costo por conversación más de un 20 %, pasa el presupuesto del conjunto a video.
+**Qué probar primero:** V5 y V1 contra B1 (misma campaña, video contra imagen) y V2 contra A2. Si el video baja el costo por conversación más de un 20 %, pasa el presupuesto del conjunto a video.
 
 **Advertencia:** V2 lleva la fecha 31-dic-2027, igual que A2. Si se aprueba la prórroga de la Ley del Mono, cambia la fecha en `video/V2-ampliaste-sin-permiso.html` y vuelve a renderizar.
 
@@ -217,10 +220,11 @@ Cuatro reels animados de 13 a 16,5 s en `videos/`, cada uno con su miniatura (`-
 ```
 cd _estrategia/anuncios/_fuente
 npm i --no-save playwright-core      # una vez; usa Edge o Chrome instalados
-node render-video.mjs                # los cuatro → ../videos/
+python3 extraer_secuencias.py        # una vez: tramos de video para V5 → secuencias/ (no va a git)
+node render-video.mjs                # todos → ../videos/
 node render-video.mjs V2 --cuadros   # uno solo, y guarda cuadros de control en frames/
 ```
 
 - Cada video es un HTML en `_fuente/video/` con una función `frame(t)`. Ábrelo en el navegador para verlo en bucle (clic = reiniciar). Los tiempos de cada escena están al inicio del `<script>`.
-- Las fotos de obra de V1 vienen de `2025/2025_Oscar Aguilera/FOTOS` y los renders de `RENDERS` (`v-lc-*.jpg` en `_fuente/img/`). Las de V4, de `0.WEB/Proyectos Seleccionados` (`v-esmeralda-*.jpg`).
+- Las fotos de obra de V1 vienen de `2025/2025_Oscar Aguilera/FOTOS` y los renders de `RENDERS` (`v-lc-*.jpg` en `_fuente/img/`). Las de V4, de `0.WEB/Proyectos Seleccionados` (`v-esmeralda-*.jpg`). Las de V5, de `2025/2025_Andrés Martinez` (`RENDERS`, `portafolio` y `audiovisual`, en `v-sc-*.jpg`); sus tramos de video se definen en `TRAMOS` dentro de `extraer_secuencias.py`.
 - El texto importante queda entre y≈250 y y≈1450 px, fuera de lo que tapa la interfaz de Reels.
