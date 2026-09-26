@@ -21,11 +21,11 @@ ORIGEN = r'C:/Users/Alejandro Vera/Documents/0.AVERARQ/2025/2025_Andrés Martine
 FPS = 30
 
 # nombre: (archivo, inicio s, duración s, centro horizontal del encuadre al inicio y al final [0-1])
-# Para videos ya verticales (1080×1920) el centro se ignora.
+# Para videos ya verticales (celular) el centro va en None y solo se escala.
 TRAMOS = {
     'sc-orbita':    ('DJI_20260818111851_0106_D.MP4', 3.0, 4.2, 0.52, 0.52),
-    'sc-piloto-1':  ('DJI_20260818110042_0083_D.MP4', 0.3, 1.3, 0.40, 0.46),
-    'sc-piloto-2':  ('DJI_20260818110042_0083_D.MP4', 5.0, 2.4, 0.55, 0.49),
+    # Alejandro recibe el dron en la mano; corta a los 24,4 s, antes de que sonría
+    'sc-dron-mano': ('IMG_5241.MOV', 20.4, 4.0, None, None),
     'sc-alero':     ('compose_video_1787102807464.mp4', 81.4, 1.4, None, None),
     'sc-techumbre': ('compose_video_1787102807464.mp4', 85.4, 1.4, None, None),
     'sc-estar':     ('compose_video_1787102807464.mp4', 65.4, 1.4, None, None),
@@ -48,7 +48,7 @@ def extraer(nombre, archivo, inicio, dur, c0, c1, forzar):
     os.makedirs(dst)
     ruta = os.path.join(ORIGEN, archivo)
     w, h = dimensiones(ruta)
-    if w > h:
+    if c0 is not None:
         cw = round(h * 9 / 16)
         # el centro del encuadre se desplaza linealmente durante el tramo (sigue al sujeto)
         x = "max(0,min(iw-{cw},({c0}+({c1}-{c0})*t/{d})*iw-{cw}/2))".format(cw=cw, c0=c0, c1=c1, d=dur)

@@ -5,6 +5,7 @@
 //   node render-video.mjs V1 V3        # solo los que empiezan con esos códigos
 //   node render-video.mjs V1 --cuadros # además guarda 6 cuadros de control en frames/
 //
+// Si el HTML define window.AUDIO, se agrega esa pista (ver musica/).
 // Requiere ffmpeg en el PATH y Playwright: `npm i --no-save playwright-core`
 // (usa Microsoft Edge o Chrome instalados) o `playwright` con su Chromium.
 import { readdirSync, mkdirSync, writeFileSync } from 'node:fs';
@@ -49,10 +50,12 @@ for (const archivo of videos) {
   const page = await browser.newPage({ viewport: { width: 1080, height: 1920 }, deviceScaleFactor: 1 });
   await page.goto(pathToFileURL(join(aqui, 'video', archivo)).href + '?render', { waitUntil: 'load' });
   await page.evaluate(() => window.listo);
-  const { dur, portada } = await page.evaluate(() => ({ dur: window.DURACION, portada: window.PORTADA }));
+  const { dur, portada, audio } = await page.evaluate(() => ({ dur: window.DURACION, portada: window.PORTADA, audio: window.AUDIO }));
   const total = Math.round(dur * FPS);
 
-  const ff = spawn('ffmpeg', ['-v', 'error', '-y', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-',
+  // si el video define window.AUDIO (ruta relativa al HTML), se mezcla como pista AAC
+  const pista = audio ? ['-i', join(aqui, 'video', audio), '-map', '0:v', '-map', '1:a', '-c:a', 'aac', '-b:a', '192k', '-t', String(dur)] : [];
+  const ff = spawn('ffmpeg', ['-v', 'error', '-y', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-', ...pista,
     '-c:v', 'libx264', '-preset', 'slow', '-crf', '22', '-pix_fmt', 'yuv420p', '-movflags', '+faststart',
     join(salida, nombre + '.mp4')], { stdio: ['pipe', 'inherit', 'inherit'] });
   const fin = new Promise((ok, mal) => ff.on('close', c => c === 0 ? ok() : mal(new Error('ffmpeg salió con ' + c))));

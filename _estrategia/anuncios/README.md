@@ -193,14 +193,14 @@ node render.mjs        # regenera los JPG en ../piezas/
 
 ## Videos · reels 9:16 (lote 1)
 
-Cinco reels de 13 a 22 s en `videos/`, cada uno con su miniatura (`-portada.jpg`). Son 1080×1920, H.264, 30 fps, **sin audio**: al subirlos, agrega música desde la biblioteca de audio de Meta (así queda licenciada) o déjalos en silencio. El texto se lee sin sonido.
+Cinco reels de 13 a 24 s en `videos/`, cada uno con su miniatura (`-portada.jpg`). Son 1080×1920, H.264, 30 fps. **V1 a V4 van sin audio**: al subirlos, agrega música desde la biblioteca de audio de Meta (así queda licenciada) o déjalos en silencio. **V5 trae música original** compuesta y sintetizada para el video (sin samples de terceros), así que se puede subir tal cual. El texto de todos se lee sin sonido.
 
 | Video | Campaña | Código | Qué muestra |
 |---|---|---|---|
 | **V1 · Del render a la obra** (16,5 s) | `AVQ_CASA` | `VCASA` | Casa La Colonia (Catemu): render → 4 fotos reales de obra (oct–nov 2025) → render y obra lado a lado → cierre "¿Tienes la parcela? Conversemos." |
 | **V2 · ¿Ampliaste sin permiso?** (14 s) | `AVQ_REG_MSG` | `VREG` | Tipográfico: pregunta → "tu casa no existe para el sistema" → Ley del Mono vigente hasta el 31 DIC 2027 → "En 24 h te digo por dónde va tu caso". |
 | **V3 · ¿Cuánto cuesta diseñar tu casa?** (13 s) | `AVQ_CASA` | `VCALC` | El estimador en acción: 60 → 120 m², luego "con ingenierías" (120–144 → 192–230 UF) → "Calcula el tuyo en 1 minuto · averarq.cl". |
-| **V5 · Render vs. realidad** (22 s) ★ | `AVQ_CASA` | `VSC` | Casa San Carlos (Catemu): render aéreo contra foto de dron del mismo ángulo → modelo 3D contra vista cenital → órbita de dron real → recorrido de obra → Alejandro pilotando el dron → cierre. Es el más fuerte del lote: usa material propio grabado en agosto de 2026. |
+| **V5 · Render vs. realidad** (24 s, con música) ★ | `AVQ_CASA` | `VSC` | Casa San Carlos (Catemu): render aéreo contra foto de dron del mismo ángulo → modelo 3D contra vista cenital → órbita de dron real → recorrido de obra → Alejandro recibe el dron en la mano → cierre. Los cortes caen cada 2 compases de la música y el impacto coincide con el dron llegando a la mano (19,0 s). Es el más fuerte del lote: usa material propio grabado en agosto de 2026. |
 | **V4 · Del local vacío al negocio** (13 s) | `AVQ_COM_MSG` | `VCOM` | Tríptico del Restobar Esmeralda (Los Andes) con diseño interior, remodelación y permisos → "¿Tienes un local? Lo dejamos listo para abrir en regla." |
 
 **Textos para el anuncio**
@@ -221,6 +221,7 @@ Cinco reels de 13 a 22 s en `videos/`, cada uno con su miniatura (`-portada.jpg`
 cd _estrategia/anuncios/_fuente
 npm i --no-save playwright-core      # una vez; usa Edge o Chrome instalados
 python3 extraer_secuencias.py        # una vez: tramos de video para V5 → secuencias/ (no va a git)
+python3 musica/v5_musica.py          # regenera la música de V5 (musica/V5-musica.wav)
 node render-video.mjs                # todos → ../videos/
 node render-video.mjs V2 --cuadros   # uno solo, y guarda cuadros de control en frames/
 ```
