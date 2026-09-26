@@ -36,8 +36,9 @@ TRAMOS = {
     # cenital del 16-sep que asciende, girado 90° horario ('cw': el 16:9 queda 9:16 completo, sin recorte)
     # para que el ala larga quede vertical como en la planta; el cuadro inicial (28,5 s) calza con ella
     'sc-cenital':   (SEP + 'DJI_20260916111716_0203_D.MP4', 28.5, 3.0, 'cw', None, 'eq=brightness=0.0'),
-    'sc-orbita':    (SEP + 'DJI_20260916112103_0209_D.MP4', 3.0, 2.1, 0.50, 0.50, 'eq=brightness=0.0'),
-    'sc-fachada':   (SEP + 'DJI_20260916113524_0216_D.MP4', 6.0, 2.1, 0.50, 0.50, 'eq=brightness=0.0'),
+    # tomas amplias en horizontal ('ancho': 1280×720 sin recorte; el video las muestra en una franja ancha)
+    'sc-orbita':    (SEP + 'DJI_20260916112103_0209_D.MP4', 8.0, 2.1, 'ancho', None, 'eq=brightness=0.0'),
+    'sc-fachada':   (SEP + 'DJI_20260916113524_0216_D.MP4', 6.8, 2.1, 'ancho', None, 'eq=brightness=0.0'),
     # Alejandro recibe el dron en la mano; corta a los 24,4 s, antes de que sonría
     'sc-dron-mano': ('IMG_5241.MOV', 20.4, 4.0, None, None, 'eq=brightness=0.03:contrast=0.97'),
 }
@@ -83,12 +84,14 @@ def extraer(nombre, archivo, inicio, dur, c0, c1, ajuste, forzar):
     cadena.append('fps=%d' % FPS)
     if c0 == 'cw':
         cadena.append('transpose=1')
+    elif c0 == 'ancho':
+        pass
     elif c0 is not None:
         cw = round(h * 9 / 16)
         # el centro del encuadre se desplaza linealmente durante el tramo (sigue al sujeto)
         x = "max(0,min(iw-{cw},({c0}+({c1}-{c0})*t/{d})*iw-{cw}/2))".format(cw=cw, c0=c0, c1=c1, d=dur)
         cadena.append("crop={cw}:{h}:'{x}':0".format(cw=cw, h=h, x=x))
-    cadena += ['scale=1080:1920:flags=lanczos', ajuste, 'lut3d=' + LUT]
+    cadena += ['scale=%s:flags=lanczos' % ('1280:720' if c0 == 'ancho' else '1080:1920'), ajuste, 'lut3d=' + LUT]
     ffmpeg(['-ss', str(inicio), '-t', str(dur), '-i', ruta, '-vf', ','.join(cadena), '-q:v', '3',
             os.path.join(dst, '%04d.jpg')])
     print('ok', nombre, len(os.listdir(dst)), 'cuadros')

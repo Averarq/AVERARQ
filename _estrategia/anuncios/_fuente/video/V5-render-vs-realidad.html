@@ -13,6 +13,12 @@
   .full img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   /* planta en su orientación original, calzada sobre el cuadro inicial del cenital girado (sc-cenital/0001) */
   .planta{position:absolute;left:98px;top:552px;width:858px;height:1099px}
+  /* fondo desenfocado de la misma imagen: permite mostrar tomas y fotos completas sin barras negras */
+  .difuso{position:absolute;inset:-80px;width:calc(100% + 160px);height:calc(100% + 160px);object-fit:cover;filter:blur(38px) brightness(.5) saturate(1.1)}
+  .franja{position:absolute;left:0;top:600px;width:1080px;height:720px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+  .franja img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .completa{position:absolute;inset:0;overflow:hidden}
+  .completa img.foto{position:absolute;top:0;height:1920px;width:auto;left:50%;transform-origin:50% 50%;box-shadow:0 0 60px rgba(0,0,0,.5)}
   #s0scan{position:absolute;left:0;width:1080px;height:4px;background:var(--naranjo);box-shadow:0 0 18px rgba(252,76,2,.8)}
 </style>
 </head><body>
@@ -42,23 +48,24 @@
   <div class="banda" id="s1band"><div class="h1">Tal como se diseñó.</div></div>
 </div>
 
-<!-- 2 · Órbita y fachada -->
-<div class="escena" id="s2">
-  <div class="full"><img id="s2v" alt=""></div>
+<!-- 2 · Órbita y fachada: toma horizontal amplia en una franja, sobre su propio fondo desenfocado -->
+<div class="escena" id="s2" style="background:var(--oscuro)">
+  <img id="s2f" class="difuso" alt="">
+  <div class="franja" id="s2m"><img id="s2v" alt=""></div>
   <div class="grano"></div><div class="vineta"></div>
-  <div class="sombra-arriba" style="height:960px;background:linear-gradient(180deg,rgba(17,17,16,.9),rgba(17,17,16,.55) 55%,rgba(17,17,16,0))"></div>
-  <div class="abs" id="s2c" style="left:80px;top:280px"><span class="chip">Catemu · 144 m²</span></div>
-  <div class="abs h1" id="s2h" style="left:80px;top:390px;font-size:128px">Ladrillo, madera<br><span class="o">y teja.</span></div>
+  <div class="abs" id="s2c" style="left:80px;top:250px"><span class="chip">Catemu · 144 m²</span></div>
+  <div class="abs h1" id="s2h" style="left:80px;top:345px;font-size:112px">Ladrillo, madera<br><span class="o">y teja.</span></div>
+  <div class="abs" id="s2e" style="left:80px;top:1360px"><span class="etiqueta" id="s2et"></span></div>
 </div>
 
 <!-- 3 · Interiores -->
 <div class="escena" id="s3">
-  <div class="marco" id="i1" style="inset:0"><img src="../secuencias/_fijas/int-cielo.jpg"></div>
-  <div class="marco" id="i2" style="inset:0"><img src="../secuencias/_fijas/int-ventanal.jpg" style="object-position:60% center"></div>
-  <div class="marco" id="i3" style="inset:0"><img src="../secuencias/_fijas/int-puerta.jpg" style="object-position:40% center"></div>
+  <div class="completa" id="i1"><img class="difuso" src="../secuencias/_fijas/int-cielo.jpg"><img class="foto" src="../secuencias/_fijas/int-cielo.jpg"></div>
+  <div class="completa" id="i2"><img class="difuso" src="../secuencias/_fijas/int-ventanal.jpg"><img class="foto" src="../secuencias/_fijas/int-ventanal.jpg"></div>
+  <div class="completa" id="i3"><img class="difuso" src="../secuencias/_fijas/int-puerta.jpg"><img class="foto" src="../secuencias/_fijas/int-puerta.jpg"></div>
   <div class="grano"></div><div class="vineta"></div>
-  <div class="sombra-arriba"></div>
-  <div class="abs h1" id="s3h" style="left:80px;top:280px;font-size:128px">Así va<br><span class="o">por dentro.</span></div>
+  <div class="sombra-arriba" style="height:620px"></div>
+  <div class="abs h1" id="s3h" style="left:80px;top:280px;font-size:118px">Así va<br><span class="o">por dentro.</span></div>
   <div class="abs" id="s3e" style="left:80px;top:1290px"><span class="etiqueta" id="s3et"></span></div>
 </div>
 
@@ -141,7 +148,15 @@ frame = function (t) {
   if (escena('#s1', t, T1, T2)) par('#s1', t, T1, T2);
 
   if (escena('#s2', t, T2, T3)) {
-    espera.push(t < T2 + 2 ? secuencia('#s2v', 'sc-orbita', 63, t, T2) : secuencia('#s2v', 'sc-fachada', 63, t, T2 + 2));
+    var tramo = t < T2 + 2 ? ['sc-orbita', T2, 'Sep 2026 · <b>Vista aérea</b>'] : ['sc-fachada', T2 + 2, 'Sep 2026 · <b>Fachada de ladrillo</b>'];
+    espera.push(secuencia('#s2v', tramo[0], 63, t, tramo[1]));
+    espera.push(secuencia('#s2f', tramo[0], 63, t, tramo[1]));
+    $('#s2et').innerHTML = tramo[2];
+    var kf = ease.out(p(t, T2, T2 + 0.5));
+    $('#s2m').style.clipPath = 'inset(' + ((1 - kf) * 50) + '% 0 ' + ((1 - kf) * 50) + '% 0)';
+    var ke2 = ease.out(p((t - T2) % 2, 0.15, 0.5));
+    $('#s2e').style.opacity = ke2;
+    $('#s2e').style.transform = 'translateX(' + ((1 - ke2) * -40) + 'px)';
     sube('#s2c', t, T2 + 0.2, 0.4, 30);
     sube('#s2h', t, T2 + 0.35, 0.5);
   }
@@ -151,7 +166,9 @@ frame = function (t) {
     var i = Math.min(INT.length - 1, Math.floor((t - T3) / paso));
     INT.forEach(function (f, j) {
       $(f[0]).style.display = j === i ? '' : 'none';
-      kb($(f[0] + ' img'), t, T3 + j * paso, T3 + (j + 1) * paso, 1.1, 1.0, 0, 0, 20, -10);
+      var foto = $(f[0] + ' img.foto');
+      var kk = ease.inOut(p(t, T3 + j * paso, T3 + (j + 1) * paso));
+      foto.style.transform = 'translateX(-50%) scale(' + lerp(1.04, 1.0, kk) + ')';
     });
     $('#s3et').innerHTML = INT[i][1];
     sube('#s3h', t, T3 + 0.1, 0.5);
