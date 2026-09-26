@@ -233,6 +233,6 @@ node render-video.mjs V2 --cuadros   # uno solo, y guarda cuadros de control en 
 
 ## Línea visual (LUT AVERARQ)
 
-`_fuente/color/averarq.cube` es la LUT de color de la marca (Rec.709, 33³): verdes a oliva y más apagados, cielos a azul petróleo, naranjos y terracotas intactos (tejas, ladrillo y el naranjo de marca como acento), curva de película con negros levantados, sombras frías y luces cálidas. `extraer_secuencias.py` la aplica a todo el material de V5 (el video del iPhone viene en HDR y se convierte a SDR antes), y el motor suma grano (`color/grano.png`) y viñeta encima de la imagen, bajo los textos.
+`_fuente/color/averarq.cube` es la LUT de color de la marca (Rec.709, 33³): verdes hacia oliva cálido (vivos, sin flúor), cielos a turquesa limpio, naranjos y terracotas realzados (tejas, ladrillo y el naranjo de marca como acento), vibración que realza los colores apagados, contraste en medios, sombras frías y luces cálidas. `extraer_secuencias.py` la aplica a todo el material de V5 (el video del iPhone viene en HDR y se convierte a SDR antes), y el motor suma grano (`color/grano.png`) y viñeta encima de la imagen, bajo los textos.
 
 La misma `.cube` sirve para grabaciones futuras en CapCut, Premiere, DaVinci o Photoshop (Ajuste › Consulta de colores), así fotos y videos de obra mantienen la misma línea.

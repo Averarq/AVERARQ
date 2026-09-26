@@ -3,10 +3,11 @@
 crear_lut.py — genera la LUT de color AVERARQ (averarq.cube, 33³, Rec.709 SDR).
 
 Una sola línea visual para renders, fotos y video de dron, celular y recorridos:
-  · verdes llevados a oliva y menos saturados (el pasto deja de competir)
-  · cielos hacia azul petróleo, más calmos
+  · verdes hacia oliva cálido, vivos pero sin flúor
+  · cielos hacia turquesa limpio
   · naranjos y terracotas intactos: tejas, ladrillo y el naranjo de marca son el acento
-  · curva de película: negros levantados, altas suaves, leve contraste en medios
+  · vibración: realza los colores apagados más que los ya saturados
+  · curva con contraste en medios, negros apenas levantados y altas suaves
   · sombras levemente frías y luces cálidas
 
 Sirve también en CapCut, Premiere, DaVinci o Photoshop (Ajuste > Consulta de colores).
@@ -50,17 +51,17 @@ def graduar(c):
     verde = banda(h, 95, 60)
     azul = banda(h, 212, 45)
     naranjo = banda(h, 22, 22)
-    h = h - 22 * verde - 12 * azul                     # verde→oliva, azul→petróleo
-    s = s * (1 - 0.55 * verde) * (1 - 0.45 * azul) * (1 + 0.08 * naranjo) * 0.82
-    s = np.clip(s, 0, 1)
+    h = h - 18 * verde - 12 * azul                     # verde→oliva cálido, azul→turquesa
+    s = s * (1 - 0.30 * verde) * (1 - 0.22 * azul) * (1 + 0.15 * naranjo) * 0.98
+    s = np.clip(s + 0.45 * s * (1 - s), 0, 1)            # vibración
     c = hsv_a_rgb(h, s, v)
 
-    # curva de película por canal: contraste suave en medios, negros levantados, altas suaves
-    c = c + 0.22 * (c - 0.5) * (1 - np.abs(2 * c - 1))
-    c = 0.04 + (0.955 - 0.04) * np.clip(c, 0, 1)
+    # curva de película por canal: contraste suave en medios, negros apenas levantados, altas suaves
+    c = c + 0.26 * (c - 0.5) * (1 - np.abs(2 * c - 1))
+    c = 0.025 + (0.965 - 0.025) * np.clip(c, 0, 1)
     # virado: sombras frías, luces cálidas
     y = (c * [0.2126, 0.7152, 0.0722]).sum(-1, keepdims=True)
-    c = c + (1 - y) ** 2 * np.array([-0.02, 0.006, 0.03]) + y ** 2 * np.array([0.03, 0.014, -0.025])
+    c = c + (1 - y) ** 2 * np.array([-0.018, 0.005, 0.026]) + y ** 2 * np.array([0.028, 0.012, -0.022])
     return np.clip(c, 0, 1)
 
 
