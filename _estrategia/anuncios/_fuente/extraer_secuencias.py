@@ -46,16 +46,17 @@ TRAMOS = {
 # V6 · tomas de dron de un centro de eventos (solo como imagen; el video no lo nombra)
 RB = r'C:/Users/Alejandro Vera/Documents/0.AVERARQ/2026/2026_C.E. EL ROBLE/07_AUDIOVISUAL/'
 TRAMOS.update({
-    # todo en vertical a pantalla completa: el encuadre 9:16 sigue el movimiento (centro inicial → final)
-    'rb-valle':    (RB + 'DJI_20260922162735_0237_D.MP4', 4.0, 4.0, 0.50, 0.50, 'eq=brightness=0.0'),
-    'rb-orbita':   (RB + 'DJI_20260922162250_0231_D.MP4', 14.0, 8.0, 0.30, 0.70, 'eq=brightness=0.0', 2.0),
-    'rb-piscina':  (RB + 'DJI_20260922162134_0230_D.MP4', 2.0, 4.0, 0.36, 0.38, 'eq=brightness=0.0', 2.0),
-    # dron a baja altura recorriendo la terraza de madera y mirando el salón a través del vidrio
-    'rb-terraza':  (RB + 'DJI_20260803155452_0067_D.MP4', 38.0, 4.0, 0.50, 0.50, 'eq=brightness=0.02', 2.0),
-    'rb-vitral':   (RB + 'DJI_20260803155452_0067_D.MP4', 19.0, 4.0, 0.45, 0.55, 'eq=brightness=0.02', 2.0),
-    'rb-salon':    (RB + 'DJI_20260803160553_0074_D.MP4', 12.0, 2.0, 0.50, 0.50, 'eq=brightness=0.02'),
-    # cenital que asciende sobre el techo hasta mostrar recinto y piscina completos (x2)
-    'rb-cenital':  (RB + 'DJI_20260803154451_0062_D.MP4', 12.0, 12.0, 0.47, 0.44, 'eq=brightness=0.0', 2.0),
+    # todo en vertical, recorte FIJO (no compite con el movimiento del dron). Tramos elegidos midiendo el
+    # desplazamiento de cámara cuadro a cuadro: velocidad pareja de principio a fin, sin cambios de dirección.
+    'rb-valle':    (RB + 'DJI_20260922162735_0237_D.MP4', 38.0, 4.0, 0.50, 0.50, 'eq=brightness=0.0'),       # paneo +327 px/s
+    'rb-orbita':   (RB + 'DJI_20260922162250_0231_D.MP4', 34.5, 4.0, 0.50, 0.50, 'eq=brightness=0.0'),       # +71 px/s
+    'rb-piscina':  (RB + 'DJI_20260922162134_0230_D.MP4', 7.5, 2.0, 0.45, 0.45, 'eq=brightness=0.0'),        # +174 px/s
+    # dron a baja altura avanzando por la terraza (sin paneo) y el salón a través del vidrio
+    'rb-terraza':  (RB + 'DJI_20260803155452_0067_D.MP4', 50.0, 4.0, 0.50, 0.50, 'eq=brightness=0.02', 2.0),
+    'rb-vitral':   (RB + 'DJI_20260803155452_0067_D.MP4', 24.0, 2.0, 0.50, 0.50, 'eq=brightness=0.02'),      # −465 px/s
+    'rb-salon':    (RB + 'DJI_20260803160553_0074_D.MP4', 13.0, 2.0, 0.50, 0.50, 'eq=brightness=0.02'),      # +390 px/s
+    # cenital que asciende de forma pareja hasta mostrar recinto y piscina completos (x2)
+    'rb-cenital':  (RB + 'DJI_20260803154451_0062_D.MP4', 21.0, 12.0, 0.46, 0.46, 'eq=brightness=0.0', 2.0),
 })
 
 # imágenes fijas: nombre de salida → (ruta dentro de PROYECTO o patrón glob, ajuste previo o None = gráfica sin LUT)
