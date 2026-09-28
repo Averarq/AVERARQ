@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.16</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.17</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -233,7 +233,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.16</span></a>
+    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.17</span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <select id="selProyecto" title="Cambiar de proyecto"></select>
   <span id="nubeDot" class="nube-dot off" title="Sin nube"></span>
@@ -353,11 +353,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.16 =================
+/* ================= GESTOR AVERARQ v3.17 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.16";
+const GESTOR_VERSION="v3.17";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -2321,6 +2321,15 @@ function selectorProyectoHTML(origen){
     <div class="row"><span class="small" style="color:var(--muted)">${lista.length} proyecto(s) en este navegador${nubeCfg?" · sincronizados con la nube":""}${act&&act.soloNube?" · este está solo en la nube: se baja al abrirlo":""}</span></div>
   </div>`;
 }
+/* Partidas de gasto del CONTROL: pocas y de oficio, para saber en qué se fue la plata
+   sin convertir el registro en una contabilidad. */
+const PARTGASTO=[["gruesa","Obra gruesa"],["term","Terminaciones"],["elec","Eléctrica"],["gas","Gasfitería"],["otra","Otra"]];
+const PARTNOM=id=>{const p=PARTGASTO.find(x=>x[0]===id);return p?p[1]:"Sin asignar";};
+const PARTCOL={gruesa:"#8a7a5a",term:"#c08a4a",elec:"#e8b12c",gas:"#4f9dc4",otra:"#6b7280","":"#555"};
+function opcionesPartida(sel){
+  return `<option value="" ${!sel?"selected":""}>Sin asignar</option>`+
+    PARTGASTO.map(([id,nom])=>`<option value="${id}" ${sel===id?"selected":""}>${nom}</option>`).join("");
+}
 function controlTotales(){
   if(!state.control)state.control={contrato:"",gastos:[]};
   const c=state.control;
@@ -2333,7 +2342,14 @@ function controlTotales(){
   const contrato=+c.contrato||0;
   const utilidad=contrato-gastoTotal;
   const pct=n=>contrato>0?(n/contrato*100):0;
-  return {mat,mo,gg,otro,gastoTotal,contrato,utilidad,pctMat:pct(mat),pctMo:pct(mo),pctGG:pct(gg),pctOtro:pct(otro),pctUtil:pct(utilidad)};
+  // reparto por partida de obra (incluye "" = sin asignar)
+  const porPartida=[];
+  for(const [id] of PARTGASTO.concat([["",""]])){
+    const monto=g.filter(x=>(x.part||"")===id).reduce((s,x)=>s+(+x.monto||0),0);
+    if(monto>0)porPartida.push({id,nombre:PARTNOM(id),monto,pctGasto:gastoTotal>0?monto/gastoTotal*100:0});
+  }
+  porPartida.sort((a,b)=>b.monto-a.monto);
+  return {porPartida,mat,mo,gg,otro,gastoTotal,contrato,utilidad,pctMat:pct(mat),pctMo:pct(mo),pctGG:pct(gg),pctOtro:pct(otro),pctUtil:pct(utilidad)};
 }
 function htmlControl(){
   if(!state.control)state.control={contrato:"",gastos:[]};
@@ -2355,6 +2371,7 @@ function htmlControl(){
       <input type="date" id="ctrlFecha" style="width:140px" value="${new Date().toISOString().slice(0,10)}">
       <input type="number" id="ctrlMonto" style="width:110px" placeholder="monto $">
       <select id="ctrlCat" style="width:120px"><option value="material">Material</option><option value="mano_obra">Mano de obra</option><option value="gasto_general">Gasto general</option><option value="otro">Otro</option></select>
+      <select id="ctrlPart" style="width:130px" title="Partida de obra">${opcionesPartida("")}</select>
     </div>
     <div class="row"><input type="text" id="ctrlNota" class="grow" placeholder="nota (ej: fierro y cemento Sodimac)"><button class="btn primary" id="ctrlAdd">+ agregar</button></div>
   </div>
@@ -2372,6 +2389,7 @@ function htmlControl(){
     <div class="row">
       <label style="width:auto"># M1</label><input type="number" id="ctrlNM1" style="width:44px" value="1" min="0">
       ${c.usaM2?`<label style="width:auto"># M2</label><input type="number" id="ctrlNM2" style="width:44px" value="1" min="0">`:`<span class="small" style="color:var(--muted)">semana solo con M1</span>`}
+      <label style="width:auto">partida</label><select id="ctrlSemPart" style="width:130px">${opcionesPartida("")}</select>
       <span class="small grow" style="text-align:right;color:var(--muted)" id="ctrlSemPrev">—</span>
     </div>
     <div class="row"><button class="btn primary grow" id="ctrlSemAdd">+ agregar semana de maestros</button></div>
@@ -2380,17 +2398,18 @@ function htmlControl(){
   const g=(c.gastos||[]).map((x,i)=>({...x,_i:i})).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
   if(g.length){
     h+=`<div class="card"><div class="row"><b class="small" style="letter-spacing:1px;color:var(--txt2)">GASTOS REGISTRADOS (${g.length})</b><span class="small grow" style="text-align:right">Total: ${CLP(t.gastoTotal)}</span></div>
-    <table style="font-size:11px;width:100%"><tr style="color:var(--muted)"><th style="text-align:left">Fecha</th><th style="text-align:left">Categoría</th><th style="text-align:left">Nota</th><th class="money">Monto</th><th style="width:20px"></th></tr>`;
+    <table style="font-size:11px;width:100%"><tr style="color:var(--muted)"><th style="text-align:left">Fecha</th><th style="text-align:left">Categoría</th><th style="text-align:left">Partida</th><th style="text-align:left">Nota</th><th class="money">Monto</th><th style="width:20px"></th></tr>`;
     g.forEach(x=>{
       h+=`<tr>
         <td><input type="date" value="${x.fecha||""}" data-ctrledit="${x._i}" data-ck="fecha" style="width:120px;font-size:10px"></td>
-        <td><select data-ctrledit="${x._i}" data-ck="cat" style="width:110px;font-size:10px;color:${CATCOL[x.cat]||'#999'}">
+        <td><select data-ctrledit="${x._i}" data-ck="cat" style="width:96px;font-size:10px;color:${CATCOL[x.cat]||'#999'}">
           <option value="material" ${x.cat==="material"?"selected":""}>Material</option>
           <option value="mano_obra" ${x.cat==="mano_obra"?"selected":""}>Mano de obra</option>
           <option value="gasto_general" ${x.cat==="gasto_general"?"selected":""}>Gasto general</option>
           <option value="otro" ${x.cat==="otro"?"selected":""}>Otro</option></select></td>
-        <td><input type="text" value="${esc(x.nota||"")}" data-ctrledit="${x._i}" data-ck="nota" style="width:100%;font-size:11px"></td>
-        <td><input type="number" value="${x.monto}" data-ctrledit="${x._i}" data-ck="monto" style="width:90px;font-size:11px;text-align:right"></td>
+        <td><select data-ctrledit="${x._i}" data-ck="part" style="width:104px;font-size:10px;color:${PARTCOL[x.part||""]}">${opcionesPartida(x.part||"")}</select></td>
+        <td><input type="text" value="${esc(x.nota||"")}" data-ctrledit="${x._i}" data-ck="nota" style="width:100%;min-width:90px;font-size:11px"></td>
+        <td><input type="number" value="${x.monto}" data-ctrledit="${x._i}" data-ck="monto" style="width:78px;font-size:11px;text-align:right"></td>
         <td class="tdel" data-ctrldel="${x._i}">✕</td></tr>`;
     });
     h+=`</table></div>`;
@@ -2406,6 +2425,12 @@ function htmlControl(){
       ${t.otro>0?`<div class="tot"><span style="color:${CATCOL.otro}">Otro (${F(t.pctOtro,1)}%)</span><span class="money">${CLP(t.otro)}</span></div>${barra(t.pctOtro,CATCOL.otro)}`:""}
       <div class="tot big" style="color:${t.utilidad>=0?'var(--ok,#7fb069)':'#c0392b'}"><span>Utilidad real (${F(t.pctUtil,1)}%)</span><span class="money">${CLP(t.utilidad)}</span></div>${barra(t.pctUtil,t.utilidad>=0?'#7fb069':'#c0392b')}
     </div>`;
+    if(t.porPartida.length){
+      h+=`<h3 style="margin-top:14px">EN QUÉ SE FUE — POR PARTIDA</h3><div class="card">
+        ${t.porPartida.map(p=>`<div class="tot"><span style="color:${PARTCOL[p.id]}">${p.nombre} (${F(p.pctGasto,1)}% del gasto)</span><span class="money">${CLP(p.monto)}</span></div>${barra(p.pctGasto,PARTCOL[p.id])}`).join("")}
+        <p class="small" style="margin-top:6px;color:var(--muted)">Porcentajes sobre el gasto total (${CLP(t.gastoTotal)}), no sobre el contrato.</p>
+      </div>`;
+    }
   }
   // META DE RENTABILIDAD (cálculo inverso)
   const m=c.meta;
@@ -2984,7 +3009,7 @@ function bindTab(){
   const ctrlAdd=$("#ctrlAdd");if(ctrlAdd)ctrlAdd.onclick=()=>{
     const monto=parseFloat($("#ctrlMonto").value)||0;
     if(monto<=0){hint("Ingresa un monto válido.");return;}
-    state.control.gastos.push({fecha:$("#ctrlFecha").value,monto,cat:$("#ctrlCat").value,nota:$("#ctrlNota").value});
+    state.control.gastos.push({fecha:$("#ctrlFecha").value,monto,cat:$("#ctrlCat").value,part:$("#ctrlPart")?$("#ctrlPart").value:"",nota:$("#ctrlNota").value});
     renderTab();autosave();hint("Gasto registrado.");
   };
   $$("#tabContent [data-ctrldel]").forEach(x=>x.onclick=()=>{
@@ -3022,7 +3047,7 @@ function bindTab(){
     // numerar la semana consecutivamente contando las notas que empiezan con "Maestros semana"
     const nSem=(state.control.gastos.filter(x=>/^Maestros semana/i.test(x.nota||"")).length)+1;
     const detalle=`Maestros semana ${nSem} (${nM1}×M1 ${dM1}d${(usaM2&&nM2>0)?` + ${nM2}×M2 ${dM2}d`:""})`;
-    state.control.gastos.push({fecha:new Date().toISOString().slice(0,10),monto:tot,cat:"mano_obra",nota:detalle});
+    state.control.gastos.push({fecha:new Date().toISOString().slice(0,10),monto:tot,cat:"mano_obra",part:$("#ctrlSemPart")?$("#ctrlSemPart").value:"",nota:detalle});
     renderTab();autosave();hint("Semana "+nSem+" de maestros agregada: "+CLP(tot));
   };
   // Meta de rentabilidad
@@ -4213,6 +4238,7 @@ function emitirControl(){
   const fecha=new Date().toLocaleDateString("es-CL");
   const CATCOL={material:"#e8a33d",mano_obra:"#fc4c02",gasto_general:"#4f9dc4",otro:"#6b7280"};
   const CATNOM={material:"Material",mano_obra:"Mano de obra",gasto_general:"Gasto general",otro:"Otro"};
+  const PRCOL={gruesa:"#8a7a5a",term:"#c08a4a",elec:"#c99a20",gas:"#3d87b0",otra:"#6b7280","":"#999"};
   // barra de distribución horizontal (100% = contrato)
   const seg=(pct,col,lbl)=>pct>0?`<div style="width:${Math.min(100,pct)}%;background:${col};height:26px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:600;min-width:0;overflow:hidden">${pct>=8?lbl:""}</div>`:"";
   const barraDist=`<div style="display:flex;width:100%;border-radius:4px;overflow:hidden;border:1px solid #ddd">
@@ -4224,7 +4250,7 @@ function emitirControl(){
   </div>`;
   // lista de gastos ordenada por fecha
   const g=(c.gastos||[]).slice().sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||""));
-  let filas=g.map(x=>`<tr><td style="padding:3px 6px">${x.fecha||"—"}</td><td style="padding:3px 6px;color:${CATCOL[x.cat]||'#999'}">${CATNOM[x.cat]||"—"}</td><td style="padding:3px 6px">${esc(x.nota||"")}</td><td style="padding:3px 6px;text-align:right">${CLP(x.monto)}</td></tr>`).join("");
+  let filas=g.map(x=>`<tr><td style="padding:3px 6px">${x.fecha||"—"}</td><td style="padding:3px 6px;color:${CATCOL[x.cat]||'#999'}">${CATNOM[x.cat]||"—"}</td><td style="padding:3px 6px;color:${PRCOL[x.part||""]}">${PARTNOM(x.part||"")}</td><td style="padding:3px 6px">${esc(x.nota||"")}</td><td style="padding:3px 6px;text-align:right">${CLP(x.monto)}</td></tr>`).join("");
   $("#printArea").innerHTML=`<div class="pr-page">`+prHead("CONTROL DE OBRA — RESULTADO",fecha)+`
     <div style="margin:10px 0 18px">
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>Contrato / venta</span><b>${CLP(t.contrato)}</b></div>
@@ -4240,11 +4266,16 @@ function emitirControl(){
       ${t.otro>0?`<span><b style="color:${CATCOL.otro}">■</b> Otro: ${CLP(t.otro)} (${F(t.pctOtro,1)}%)</span>`:""}
       <span><b style="color:${t.utilidad>=0?'#3a8a5a':'#c0392b'}">■</b> Utilidad: ${CLP(t.utilidad)} (${F(t.pctUtil,1)}%)</span>
     </div>
+    ${t.porPartida.length?`<h2 style="font-size:13px;color:#fc4c02;letter-spacing:1px;margin:18px 0 6px">GASTO POR PARTIDA</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:10.5px">
+      <tr style="background:#f7f6f2;color:#555"><th style="padding:4px 6px;text-align:left">Partida</th><th style="padding:4px 6px;text-align:right">Monto</th><th style="padding:4px 6px;text-align:right">% del gasto</th></tr>
+      ${t.porPartida.map(p=>`<tr><td style="padding:3px 6px;color:${PRCOL[p.id]}">${p.nombre}</td><td style="padding:3px 6px;text-align:right">${CLP(p.monto)}</td><td style="padding:3px 6px;text-align:right">${F(p.pctGasto,1)}%</td></tr>`).join("")}
+    </table>`:""}
     ${filas?`<h2 style="font-size:13px;color:#fc4c02;letter-spacing:1px;margin:18px 0 6px">DETALLE DE GASTOS</h2>
     <table style="width:100%;border-collapse:collapse;font-size:10.5px">
-      <tr style="background:#f7f6f2;color:#555"><th style="padding:4px 6px;text-align:left">Fecha</th><th style="padding:4px 6px;text-align:left">Categoría</th><th style="padding:4px 6px;text-align:left">Nota</th><th style="padding:4px 6px;text-align:right">Monto</th></tr>
+      <tr style="background:#f7f6f2;color:#555"><th style="padding:4px 6px;text-align:left">Fecha</th><th style="padding:4px 6px;text-align:left">Categoría</th><th style="padding:4px 6px;text-align:left">Partida</th><th style="padding:4px 6px;text-align:left">Nota</th><th style="padding:4px 6px;text-align:right">Monto</th></tr>
       ${filas}
-      <tr style="border-top:2px solid #333"><td colspan="3" style="padding:4px 6px;font-weight:bold">TOTAL GASTOS</td><td style="padding:4px 6px;text-align:right;font-weight:bold">${CLP(t.gastoTotal)}</td></tr>
+      <tr style="border-top:2px solid #333"><td colspan="4" style="padding:4px 6px;font-weight:bold">TOTAL GASTOS</td><td style="padding:4px 6px;text-align:right;font-weight:bold">${CLP(t.gastoTotal)}</td></tr>
     </table>`:""}
     <p style="margin-top:16px;font-size:9px;color:#999">Control de gastos reales del proyecto. Documento de uso interno para seguimiento de rentabilidad.</p>
     `+prFoot()+`</div>`;
