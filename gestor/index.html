@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.14</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.16</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -29,6 +29,8 @@ body{background:var(--bg);color:var(--txt);font:13px/1.45 'Segoe UI',system-ui,s
 .nube-dot.ok{background:#7fb069}
 .nube-dot.sync{background:#e8b12c}
 .nube-dot.err{background:#c0392b}
+#avisoResp{border-color:var(--naranja);color:var(--naranja2);font-weight:600}
+#avisoResp.urgente{background:var(--naranja);border-color:var(--naranja);color:#fff}
 #proyLista table{width:100%;font-size:11px}
 #proyLista td{padding:3px 4px;vertical-align:middle}
 #topbar .sep{flex:1}
@@ -231,10 +233,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.14</span></a>
+    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.16</span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <select id="selProyecto" title="Cambiar de proyecto"></select>
   <span id="nubeDot" class="nube-dot off" title="Sin nube"></span>
+  <button class="btn" id="avisoResp" style="display:none" title="Hace falta respaldar la nube"></button>
   <button class="btn" id="btnProyNuevo" title="Crear un proyecto nuevo">＋</button>
   <button class="btn" id="btnProyGest" title="Proyectos guardados en este navegador">🗂</button>
   <div class="sep"></div>
@@ -333,6 +336,14 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
       <span class="grow"></span>
       <button class="btn" id="nubeDesconectar">Desconectar</button></div>
   </div>
+  <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line)">
+    <div class="row"><b class="small" style="letter-spacing:1px;color:var(--txt2)">RESPALDO DE LA NUBE</b>
+      <span class="small grow" style="text-align:right" id="respEstado">—</span></div>
+    <p class="small" style="color:var(--muted);margin:4px 0 6px">La nube no guarda versiones: si algo se borra ahí, se perdió. Conviene bajar un respaldo <b>cada viernes</b>. En el computador de la oficina, en PowerShell:</p>
+    <code class="small" style="display:block;background:var(--bg);padding:6px 8px;border-radius:3px;color:var(--txt2);word-break:break-all">cd "...\0.AV\averarq-backend" · node respaldar.mjs</code>
+    <div class="row" style="margin-top:6px"><button class="btn mini" id="respPosponer">Posponer el aviso hasta mañana</button>
+      <span class="small grow" style="text-align:right;color:var(--muted)">el contador se reinicia solo al respaldar</span></div>
+  </div>
   <div class="row" style="gap:8px;margin-top:12px">
     <button class="btn" id="proyNuevo">＋ Nuevo proyecto</button>
     <span class="small grow" id="proyEspacio" style="text-align:right;color:var(--muted)"></span>
@@ -342,11 +353,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.14 =================
+/* ================= GESTOR AVERARQ v3.16 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.14";
+const GESTOR_VERSION="v3.16";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -2293,6 +2304,23 @@ function htmlRecibo(){
   </div>
   <div class="row" style="margin-top:10px"><button class="btn primary grow" id="recEmitir">🖨 Emitir recibo</button></div>`;
 }
+/* Selector de proyecto dentro de una pestaña: mismo cambio de proyecto que la barra
+   superior, sin tener que volver arriba. */
+function selectorProyectoHTML(origen){
+  const lista=proyOrdenados();
+  const act=lista.find(x=>x.id===proyActivo);
+  const opciones=lista.map(x=>`<option value="${x.id}" ${x.id===proyActivo?"selected":""}>${esc(x.nombre||"Sin título")}${x.soloNube?" ☁":""}</option>`).join("")
+    || `<option value="">(sin proyectos)</option>`;
+  return `<h3>PROYECTO</h3>
+  <div class="card" style="border-left:3px solid var(--naranja)">
+    <div class="row">
+      <select class="grow" data-proysel="${origen}" title="Cambiar de proyecto">${opciones}</select>
+      <button class="btn mini" data-proynuevo="1" title="Crear un proyecto nuevo">＋ Nuevo</button>
+      <button class="btn mini" data-proygest="1" title="Ver todos los proyectos, duplicar, exportar o eliminar">🗂 Gestionar</button>
+    </div>
+    <div class="row"><span class="small" style="color:var(--muted)">${lista.length} proyecto(s) en este navegador${nubeCfg?" · sincronizados con la nube":""}${act&&act.soloNube?" · este está solo en la nube: se baja al abrirlo":""}</span></div>
+  </div>`;
+}
 function controlTotales(){
   if(!state.control)state.control={contrato:"",gastos:[]};
   const c=state.control;
@@ -2316,7 +2344,7 @@ function htmlControl(){
   const c=state.control; const t=controlTotales();
   const CATNOM={material:"Material",mano_obra:"Mano de obra",gasto_general:"Gasto general",otro:"Otro"};
   const CATCOL={material:"#e8a33d",mano_obra:"#fc4c02",gasto_general:"#4f9dc4",otro:"#6b7280"};
-  let h=`<h3>CONTROL DE OBRA — GASTO REAL</h3>
+  let h=selectorProyectoHTML("control")+`<h3>CONTROL DE OBRA — GASTO REAL</h3>
   <p class="small" style="margin-bottom:8px">Registra los gastos reales del proyecto (boletas, compras, pago de maestros) a medida que ocurren. Compara contra el monto del contrato para ver tu utilidad real y en qué se fue.</p>
   <div class="card">
     <div class="row"><label style="width:150px">Monto del contrato/venta $</label><input type="number" style="width:150px" value="${c.contrato}" data-ctrl="contrato" placeholder="lo que cobras por la obra"></div>
@@ -2947,6 +2975,10 @@ function bindTab(){
     renderTab();autosave();hint("Monto importado desde HONORARIOS");
   };
   const recEm=$("#recEmitir");if(recEm)recEm.onclick=emitirRecibo;
+  // Selector de proyecto dentro de la pestaña
+  $$("#tabContent [data-proysel]").forEach(sel=>sel.onchange=()=>proyAbrir(sel.value));
+  $$("#tabContent [data-proynuevo]").forEach(b=>b.onclick=proyNuevoCmd);
+  $$("#tabContent [data-proygest]").forEach(b=>b.onclick=()=>$("#btnProyGest").click());
   // Control de obra
   const ctrlC=$('[data-ctrl="contrato"]');if(ctrlC)ctrlC.addEventListener("change",()=>{state.control.contrato=parseFloat(ctrlC.value)||"";renderTab();autosave();});
   const ctrlAdd=$("#ctrlAdd");if(ctrlAdd)ctrlAdd.onclick=()=>{
@@ -3307,6 +3339,55 @@ function nubeUrlSugerida(){
   if(typeof AVERARQ_NUBE_URL==="string"&&AVERARQ_NUBE_URL)return AVERARQ_NUBE_URL;
   return "";
 }
+/* ---------- AVISO DE RESPALDO ----------
+   Lee el registro que deja respaldar.mjs en la nube y cuenta los días.
+   Recuerda los viernes y cuando pasa una semana. */
+const RESP_POSPUESTO="averarq_respaldo_pospuesto";
+let respRegistro=null;
+function respDias(){
+  if(!respRegistro||!respRegistro.fecha)return null;
+  const d=new Date(respRegistro.fecha);
+  if(isNaN(d))return null;
+  return Math.floor((Date.now()-d.getTime())/86400000);
+}
+function respTocaHoy(){
+  const dias=respDias();
+  if(dias===null)return true;                     // nunca se ha respaldado
+  if(dias>=7)return true;                         // pasó una semana
+  return new Date().getDay()===5 && dias>=1;      // es viernes y hoy no se ha respaldado
+}
+function respTexto(){
+  const dias=respDias();
+  if(dias===null)return "sin respaldo registrado";
+  if(dias===0)return "respaldado hoy";
+  if(dias===1)return "hace 1 día";
+  return "hace "+dias+" días";
+}
+function respPintar(){
+  const chip=$("#avisoResp"), est=$("#respEstado");
+  const dias=respDias();
+  if(est){
+    est.textContent=respTexto()+(respRegistro&&respRegistro.equipo?" · "+respRegistro.equipo:"");
+    est.style.color=(dias===null||dias>=7)?"var(--naranja2)":(dias>=5?"var(--warn,#e8b12c)":"var(--ok,#7fb069)");
+  }
+  if(!chip)return;
+  let pospuesto=""; try{pospuesto=localStorage.getItem(RESP_POSPUESTO)||"";}catch(e){}
+  const hoy=new Date().toISOString().slice(0,10);
+  const mostrar=nubeCfg && respTocaHoy() && pospuesto!==hoy;
+  chip.style.display=mostrar?"":"none";
+  if(mostrar){
+    chip.textContent="⚠ Respaldar · "+respTexto();
+    chip.classList.toggle("urgente",dias===null||dias>=14);
+    chip.title="La nube no guarda versiones. Corre node respaldar.mjs en el computador de la oficina.";
+  }
+}
+function respCargar(){
+  if(!nubeCfg){respRegistro=null;respPintar();return Promise.resolve();}
+  return nubeFetch("/api/respaldo/registro")
+    .then(r=>{respRegistro=r.registro||null;})
+    .catch(()=>{respRegistro=null;})
+    .then(respPintar);
+}
 function nubeDot(cls,txt){
   const d=$("#nubeDot");if(d){d.className="nube-dot "+cls;d.title=txt;}
   const e=$("#nubeEstado");if(e){e.textContent=txt;e.style.color=cls==="err"?"var(--naranja2)":(cls==="ok"?"var(--ok,#7fb069)":"var(--muted)");}
@@ -3390,6 +3471,7 @@ function nubeSincronizar(avisar){
     return Promise.all(tareas).then(()=>{
       proyFirma="";renderProySelect();renderProyLista();
       nubeDot("ok","Conectado a la nube");
+      respCargar();
       if(avisar)hint("Nube: "+nuevos+" nuevo(s) · "+bajados+" actualizado(s) · "+subidos+" subido(s).");
     });
   }).catch(e=>{
@@ -3505,7 +3587,7 @@ $("#btnProyGest").onclick=()=>{
   $("#nubeUrl").value=nubeUrlSugerida();
   $("#nubeToken").value=nubeCfg?nubeCfg.token:"";
   nubeDot(nubeCfg?"ok":"off",nubeCfg?"Conectado a la nube":"Sin nube: los proyectos viven solo en este navegador");
-  renderProyLista();$("#dlgProy").showModal();
+  renderProyLista();respPintar();respCargar();$("#dlgProy").showModal();
 };
 $("#proyNuevo").onclick=()=>{proyNuevoCmd();renderProyLista();};
 $("#proyCerrar").onclick=()=>$("#dlgProy").close();
@@ -3517,6 +3599,11 @@ $("#nubeConectar").onclick=()=>{
   nubeSincronizar(true);
 };
 $("#nubeSync").onclick=()=>nubeSincronizar(true);
+$("#avisoResp").onclick=()=>{$("#btnProyGest").click();};
+$("#respPosponer").onclick=()=>{
+  try{localStorage.setItem(RESP_POSPUESTO,new Date().toISOString().slice(0,10));}catch(e){}
+  respPintar();hint("Aviso de respaldo pospuesto hasta mañana.");
+};
 $("#nubeDesconectar").onclick=()=>{
   if(!confirm("¿Desconectar la nube?\n\nLos proyectos siguen en este navegador y en la nube, pero dejan de sincronizarse. En averarq.cl esta configuración es la misma del ORGANIZADOR, así que también se desconecta allá."))return;
   try{localStorage.removeItem(NUBE_CFG);}catch(e){}
