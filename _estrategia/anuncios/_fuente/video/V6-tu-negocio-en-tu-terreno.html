@@ -27,10 +27,10 @@
 </div>
 
 <!-- 2 · Qué puede ser -->
-<div class="escena" id="s2" style="background:var(--oscuro)">
-  <img id="s2f" class="difuso" alt="">
-  <div class="franja" id="s2m"><img id="s2v" alt=""></div>
+<div class="escena" id="s2">
+  <div class="full"><img id="s2v" alt=""></div>
   <div class="grano"></div><div class="vineta"></div>
+  <div class="sombra-arriba" style="height:900px;background:linear-gradient(180deg,rgba(17,17,16,.88),rgba(17,17,16,.5) 55%,rgba(17,17,16,0))"></div>
   <div class="abs h1" id="s2h" style="left:80px;top:250px;font-size:104px">
     <span class="linea" id="w1">Un centro de eventos.</span>
     <span class="linea" id="w2">Un restorán.</span>
@@ -39,28 +39,29 @@
 </div>
 
 <!-- 3 · Pensado para ti -->
-<div class="escena" id="s3" style="background:var(--oscuro)">
-  <img id="s3f" class="difuso" alt="">
-  <div class="franja" id="s3m"><img id="s3v" alt=""></div>
+<div class="escena" id="s3">
+  <div class="full"><img id="s3v" alt=""></div>
   <div class="grano"></div><div class="vineta"></div>
+  <div class="sombra-arriba" style="height:900px;background:linear-gradient(180deg,rgba(17,17,16,.88),rgba(17,17,16,.5) 55%,rgba(17,17,16,0))"></div>
   <div class="abs h1" id="s3h" style="left:80px;top:300px;font-size:104px">Pensado para tu terreno<br><span class="o">y tu público.</span></div>
 </div>
 
 <!-- 4 · La experiencia -->
-<div class="escena" id="s4" style="background:var(--oscuro)">
-  <img id="s4f" class="difuso" alt="">
-  <div class="franja" id="s4m"><img id="s4v" alt=""></div>
+<div class="escena" id="s4">
+  <div class="full"><img id="s4v" alt=""></div>
   <div class="grano"></div><div class="vineta"></div>
+  <div class="sombra-arriba" style="height:900px;background:linear-gradient(180deg,rgba(17,17,16,.88),rgba(17,17,16,.5) 55%,rgba(17,17,16,0))"></div>
   <div class="abs h1" id="s4h" style="left:80px;top:300px;font-size:104px">Espacios que la gente<br><span class="o">quiere vivir.</span></div>
 </div>
 
 <!-- 5 · El camino (la toma se aleja hasta mostrar el recinto completo) -->
-<div class="escena" id="s5" style="background:var(--oscuro)">
-  <img id="s5f" class="difuso" alt="">
-  <div class="franja" id="s5m"><img id="s5v" alt=""></div>
+<div class="escena" id="s5">
+  <div class="sombra-abajo" style="height:700px"></div>
+  <div class="full"><img id="s5v" alt=""></div>
   <div class="grano"></div><div class="vineta"></div>
+  <div class="sombra-arriba" style="height:900px;background:linear-gradient(180deg,rgba(17,17,16,.88),rgba(17,17,16,.5) 55%,rgba(17,17,16,0))"></div>
   <div class="abs h1" id="s5h" style="left:80px;top:250px;font-size:104px">¿No sabes por<br><span class="o">dónde empezar?</span></div>
-  <div class="abs pasos" id="s5p" style="left:80px;top:1420px">
+  <div class="abs pasos" id="s5p" style="left:80px;top:1400px">
     <span id="p1"><b>1</b> Diseño</span><span id="p2"><b>2</b> Permisos</span><span id="p3"><b>3</b> Obra</span>
   </div>
 </div>
@@ -87,14 +88,11 @@ DURACION = 26;
 PORTADA = 2.6;
 AUDIO = '../musica/V5-musica.wav';
 // mismos cortes que V5 (compases de 2 s a 120 BPM): calza con cualquiera de sus tres músicas.
-// La toma de la fachada termina de revelar el recinto cuando cae el 808 (21,0 s).
+// Todo en vertical a pantalla completa; el cenital termina de revelar el recinto cuando cae el 808 (21,0 s).
 var T2 = 4, T3 = 8, T4 = 12, T5 = 16, T6 = 22;
 
-function franja(pre, carpeta, n, t, a, espera) {
+function plano(pre, carpeta, n, t, a, espera) {
   espera.push(secuencia(pre + 'v', carpeta, n, t, a));
-  espera.push(secuencia(pre + 'f', carpeta, n, t, a));
-  var k = ease.out(p(t, a, a + 0.5));
-  $(pre + 'm').style.clipPath = 'inset(' + ((1 - k) * 50) + '% 0 ' + ((1 - k) * 50) + '% 0)';
 }
 
 frame = function (t) {
@@ -107,28 +105,28 @@ frame = function (t) {
   }
 
   if (escena('#s2', t, T2, T3)) {
-    franja('#s2', 'rb-orbita', 120, t, T2, espera);
+    plano('#s2', 'rb-orbita', 120, t, T2, espera);
     ['#w1', '#w2', '#w3'].forEach(function (id, i) { sube(id, t, T2 + 0.25 + i * 0.75, 0.4, 40); });
   }
 
   if (escena('#s3', t, T3, T4)) {
-    franja('#s3', 'rb-piscina', 120, t, T3, espera);
+    plano('#s3', 'rb-piscina', 120, t, T3, espera);
     sube('#s3h', t, T3 + 0.25, 0.5);
   }
 
   if (escena('#s4', t, T4, T5)) {
-    franja('#s4', 'rb-salon', 120, t, T4, espera);
+    plano('#s4', 'rb-salon', 120, t, T4, espera);
     sube('#s4h', t, T4 + 0.25, 0.5);
   }
 
   if (escena('#s5', t, T5, T6)) {
-    franja('#s5', 'rb-fachada', 180, t, T5, espera);
+    plano('#s5', 'rb-cenital', 180, t, T5, espera);
     sube('#s5h', t, T5 + 0.25, 0.5);
     ['#p1', '#p2', '#p3'].forEach(function (id, i) { sube(id, t, 21.0 + i * 0.3, 0.35, 30); });
   }
 
   if (escena('#s6', t, T6, 99)) {
-    espera.push(secuencia('#s6f', 'rb-fachada', 180, 99, 0));
+    espera.push(secuencia('#s6f', 'rb-cenital', 180, 99, 0));
     sube('#s6b', t, T6 + 0.05, 0.4, 30);
     sube('#s6h', t, T6 + 0.15, 0.5);
     sube('#s6p', t, T6 + 0.45, 0.4, 30);

@@ -46,12 +46,13 @@ TRAMOS = {
 # V6 · tomas de dron de un centro de eventos (solo como imagen; el video no lo nombra)
 RB = r'C:/Users/Alejandro Vera/Documents/0.AVERARQ/2026/2026_C.E. EL ROBLE/07_AUDIOVISUAL/'
 TRAMOS.update({
+    # todo en vertical a pantalla completa: el encuadre 9:16 sigue el movimiento (centro inicial → final)
     'rb-valle':    (RB + 'DJI_20260922162735_0237_D.MP4', 4.0, 4.0, 0.50, 0.50, 'eq=brightness=0.0'),
-    'rb-orbita':   (RB + 'DJI_20260922162250_0231_D.MP4', 14.0, 8.0, 'ancho', None, 'eq=brightness=0.0', 2.0),
-    'rb-piscina':  (RB + 'DJI_20260922162134_0230_D.MP4', 2.0, 8.0, 'ancho', None, 'eq=brightness=0.0', 2.0),
-    'rb-salon':    (RB + 'DJI_20260803160425_0073_D.MP4', 20.0, 4.0, 'ancho', None, 'eq=brightness=0.02'),
-    # se aleja de la fachada de vidrio hasta mostrar el recinto completo (x2 de velocidad)
-    'rb-fachada':  (RB + 'DJI_20260922163454_0243_D.MP4', 3.0, 12.0, 'ancho', None, 'eq=brightness=0.0', 2.0),
+    'rb-orbita':   (RB + 'DJI_20260922162250_0231_D.MP4', 14.0, 8.0, 0.30, 0.70, 'eq=brightness=0.0', 2.0),
+    'rb-piscina':  (RB + 'DJI_20260922162134_0230_D.MP4', 2.0, 8.0, 0.36, 0.40, 'eq=brightness=0.0', 2.0),
+    'rb-salon':    (RB + 'DJI_20260803160553_0074_D.MP4', 12.0, 4.0, 0.50, 0.50, 'eq=brightness=0.02'),
+    # cenital que asciende sobre el techo hasta mostrar recinto y piscina completos (x2)
+    'rb-cenital':  (RB + 'DJI_20260803154451_0062_D.MP4', 12.0, 12.0, 0.47, 0.44, 'eq=brightness=0.0', 2.0),
 })
 
 # imágenes fijas: nombre de salida → (ruta dentro de PROYECTO o patrón glob, ajuste previo o None = gráfica sin LUT)
