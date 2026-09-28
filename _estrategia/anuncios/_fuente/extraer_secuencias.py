@@ -49,8 +49,11 @@ TRAMOS.update({
     # todo en vertical a pantalla completa: el encuadre 9:16 sigue el movimiento (centro inicial → final)
     'rb-valle':    (RB + 'DJI_20260922162735_0237_D.MP4', 4.0, 4.0, 0.50, 0.50, 'eq=brightness=0.0'),
     'rb-orbita':   (RB + 'DJI_20260922162250_0231_D.MP4', 14.0, 8.0, 0.30, 0.70, 'eq=brightness=0.0', 2.0),
-    'rb-piscina':  (RB + 'DJI_20260922162134_0230_D.MP4', 2.0, 8.0, 0.36, 0.40, 'eq=brightness=0.0', 2.0),
-    'rb-salon':    (RB + 'DJI_20260803160553_0074_D.MP4', 12.0, 4.0, 0.50, 0.50, 'eq=brightness=0.02'),
+    'rb-piscina':  (RB + 'DJI_20260922162134_0230_D.MP4', 2.0, 4.0, 0.36, 0.38, 'eq=brightness=0.0', 2.0),
+    # dron a baja altura recorriendo la terraza de madera y mirando el salón a través del vidrio
+    'rb-terraza':  (RB + 'DJI_20260803155452_0067_D.MP4', 38.0, 4.0, 0.50, 0.50, 'eq=brightness=0.02', 2.0),
+    'rb-vitral':   (RB + 'DJI_20260803155452_0067_D.MP4', 19.0, 4.0, 0.45, 0.55, 'eq=brightness=0.02', 2.0),
+    'rb-salon':    (RB + 'DJI_20260803160553_0074_D.MP4', 12.0, 2.0, 0.50, 0.50, 'eq=brightness=0.02'),
     # cenital que asciende sobre el techo hasta mostrar recinto y piscina completos (x2)
     'rb-cenital':  (RB + 'DJI_20260803154451_0062_D.MP4', 12.0, 12.0, 0.47, 0.44, 'eq=brightness=0.0', 2.0),
 })

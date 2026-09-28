@@ -110,12 +110,12 @@ frame = function (t) {
   }
 
   if (escena('#s3', t, T3, T4)) {
-    plano('#s3', 'rb-piscina', 120, t, T3, espera);
+    if (t < T3 + 2) plano('#s3', 'rb-piscina', 60, t, T3, espera); else plano('#s3', 'rb-terraza', 60, t, T3 + 2, espera);
     sube('#s3h', t, T3 + 0.25, 0.5);
   }
 
   if (escena('#s4', t, T4, T5)) {
-    plano('#s4', 'rb-salon', 120, t, T4, espera);
+    if (t < T4 + 2) plano('#s4', 'rb-vitral', 60, t, T4, espera); else plano('#s4', 'rb-salon', 60, t, T4 + 2, espera);
     sube('#s4h', t, T4 + 0.25, 0.5);
   }
 
