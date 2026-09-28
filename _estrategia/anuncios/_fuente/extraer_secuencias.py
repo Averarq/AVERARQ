@@ -22,7 +22,7 @@ import os, shutil, subprocess, sys
 AQUI = os.path.dirname(os.path.abspath(__file__))
 SALIDA = os.path.join(AQUI, 'secuencias')
 PROYECTO = r'C:/Users/Alejandro Vera/Documents/0.AVERARQ/2025/2025_Andrés Martinez'
-ORIGEN = PROYECTO + '/audiovisual'
+ORIGEN = PROYECTO + '/09_AUDIOVISUAL'
 LUT = 'color/averarq.cube'   # relativa a AQUI (ffmpeg corre con cwd=AQUI)
 FPS = 30
 
@@ -43,20 +43,31 @@ TRAMOS = {
     'sc-dron-mano': ('IMG_5241.MOV', 20.4, 4.0, None, None, 'eq=brightness=0.03:contrast=0.97'),
 }
 
+# V6 · tomas de dron de un centro de eventos (solo como imagen; el video no lo nombra)
+RB = r'C:/Users/Alejandro Vera/Documents/0.AVERARQ/2026/2026_C.E. EL ROBLE/07_AUDIOVISUAL/'
+TRAMOS.update({
+    'rb-valle':    (RB + 'DJI_20260922162735_0237_D.MP4', 4.0, 4.0, 0.50, 0.50, 'eq=brightness=0.0'),
+    'rb-orbita':   (RB + 'DJI_20260922162250_0231_D.MP4', 14.0, 8.0, 'ancho', None, 'eq=brightness=0.0', 2.0),
+    'rb-piscina':  (RB + 'DJI_20260922162134_0230_D.MP4', 2.0, 8.0, 'ancho', None, 'eq=brightness=0.0', 2.0),
+    'rb-salon':    (RB + 'DJI_20260803160425_0073_D.MP4', 20.0, 4.0, 'ancho', None, 'eq=brightness=0.02'),
+    # se aleja de la fachada de vidrio hasta mostrar el recinto completo (x2 de velocidad)
+    'rb-fachada':  (RB + 'DJI_20260922163454_0243_D.MP4', 3.0, 12.0, 'ancho', None, 'eq=brightness=0.0', 2.0),
+})
+
 # imágenes fijas: nombre de salida → (ruta dentro de PROYECTO o patrón glob, ajuste previo o None = gráfica sin LUT)
 FIJAS = {
     'render-aereo': ('/RENDERS/Escena 4.png', 'eq=saturation=0.92:contrast=1.03'),
-    'dron-oblicua': ('/audiovisual/' + SEP + 'DJI_20260916111954_0208_D.JPG', 'eq=brightness=0.0'),
-    'int-cielo':    ('/audiovisual/' + SEP + '1790392291243.jpg', 'eq=brightness=0.01'),
-    'int-ventanal': ('/audiovisual/' + SEP + '1790392290144.jpg', 'eq=brightness=0.0'),
-    'int-puerta':   ('/audiovisual/' + SEP + '1790392290481.jpg', 'eq=brightness=0.0'),
+    'dron-oblicua': ('/09_AUDIOVISUAL/' + SEP + 'DJI_20260916111954_0208_D.JPG', 'eq=brightness=0.0'),
+    'int-cielo':    ('/09_AUDIOVISUAL/' + SEP + '1790392291243.jpg', 'eq=brightness=0.01'),
+    'int-ventanal': ('/09_AUDIOVISUAL/' + SEP + '1790392290144.jpg', 'eq=brightness=0.0'),
+    'int-puerta':   ('/09_AUDIOVISUAL/' + SEP + '1790392290481.jpg', 'eq=brightness=0.0'),
 }
 
 # gráficas de marca (sin LUT). Las plantas se recortan al dibujo (misma caja para ambas), en su orientación original.
 GRAFICAS = {
-    'planta-naranjo': ('/audiovisual/Patr*-08.png', True),
-    'planta-blanca':  ('/audiovisual/Patr*-09.png', True),
-    'patron':         ('/audiovisual/Patr*-10.png', False),
+    'planta-naranjo': ('/09_AUDIOVISUAL/Patr*-08.png', True),
+    'planta-blanca':  ('/09_AUDIOVISUAL/Patr*-09.png', True),
+    'patron':         ('/09_AUDIOVISUAL/Patr*-10.png', False),
 }
 
 
@@ -71,7 +82,7 @@ def ffmpeg(args):
     subprocess.run(['ffmpeg', '-v', 'error', '-y'] + args, check=True, cwd=AQUI)
 
 
-def extraer(nombre, archivo, inicio, dur, c0, c1, ajuste, forzar):
+def extraer(nombre, archivo, inicio, dur, c0, c1, ajuste, forzar, vel=1.0):
     dst = os.path.join(SALIDA, nombre)
     if os.path.isdir(dst) and os.listdir(dst) and not forzar:
         print('--', nombre, '(ya existe)')
@@ -81,7 +92,7 @@ def extraer(nombre, archivo, inicio, dur, c0, c1, ajuste, forzar):
     ruta = os.path.join(ORIGEN, archivo)
     w, h, tr = info(ruta)
     cadena = [HDR_A_SDR] if tr == 'arib-std-b67' else []
-    cadena.append('fps=%d' % FPS)
+    cadena.append('fps=%g' % (FPS / vel))      # vel=2 → la mitad de cuadros: se ve al doble de velocidad
     if c0 == 'cw':
         cadena.append('transpose=1')
     elif c0 == 'ancho':
@@ -149,8 +160,8 @@ def graficas(forzar):
 
 if __name__ == '__main__':
     forzar = '--forzar' in sys.argv
-    for nombre, (archivo, inicio, dur, c0, c1, ajuste) in TRAMOS.items():
-        extraer(nombre, archivo, inicio, dur, c0, c1, ajuste, forzar)
+    for nombre, t in TRAMOS.items():
+        extraer(nombre, *t[:6], forzar, *t[6:])
     for nombre, (ruta, ajuste) in FIJAS.items():
         fija(nombre, ruta, ajuste, forzar)
     graficas(forzar)

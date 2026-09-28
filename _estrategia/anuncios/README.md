@@ -30,6 +30,7 @@ Hay 30 piezas listas para subir en `piezas/`, y `vista-general.jpg` las muestra 
 | `VCALC` | `https://averarq.cl/?utm_source=meta&utm_medium=paid&utm_campaign=AVQ_CASA&utm_content=V3#cotizador` | — (sitio web, estimador) |
 | `VCOM` | WhatsApp | Hola Averarq, vi el video del restobar y tengo un local [VCOM] |
 | `VSC` | WhatsApp | Hola Averarq, vi el video de la casa en Catemu y tengo una parcela [VSC] |
+| `VNEG` | WhatsApp | Hola Averarq, tengo un terreno y una idea de negocio [VNEG] |
 
 > **Cuando exista `/casa-en-tu-parcela`**, cambia el destino de `CASA2` a esa landing y conserva los mismos UTM. Hoy apunta al estimador de la portada (`#cotizador`), que desde la Semana 0 pesa 64 KB de HTML (las imágenes ya no van embebidas).
 
@@ -201,6 +202,7 @@ Cinco reels de 13 a 24 s en `videos/`, cada uno con su miniatura (`-portada.jpg`
 | **V2 · ¿Ampliaste sin permiso?** (14 s) | `AVQ_REG_MSG` | `VREG` | Tipográfico: pregunta → "tu casa no existe para el sistema" → Ley del Mono vigente hasta el 31 DIC 2027 → "En 24 h te digo por dónde va tu caso". |
 | **V3 · ¿Cuánto cuesta diseñar tu casa?** (13 s) | `AVQ_CASA` | `VCALC` | El estimador en acción: 60 → 120 m², luego "con ingenierías" (120–144 → 192–230 UF) → "Calcula el tuyo en 1 minuto · averarq.cl". |
 | **V5 · Render vs. realidad** (26 s, con música) ★ | `AVQ_CASA` | `VSC` | Casa San Carlos (Catemu): la planta se dibuja y aterriza sobre el cenital real del dron (septiembre 2026) → render aéreo contra dron del mismo ángulo → órbita y fachada de ladrillo → interiores (cielo de madera, ventanales, puerta principal) → Alejandro recibe el dron en la mano → cierre sobre el patrón de plantas. Cortes cada 2 compases; la caída del 808 coincide con el dron llegando a la mano (21,0 s). |
+| **V6 · Tu negocio en tu terreno** (26 s, con música) | `AVQ_COM_MSG` | `VNEG` | Tomas de dron de un centro de eventos en el valle, usadas solo como imagen (el video no nombra el recinto ni el encargo): valle → "¿Tienes un terreno y una idea de negocio?" → centro de eventos, restorán, cafetería → piscina y salón con vista → la toma se aleja de la fachada de vidrio y aparecen Diseño · Permisos · Obra → "Tú pones la idea. Nosotros el camino." Variantes `-nocturna` y `-verano`. |
 | **V4 · Del local vacío al negocio** (13 s) | `AVQ_COM_MSG` | `VCOM` | Tríptico del Restobar Esmeralda (Los Andes) con diseño interior, remodelación y permisos → "¿Tienes un local? Lo dejamos listo para abrir en regla." |
 
 **Textos para el anuncio**
@@ -209,6 +211,7 @@ Cinco reels de 13 a 24 s en `videos/`, cada uno con su miniatura (`-portada.jpg`
 - **V2** · Texto principal: *Si construiste un dormitorio, un segundo piso o un quincho sin permiso, revisemos si tu caso califica para la Ley del Mono. Revisión gratis por WhatsApp.* · Título: *¿Ampliaste sin permiso?* · Botón: Enviar mensaje.
 - **V3** · Texto principal: *Servicio, superficie y nivel de detalle: el estimador de averarq.cl te da una referencia en UF en un minuto. Sin letra chica.* · Título: *¿Cuánto cuesta diseñar tu casa?* · Botón: Más información.
 - **V5** · Texto principal: *De la planta a la obra: así dibujamos Casa San Carlos y así se ve hoy desde el dron. 144 m² de ladrillo, madera y teja en Catemu, con diseño, permiso e inspección de obra del mismo arquitecto.* · Título: *Del render a la realidad* · Botón: Enviar mensaje.
+- **V6** · Texto principal: *¿Tienes un terreno y una idea de negocio, pero no sabes por dónde empezar? Te acompañamos desde el primer plano hasta abrir en regla: diseño, permisos e inspección de obra. Conversemos tu idea sin compromiso.* · Título: *Tú pones la idea. Nosotros el camino.* · Botón: Enviar mensaje.
 - **V4** · Texto principal: *Diseño interior, remodelación, cambio de destino y recepción final en un solo equipo, para que abras en regla.* · Título: *Del local vacío al negocio funcionando* · Botón: Enviar mensaje.
 
 **Qué probar primero:** V5 y V1 contra B1 (misma campaña, video contra imagen) y V2 contra A2. Si el video baja el costo por conversación más de un 20 %, pasa el presupuesto del conjunto a video.
