@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.17</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.18</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -233,7 +233,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.17</span></a>
+    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.18</span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <select id="selProyecto" title="Cambiar de proyecto"></select>
   <span id="nubeDot" class="nube-dot off" title="Sin nube"></span>
@@ -353,11 +353,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.17 =================
+/* ================= GESTOR AVERARQ v3.18 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.17";
+const GESTOR_VERSION="v3.18";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -2342,6 +2342,11 @@ function controlTotales(){
   const contrato=+c.contrato||0;
   const utilidad=contrato-gastoTotal;
   const pct=n=>contrato>0?(n/contrato*100):0;
+  if(!state.planPago)state.planPago={};
+  if(state.planPago.cobrado===undefined)state.planPago.cobrado=0;
+  const recibido=Math.max(0,+state.planPago.cobrado||0);
+  const porCobrar=contrato-recibido;              // negativo = pagaron de más
+  const cajaReal=recibido-gastoTotal;             // plata en mano hoy, antes de terminar la obra
   // reparto por partida de obra (incluye "" = sin asignar)
   const porPartida=[];
   for(const [id] of PARTGASTO.concat([["",""]])){
@@ -2349,7 +2354,7 @@ function controlTotales(){
     if(monto>0)porPartida.push({id,nombre:PARTNOM(id),monto,pctGasto:gastoTotal>0?monto/gastoTotal*100:0});
   }
   porPartida.sort((a,b)=>b.monto-a.monto);
-  return {porPartida,mat,mo,gg,otro,gastoTotal,contrato,utilidad,pctMat:pct(mat),pctMo:pct(mo),pctGG:pct(gg),pctOtro:pct(otro),pctUtil:pct(utilidad)};
+  return {recibido,porCobrar,cajaReal,pctRecibido:pct(recibido),porPartida,mat,mo,gg,otro,gastoTotal,contrato,utilidad,pctMat:pct(mat),pctMo:pct(mo),pctGG:pct(gg),pctOtro:pct(otro),pctUtil:pct(utilidad)};
 }
 function htmlControl(){
   if(!state.control)state.control={contrato:"",gastos:[]};
@@ -2364,6 +2369,9 @@ function htmlControl(){
   <p class="small" style="margin-bottom:8px">Registra los gastos reales del proyecto (boletas, compras, pago de maestros) a medida que ocurren. Compara contra el monto del contrato para ver tu utilidad real y en qué se fue.</p>
   <div class="card">
     <div class="row"><label style="width:150px">Monto del contrato/venta $</label><input type="number" style="width:150px" value="${c.contrato}" data-ctrl="contrato" placeholder="lo que cobras por la obra"></div>
+    <div class="row"><label style="width:150px">Recibido a la fecha $</label><input type="number" style="width:150px" value="${t.recibido||""}" data-ctrl="recibido" placeholder="lo que el cliente ya pagó"></div>
+    ${t.contrato>0?`<div class="tot" style="margin-top:4px"><span style="color:${t.porCobrar>0?'var(--naranja2)':'var(--ok,#7fb069)'}">${t.porCobrar<0?"Pagado de más (a favor del cliente)":(t.porCobrar===0?"Pagado completo":"Por cobrar")}</span><span class="money" style="color:${t.porCobrar>0?'var(--naranja2)':'var(--ok,#7fb069)'}">${CLP(Math.abs(t.porCobrar))}</span></div>`:""}
+    <div class="row"><span class="small" style="color:var(--muted)">Es el mismo dato del estado de pago en OBRA: si lo cambias aquí, allá también.</span></div>
   </div>
   <div class="card">
     <div class="row"><b class="small" style="letter-spacing:1px;color:var(--txt2)">AGREGAR GASTO</b></div>
@@ -2424,6 +2432,12 @@ function htmlControl(){
       ${t.gg>0?`<div class="tot"><span style="color:${CATCOL.gasto_general}">Gasto general (${F(t.pctGG,1)}%)</span><span class="money">${CLP(t.gg)}</span></div>${barra(t.pctGG,CATCOL.gasto_general)}`:""}
       ${t.otro>0?`<div class="tot"><span style="color:${CATCOL.otro}">Otro (${F(t.pctOtro,1)}%)</span><span class="money">${CLP(t.otro)}</span></div>${barra(t.pctOtro,CATCOL.otro)}`:""}
       <div class="tot big" style="color:${t.utilidad>=0?'var(--ok,#7fb069)':'#c0392b'}"><span>Utilidad real (${F(t.pctUtil,1)}%)</span><span class="money">${CLP(t.utilidad)}</span></div>${barra(t.pctUtil,t.utilidad>=0?'#7fb069':'#c0392b')}
+    </div>
+    <div class="card" style="margin-top:8px">
+      <div class="tot"><span>Recibido del cliente (${F(t.pctRecibido,1)}% del contrato)</span><span class="money">${CLP(t.recibido)}</span></div>${barra(t.pctRecibido,"#7fb069")}
+      <div class="tot"><span style="color:${t.porCobrar>0?'var(--naranja2)':'var(--txt)'}">${t.porCobrar<0?"Pagado de más (a favor del cliente)":"Por cobrar"}</span><span class="money">${CLP(Math.abs(t.porCobrar))}</span></div>
+      <div class="tot big" style="color:${t.cajaReal>=0?'var(--ok,#7fb069)':'var(--naranja2)'}"><span>${t.cajaReal>=0?"En caja hoy (recibido − gastado)":"Estás financiando la obra"}</span><span class="money">${CLP(Math.abs(t.cajaReal))}</span></div>
+      <p class="small" style="margin-top:4px;color:var(--muted)">${t.cajaReal>=0?"Lo que te queda en mano hoy; parte todavía debe cubrir lo que falta de obra.":"Has gastado más de lo que te han pagado: estás poniendo plata de tu bolsillo."}</p>
     </div>`;
     if(t.porPartida.length){
       h+=`<h3 style="margin-top:14px">EN QUÉ SE FUE — POR PARTIDA</h3><div class="card">
@@ -3006,6 +3020,11 @@ function bindTab(){
   $$("#tabContent [data-proygest]").forEach(b=>b.onclick=()=>$("#btnProyGest").click());
   // Control de obra
   const ctrlC=$('[data-ctrl="contrato"]');if(ctrlC)ctrlC.addEventListener("change",()=>{state.control.contrato=parseFloat(ctrlC.value)||"";renderTab();autosave();});
+  const ctrlR=$('[data-ctrl="recibido"]');if(ctrlR)ctrlR.addEventListener("change",()=>{
+    if(!state.planPago)state.planPago={};
+    state.planPago.cobrado=Math.max(0,parseFloat(ctrlR.value)||0);   // mismo dato del estado de pago
+    renderTab();autosave();
+  });
   const ctrlAdd=$("#ctrlAdd");if(ctrlAdd)ctrlAdd.onclick=()=>{
     const monto=parseFloat($("#ctrlMonto").value)||0;
     if(monto<=0){hint("Ingresa un monto válido.");return;}
@@ -4255,6 +4274,8 @@ function emitirControl(){
     <div style="margin:10px 0 18px">
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>Contrato / venta</span><b>${CLP(t.contrato)}</b></div>
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>Gasto total ejecutado</span><b>${CLP(t.gastoTotal)}</b></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>Recibido del cliente</span><b>${CLP(t.recibido)}</b></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>${t.porCobrar<0?"Pagado de más":"Por cobrar"}</span><b style="color:${t.porCobrar>0?'#c1451b':'#3a8a5a'}">${CLP(Math.abs(t.porCobrar))}</b></div>
       <div style="display:flex;justify-content:space-between;font-size:14px;margin-top:6px;padding-top:6px;border-top:2px solid #fc4c02"><span><b>Utilidad real</b></span><b style="color:${t.utilidad>=0?'#3a8a5a':'#c0392b'}">${CLP(t.utilidad)} (${F(t.pctUtil,1)}%)</b></div>
     </div>
     <h2 style="font-size:13px;color:#fc4c02;letter-spacing:1px;margin-bottom:6px">DISTRIBUCIÓN DEL CONTRATO</h2>
