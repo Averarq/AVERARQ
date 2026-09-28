@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.11</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.14</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -24,6 +24,13 @@ body{background:var(--bg);color:var(--txt);font:13px/1.45 'Segoe UI',system-ui,s
 #logo b{color:var(--naranja)}
 #logo span{color:var(--txt2);font-weight:400;letter-spacing:2px;font-size:10px;margin-left:8px;border-left:1px solid var(--line);padding-left:10px;align-self:center}
 #nomProyecto{background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:5px 10px;border-radius:3px;width:230px;font-size:13px}
+#selProyecto{width:auto;max-width:200px;background:var(--panel2)}
+.nube-dot{width:9px;height:9px;border-radius:50%;background:#6b7280;flex:0 0 auto;cursor:help}
+.nube-dot.ok{background:#7fb069}
+.nube-dot.sync{background:#e8b12c}
+.nube-dot.err{background:#c0392b}
+#proyLista table{width:100%;font-size:11px}
+#proyLista td{padding:3px 4px;vertical-align:middle}
 #topbar .sep{flex:1}
 .btn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:6px 12px;border-radius:3px;cursor:pointer;font-size:12px;white-space:nowrap}
 .btn:hover{border-color:var(--naranja);color:var(--naranja2)}
@@ -224,8 +231,12 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.11</span></a>
+    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.14</span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
+  <select id="selProyecto" title="Cambiar de proyecto"></select>
+  <span id="nubeDot" class="nube-dot off" title="Sin nube"></span>
+  <button class="btn" id="btnProyNuevo" title="Crear un proyecto nuevo">＋</button>
+  <button class="btn" id="btnProyGest" title="Proyectos guardados en este navegador">🗂</button>
   <div class="sep"></div>
   <button class="btn" id="btnPDF">📄 Cargar PDF</button>
   <button class="btn" id="btnLimpiar" title="Borra trazados y cantidades manuales; mantiene PDF, escala y APUs">🧹 Limpiar</button>
@@ -306,13 +317,36 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
   </div>
 </dialog>
 
+<dialog id="dlgProy">
+  <h2>PROYECTOS GUARDADOS</h2>
+  <p class="small" style="margin-bottom:10px">Los proyectos viven en <b>este navegador</b> y, si conectas la nube (abajo), se sincronizan con tus otros equipos. Cambia entre ellos sin volver a cargar archivos. Para respaldar uno suelto, expórtalo como <b>.avproj</b>.</p>
+  <div id="proyLista"></div>
+  <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line)">
+    <div class="row"><b class="small" style="letter-spacing:1px;color:var(--txt2)">NUBE AVERARQ</b>
+      <span class="small grow" style="text-align:right" id="nubeEstado">—</span></div>
+    <p class="small" style="color:var(--muted);margin:4px 0 6px">Misma URL y token del ORGANIZADOR. Con la nube conectada, cada proyecto se sube al guardarse y aparece en tus otros equipos. El PDF de fondo no viaja: se recarga en cada equipo.</p>
+    <div class="row"><label style="width:60px">URL</label><input type="text" class="grow" id="nubeUrl" placeholder="https://averarq-backend.<tu-usuario>.workers.dev"></div>
+    <div class="row"><label style="width:60px">Token</label><input type="password" class="grow" id="nubeToken" placeholder="el mismo del ORGANIZADOR"></div>
+    <div class="row" style="gap:6px">
+      <button class="btn" id="nubeConectar">Conectar</button>
+      <button class="btn" id="nubeSync">⟳ Sincronizar ahora</button>
+      <span class="grow"></span>
+      <button class="btn" id="nubeDesconectar">Desconectar</button></div>
+  </div>
+  <div class="row" style="gap:8px;margin-top:12px">
+    <button class="btn" id="proyNuevo">＋ Nuevo proyecto</button>
+    <span class="small grow" id="proyEspacio" style="text-align:right;color:var(--muted)"></span>
+    <button class="btn primary" id="proyCerrar">Cerrar</button>
+  </div>
+</dialog>
+
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.11 =================
+/* ================= GESTOR AVERARQ v3.14 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.11";
+const GESTOR_VERSION="v3.14";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -505,6 +539,14 @@ let state={
   partidas:[],
   shapes:[]               // {id, pid, trazo:'area'|'linea'|'punto', pts:[{x,y}]}
 };
+// Copia limpia del estado inicial: base de cada proyecto nuevo (se toma antes de cualquier carga)
+const ESTADO_BASE=JSON.parse(JSON.stringify(state));
+function estadoNuevo(nombre){
+  const s=JSON.parse(JSON.stringify(ESTADO_BASE));
+  s.proyecto=nombre||"Proyecto sin título";
+  s.partidas=defaultPartidas();          // catálogo base, igual que al abrir el GESTOR por primera vez
+  return s;
+}
 
 const GRUPOS=[["demol","Demoliciones"],["prelim","Preliminares"],["fund","Fundaciones"],["suelo","Suelo"],
  ["muros","Muros"],["tech","Techumbre"],["cielo","Cielos"],["apert","Aperturas"],
@@ -3132,7 +3174,238 @@ function loadState(s){
   let mx=1;JSON.stringify(state).replace(/"p(\d+)"/g,(m,n)=>{mx=Math.max(mx,+n+1);return m;});uid=mx;
   updEscala();hist=[];pushHist();refreshUI();draw();
 }
-function autosave(){try{localStorage.setItem("averarq_cubicador",JSON.stringify(snapshot()));}catch(e){}}
+/* ---------- BIBLIOTECA DE PROYECTOS (multiproyecto en localStorage) ----------
+   Un proyecto por clave (PROY_KEY+id) + un índice liviano + el id del activo.
+   Así el autoguardado escribe solo el proyecto abierto, no toda la biblioteca. */
+const PROY_KEY="averarq_gestor_proy:";
+const PROY_IDX="averarq_gestor_indice";
+const PROY_ACT="averarq_gestor_activo";
+let proyActivo=null, proyFirma="", proyListo=false;   // proyListo: no se autoguarda hasta terminar el arranque
+function proyIndice(){try{const a=JSON.parse(localStorage.getItem(PROY_IDX));return Array.isArray(a)?a:[];}catch(e){return [];}}
+function proyGuardarIndice(arr){try{localStorage.setItem(PROY_IDX,JSON.stringify(arr));return true;}catch(e){proySinEspacio(e);return false;}}
+function proyNuevoId(){return "p"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function proySinEspacio(e){
+  console.warn("localStorage",e);
+  hint("Sin espacio en el navegador: exporta y elimina proyectos (🗂) para liberar.");
+}
+function proyEscribir(id,snap){
+  try{localStorage.setItem(PROY_KEY+id,JSON.stringify(snap));return true;}
+  catch(e){proySinEspacio(e);return false;}
+}
+function proyLeer(id){try{const v=localStorage.getItem(PROY_KEY+id);return v?JSON.parse(v):null;}catch(e){return null;}}
+function proyTocar(id,nombre){
+  const idx=proyIndice(); const it=idx.find(x=>x.id===id); const fecha=new Date().toISOString();
+  if(it){it.nombre=nombre;it.fecha=fecha;} else idx.push({id,nombre,fecha});
+  proyGuardarIndice(idx);
+}
+function proyOrdenados(){return proyIndice().slice().sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));}
+function proyFecha(f){try{return new Date(f).toLocaleDateString("es-CL");}catch(e){return "";}}
+function proyBytes(){
+  let n=0;
+  try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&(k.indexOf(PROY_KEY)===0||k===PROY_IDX))n+=(localStorage.getItem(k)||"").length;}}catch(e){}
+  return n;
+}
+function renderProySelect(){
+  const sel=$("#selProyecto"); if(!sel)return;
+  const lista=proyOrdenados();
+  const firma=proyActivo+"|"+lista.map(x=>x.id+":"+x.nombre).join("|");
+  if(firma===proyFirma)return;          // evita reconstruir el select en cada autoguardado
+  proyFirma=firma;
+  sel.innerHTML=lista.map(x=>`<option value="${x.id}" ${x.id===proyActivo?"selected":""}>${esc(x.nombre||"Sin título")}</option>`).join("")
+    || `<option value="">(sin proyectos)</option>`;
+}
+function renderProyLista(){
+  const cont=$("#proyLista"); if(!cont)return;
+  const lista=proyOrdenados();
+  cont.innerHTML=lista.length? `<table>${lista.map(x=>`<tr style="border-bottom:1px solid var(--line)">
+      <td><b style="color:${x.id===proyActivo?'var(--naranja2)':'var(--txt)'}">${x.id===proyActivo?"● ":""}${esc(x.nombre||"Sin título")}</b>
+        <div class="small" style="color:var(--muted)">modificado ${proyFecha(x.fecha)} ${x.soloNube?"· ☁ solo en la nube":(x.nube?"· ☁ sincronizado":"")}</div></td>
+      <td style="text-align:right;white-space:nowrap">
+        ${x.id===proyActivo?`<span class="small" style="color:var(--muted)">abierto</span>`:`<button class="btn mini" data-proyabrir="${x.id}">abrir</button>`}
+        <button class="btn mini" data-proydup="${x.id}" title="Duplicar">⧉</button>
+        <button class="btn mini" data-proyexp="${x.id}" title="Exportar .avproj">💾</button>
+        <button class="btn mini" data-proydel="${x.id}" title="Eliminar">✕</button></td></tr>`).join("")}</table>`
+    : `<p class="small" style="color:var(--muted)">Aún no hay proyectos guardados.</p>`;
+  const esp=$("#proyEspacio");
+  if(esp)esp.textContent=lista.length+" proyecto"+(lista.length===1?"":"s")+" · "+Math.round(proyBytes()/1024)+" KB en este navegador";
+  $$("#proyLista [data-proyabrir]").forEach(b=>b.onclick=()=>{proyAbrir(b.dataset.proyabrir);renderProyLista();});
+  $$("#proyLista [data-proydup]").forEach(b=>b.onclick=()=>{proyDuplicar(b.dataset.proydup);renderProyLista();});
+  $$("#proyLista [data-proyexp]").forEach(b=>b.onclick=()=>{const sn=proyLeer(b.dataset.proyexp);if(sn)exportarProyecto(sn);});
+  $$("#proyLista [data-proydel]").forEach(b=>b.onclick=()=>{proyEliminar(b.dataset.proydel);renderProyLista();});
+}
+function proyAbrir(id,guardarActual){
+  if(!id||id===proyActivo)return;
+  let snap=proyLeer(id);
+  if(!snap){
+    // Proyecto que aún solo existe en la nube: se baja y luego se abre
+    if(nubeCfg){
+      if(guardarActual!==false)autosave();
+      nubeDot("sync","Bajando el proyecto…");
+      nubeBajar(id).then(()=>{proyActivo=null;proyAbrir(id,false);})
+        .catch(e=>{alert("No se pudo bajar el proyecto de la nube: "+e.message);renderProySelect();});
+      return;
+    }
+    alert("No se pudo leer ese proyecto.");return;
+  }
+  if(guardarActual!==false)autosave();           // guarda el proyecto actual antes de cambiar
+  proyActivo=id; try{localStorage.setItem(PROY_ACT,id);}catch(e){}
+  loadState(snap); renderProySelect(); renderTab();
+  hint("Proyecto abierto: "+(snap.proyecto||"sin título")+(snap.pdfName?" · recarga el PDF: "+snap.pdfName:""));
+}
+function proyCrear(snap,nombre,guardarActual){
+  if(guardarActual!==false)autosave();
+  const id=proyNuevoId();
+  if(!proyEscribir(id,snap))return null;
+  proyTocar(id,nombre||snap.proyecto||"Proyecto sin título");
+  proyActivo=id; try{localStorage.setItem(PROY_ACT,id);}catch(e){}
+  loadState(snap); renderProySelect(); renderTab();
+  return id;
+}
+function proyNuevoCmd(){
+  const n=prompt("Nombre del proyecto nuevo:","Proyecto "+(proyIndice().length+1));
+  if(n===null)return;
+  proyCrear(estadoNuevo(n.trim()||"Proyecto sin título"));
+  hint("Proyecto nuevo creado.");
+}
+function proyDuplicar(id){
+  const snap=(id===proyActivo)?snapshot():proyLeer(id);
+  if(!snap){alert("No se pudo leer ese proyecto.");return;}
+  const copia=JSON.parse(JSON.stringify(snap));
+  copia.proyecto=(copia.proyecto||"Proyecto")+" (copia)";
+  proyCrear(copia);
+  hint("Proyecto duplicado: "+copia.proyecto);
+}
+function proyEliminar(id){
+  const it=proyIndice().find(x=>x.id===id); if(!it)return;
+  if(!confirm("¿Eliminar el proyecto \""+(it.nombre||"sin título")+"\"?\n\nEsta acción no se puede deshacer. Si quieres conservarlo, expórtalo antes como .avproj."))return;
+  try{localStorage.removeItem(PROY_KEY+id);}catch(e){}
+  proyGuardarIndice(proyIndice().filter(x=>x.id!==id));
+  nubeBorrar(id);
+  if(id===proyActivo){
+    proyActivo=null;
+    const otro=proyOrdenados()[0];
+    if(otro){proyAbrir(otro.id,false);}          // sin autoguardar: el actual acaba de borrarse
+    else {proyCrear(estadoNuevo("Proyecto sin título"),null,false);}
+  }
+  renderProySelect(); hint("Proyecto eliminado.");
+}
+/* ---------- SINCRONIZACIÓN CON LA NUBE AVERARQ ----------
+   Mismo backend del ORGANIZADOR (Cloudflare Worker + KV, token Bearer).
+   El GESTOR usa su propio espacio: /api/gestor · un proyecto por clave.
+   La configuración se comparte con el ORGANIZADOR cuando ambos corren en averarq.cl. */
+const NUBE_CFG="averarq_doc_config";
+const AVERARQ_NUBE_URL=(typeof window!=="undefined"&&window.AVERARQ_NUBE_URL)||"";
+let nubeCfg=null, nubeTimer=null;
+function nubeCargarCfg(){
+  try{const c=JSON.parse(localStorage.getItem(NUBE_CFG)||"null");nubeCfg=(c&&c.url&&c.token)?c:null;}
+  catch(e){nubeCfg=null;}
+  return nubeCfg;
+}
+// Si el GESTOR lo sirve el propio Worker, la API está en el mismo origen: se propone esa URL
+function nubeUrlSugerida(){
+  if(nubeCfg&&nubeCfg.url)return nubeCfg.url;
+  if(typeof AVERARQ_NUBE_URL==="string"&&AVERARQ_NUBE_URL)return AVERARQ_NUBE_URL;
+  return "";
+}
+function nubeDot(cls,txt){
+  const d=$("#nubeDot");if(d){d.className="nube-dot "+cls;d.title=txt;}
+  const e=$("#nubeEstado");if(e){e.textContent=txt;e.style.color=cls==="err"?"var(--naranja2)":(cls==="ok"?"var(--ok,#7fb069)":"var(--muted)");}
+}
+function nubeFetch(path,opts){
+  if(!nubeCfg)return Promise.reject(new Error("sin nube"));
+  opts=Object.assign({},opts||{});
+  opts.headers=Object.assign({Authorization:"Bearer "+nubeCfg.token},opts.headers||{});
+  return fetch(nubeCfg.url.replace(/\/$/,"")+path,opts).then(r=>{
+    if(r.status===401)throw new Error("token incorrecto");
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    return r.json();
+  });
+}
+function nubeMarcar(id,fecha){
+  const idx=proyIndice(); const it=idx.find(x=>x.id===id);
+  if(it){it.nube=fecha||new Date().toISOString();delete it.soloNube;proyGuardarIndice(idx);}
+}
+function nubeSubir(id,snap){
+  if(!nubeCfg||!id||!snap)return Promise.resolve(false);
+  nubeDot("sync","Sincronizando…");
+  return nubeFetch("/api/gestor/"+encodeURIComponent(id),{
+    method:"PUT",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({nombre:snap.proyecto||"Proyecto sin título",version:GESTOR_VERSION,data:snap})
+  }).then(r=>{nubeMarcar(id,r.actualizado);nubeDot("ok","Guardado en la nube");return true;})
+   .catch(e=>{nubeDot("err","Sin conexión con la nube ("+e.message+") — se guarda local");return false;});
+}
+function nubeSubirPronto(){
+  if(!nubeCfg||!proyActivo)return;
+  clearTimeout(nubeTimer);
+  const id=proyActivo;
+  nubeTimer=setTimeout(()=>{if(id===proyActivo)nubeSubir(id,snapshot());},2000);
+}
+function nubeBajar(id){
+  return nubeFetch("/api/gestor/"+encodeURIComponent(id)).then(r=>{
+    const reg=r.proyecto;
+    if(!reg||!reg.data)throw new Error("el proyecto llegó vacío");
+    proyEscribir(id,reg.data);
+    proyTocar(id,reg.nombre||reg.data.proyecto||"Proyecto sin título");
+    nubeMarcar(id,reg.actualizado);
+    if(id===proyActivo){loadState(reg.data);renderTab();}
+    return reg;
+  });
+}
+function nubeBorrar(id){
+  if(!nubeCfg)return;
+  nubeFetch("/api/gestor/"+encodeURIComponent(id),{method:"DELETE"}).catch(()=>{});
+}
+// Compara índice local contra la nube: baja lo más nuevo, sube lo que falta.
+function nubeSincronizar(avisar){
+  if(!nubeCargarCfg()){nubeDot("off","Sin nube: los proyectos viven solo en este navegador");return Promise.resolve();}
+  nubeDot("sync","Sincronizando…");
+  return nubeFetch("/api/gestor").then(r=>{
+    const remotos=r.proyectos||[]; const tareas=[]; let nuevos=0,bajados=0,subidos=0;
+    const idx=proyIndice();
+    for(const rp of remotos){
+      const loc=idx.find(x=>x.id===rp.id);
+      if(!loc){                                   // proyecto que solo existe en la nube: se anota y se baja al abrirlo
+        idx.push({id:rp.id,nombre:rp.nombre,fecha:rp.actualizado,nube:rp.actualizado,soloNube:true});nuevos++;
+      }else if(loc.nube!==rp.actualizado){         // la nube cambió desde nuestra última subida
+        const locCambióDespués=(loc.fecha||"")>(loc.nube||"");
+        if(!locCambióDespués||(rp.actualizado||"")>(loc.fecha||"")){
+          tareas.push(nubeBajar(rp.id).then(()=>{bajados++;}).catch(()=>{}));
+        }else{
+          const sn=proyLeer(loc.id);
+          if(sn)tareas.push(nubeSubir(loc.id,sn).then(()=>{subidos++;}));
+        }
+      }else if((loc.fecha||"")>(loc.nube||"")){    // en sincronía, pero con cambios locales posteriores
+        const sn=proyLeer(loc.id);
+        if(sn)tareas.push(nubeSubir(loc.id,sn).then(()=>{subidos++;}));
+      }
+    }
+    proyGuardarIndice(idx);
+    for(const lo of proyIndice()){                 // locales que la nube no tiene todavía
+      if(lo.soloNube)continue;
+      if(!remotos.some(x=>x.id===lo.id)){
+        const sn=proyLeer(lo.id);
+        if(sn)tareas.push(nubeSubir(lo.id,sn).then(()=>{subidos++;}));
+      }
+    }
+    return Promise.all(tareas).then(()=>{
+      proyFirma="";renderProySelect();renderProyLista();
+      nubeDot("ok","Conectado a la nube");
+      if(avisar)hint("Nube: "+nuevos+" nuevo(s) · "+bajados+" actualizado(s) · "+subidos+" subido(s).");
+    });
+  }).catch(e=>{
+    nubeDot("err","Sin conexión con la nube ("+e.message+") — se usa la copia local");
+  });
+}
+function autosave(){
+  if(!proyListo)return;   // durante el arranque el estado aún no es el del proyecto que corresponde abrir
+  try{
+    const snap=snapshot();
+    if(!proyActivo){proyActivo=proyNuevoId();try{localStorage.setItem(PROY_ACT,proyActivo);}catch(e){}}
+    if(proyEscribir(proyActivo,snap))proyTocar(proyActivo,snap.proyecto||"Proyecto sin título");
+    renderProySelect();
+    nubeSubirPronto();
+  }catch(e){}
+}
 
 /* ---------- PUENTE CABIDA -> GESTOR ---------- */
 function importarDesdeCabida(data){
@@ -3175,15 +3448,16 @@ function importarDesdeCabida(data){
 }
 
 /* ---------- GUARDAR / ABRIR PROYECTO (.avproj) ---------- */
-function exportarProyecto(){
+function exportarProyecto(snap){
+  const sn=(snap&&snap.partidas)?snap:snapshot();
   const data={
     _formato:"averarq-proyecto",
     _version:GESTOR_VERSION,
     _fecha:new Date().toISOString(),
     _app:"GESTOR AVERARQ",
-    proyecto:snapshot()
+    proyecto:sn
   };
-  const nombre=(($("#nomProyecto").value||"proyecto").trim().replace(/[^\w\s-]/g,"").replace(/\s+/g,"_"))||"proyecto";
+  const nombre=((sn.proyecto||"proyecto").trim().replace(/[^\w\s-]/g,"").replace(/\s+/g,"_"))||"proyecto";
   const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");
@@ -3202,9 +3476,10 @@ function importarProyecto(file){
       else if(data&&data.partidas&&data.eett)snap=data; // snapshot directo
       else if(data&&data._formato==="averarq-cabida"){ importarDesdeCabida(data); return; }
       if(!snap){alert("El archivo no es un proyecto Averarq válido (.avproj).");return;}
-      if(!confirm("¿Abrir este proyecto? Se reemplazará el proyecto actual en pantalla (si no lo has guardado, se perderá)."))return;
-      loadState(snap); autosave();
-      alert("Proyecto abierto: "+(snap.proyecto||"sin título"));
+      // Entra como proyecto NUEVO de la biblioteca: no reemplaza el que está abierto
+      if(!proyCrear(snap))return;
+      renderProyLista();
+      alert("Proyecto importado y abierto: "+(snap.proyecto||"sin título")+"\n\nQueda guardado en este navegador; cambia entre proyectos con el selector de la barra superior.");
     }catch(err){alert("No se pudo leer el archivo: "+err.message);}
   };
   rd.readAsText(file);
@@ -3223,7 +3498,33 @@ function prHead(sub,fecha){return `
 function prFoot(){return `<div class="pr-foot"><span><b>AVERARQ</b> · ALEJANDRO VERA DONOSO</span><span>averarq.cl · @averarq · contacto@averarq.cl</span></div>`;}
 
 $("#btnInforme").onclick=()=>$("#dlgInf").showModal();
-$("#btnGuardar").onclick=exportarProyecto;
+$("#selProyecto").onchange=e=>proyAbrir(e.target.value);
+$("#btnProyNuevo").onclick=proyNuevoCmd;
+$("#btnProyGest").onclick=()=>{
+  nubeCargarCfg();
+  $("#nubeUrl").value=nubeUrlSugerida();
+  $("#nubeToken").value=nubeCfg?nubeCfg.token:"";
+  nubeDot(nubeCfg?"ok":"off",nubeCfg?"Conectado a la nube":"Sin nube: los proyectos viven solo en este navegador");
+  renderProyLista();$("#dlgProy").showModal();
+};
+$("#proyNuevo").onclick=()=>{proyNuevoCmd();renderProyLista();};
+$("#proyCerrar").onclick=()=>$("#dlgProy").close();
+$("#nubeConectar").onclick=()=>{
+  const url=$("#nubeUrl").value.trim(), token=$("#nubeToken").value.trim();
+  if(!url||!token){hint("Completa la URL y el token de la nube.");return;}
+  try{localStorage.setItem(NUBE_CFG,JSON.stringify({url:url.replace(/\/$/,""),token}));}catch(e){}
+  nubeCargarCfg();
+  nubeSincronizar(true);
+};
+$("#nubeSync").onclick=()=>nubeSincronizar(true);
+$("#nubeDesconectar").onclick=()=>{
+  if(!confirm("¿Desconectar la nube?\n\nLos proyectos siguen en este navegador y en la nube, pero dejan de sincronizarse. En averarq.cl esta configuración es la misma del ORGANIZADOR, así que también se desconecta allá."))return;
+  try{localStorage.removeItem(NUBE_CFG);}catch(e){}
+  nubeCfg=null;nubeDot("off","Sin nube: los proyectos viven solo en este navegador");
+  renderProyLista();
+};
+$("#nomProyecto").addEventListener("change",()=>{state.proyecto=$("#nomProyecto").value;autosave();});
+$("#btnGuardar").onclick=()=>exportarProyecto();
 $("#btnAbrir").onclick=()=>$("#fileProyecto").click();
 $("#fileProyecto").onchange=e=>{const f=e.target.files[0];if(f)importarProyecto(f);e.target.value="";};
 $("#infCancel").onclick=()=>$("#dlgInf").close();
@@ -4238,19 +4539,40 @@ function emitirObra(){
   resize();updEscala();
   let sesionRestaurada=false;
   try{
-    const sv=localStorage.getItem("averarq_cubicador");
-    if(sv&&confirm("Hay una sesión guardada del Cubicador. ¿Restaurarla?")){loadState(JSON.parse(sv));sesionRestaurada=true;}
-  }catch(e){}
-  // Cargos obligatorios en proyecto nuevo (TE1 y otros marcados obligatoria:true)
-  if(!sesionRestaurada && state.incluirTE1){
-    for(const d of defaultPartidas()){
-      if(d.obligatoria && !state.partidas.some(x=>x.nombre===d.nombre)){
-        const c=JSON.parse(JSON.stringify(d));c.id=nid();state.partidas.push(c);
+    // Migración: una única sesión guardada de versiones anteriores pasa a ser el primer proyecto
+    if(!proyIndice().length){
+      const sv=localStorage.getItem("averarq_cubicador");
+      if(sv){
+        const snap=JSON.parse(sv); const id=proyNuevoId();
+        if(proyEscribir(id,snap)){proyTocar(id,snap.proyecto||"Proyecto restaurado");try{localStorage.setItem(PROY_ACT,id);}catch(e){}}
       }
     }
+    const idx=proyOrdenados();
+    if(idx.length){
+      let act=null; try{act=localStorage.getItem(PROY_ACT);}catch(e){}
+      if(!idx.some(x=>x.id===act))act=idx[0].id;
+      const snap=proyLeer(act);
+      if(snap){proyActivo=act;try{localStorage.setItem(PROY_ACT,act);}catch(e){}loadState(snap);sesionRestaurada=true;}
+    }
+  }catch(e){}
+  proyListo=true;   // a partir de aquí el autoguardado escribe en el proyecto correcto
+  // Cargos obligatorios en proyecto nuevo (TE1 y otros marcados obligatoria:true)
+  if(!sesionRestaurada){
+    if(state.incluirTE1){
+      for(const d of defaultPartidas()){
+        if(d.obligatoria && !state.partidas.some(x=>x.nombre===d.nombre)){
+          const c=JSON.parse(JSON.stringify(d));c.id=nid();state.partidas.push(c);
+        }
+      }
+    }
+    autosave();   // crea el primer proyecto de la biblioteca
   }
+  renderProySelect();
   if(!hist.length)pushHist();
   renderTab();setTool("select");
+  // La nube se consulta al final: si no hay configuración, el GESTOR funciona igual en local
+  if(nubeCargarCfg())setTimeout(()=>nubeSincronizar(true),300);
+  else nubeDot("off","Sin nube: los proyectos viven solo en este navegador");
 })();
 </script>
 </body>
