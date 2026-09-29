@@ -33,7 +33,7 @@ const K = () => cam.s / 1.45; // factor de grosor de línea
 
 // encuadres (foco en coordenadas isométricas)
 const VISTA_CIM = { s: 1.72, fx: 52, fy: 95, cx: 578, cy: 610 };
-const VISTA_TOT = { s: 1.42, fx: 52, fy: -12, cx: 548, cy: 668 };
+const VISTA_TOT = { s: 1.64, fx: 52, fy: 0, cx: 548, cy: 650 };
 function camara(t) {
   const k = ease((t - 15.2) / 2.6);
   for (const p of ['s', 'fx', 'fy', 'cx', 'cy']) cam[p] = lerp(VISTA_CIM[p], VISTA_TOT[p], k);
@@ -81,14 +81,16 @@ const ET = [
   { n: '02', t0: 5.4, t1: 7.4, tit: 'Emplantillado', txt: 'Capa de hormigón pobre que limpia y nivela el fondo.', spec: 'HORMIGÓN POBRE · e = 5 cm' },
   { n: '03', t0: 7.4, t1: 10.2, tit: 'Armadura de pilares', txt: 'Las enfierraduras se anclan al cimiento antes de hormigonar.', spec: '4 Ø10 · ESTRIBOS Ø6 @ 15 cm' },
   { n: '04', t0: 10.2, t1: 12.6, tit: 'Cimiento corrido', txt: 'Recibe el peso del muro y lo transmite al suelo.', spec: 'HORMIGÓN · 40 × 50 cm' },
-  { n: '05', t0: 12.6, t1: 15.0, tit: 'Sobrecimiento', txt: 'Eleva el muro sobre el terreno y lo aleja de la humedad.', spec: 'HORMIGÓN · 20 × 30 cm · +0,20 m' },
+  { n: '05', t0: 12.6, t1: 15.0, tit: 'Sobrecimiento', txt: 'Eleva el muro sobre el terreno y lo aleja de la humedad.', spec: 'HORMIGÓN · 20 × 40 cm · +0,30 m' },
   { n: '06', t0: 15.0, t1: 20.4, tit: 'Muro de albañilería', txt: 'Primero se levanta el muro, dejando endentado junto a los pilares.', spec: 'LADRILLO HECHO A MÁQUINA · e = 14 cm' },
   { n: '07', t0: 20.4, t1: 23.4, tit: 'Pilares de hormigón armado', txt: 'Se hormigonan contra el muro: el endentado traba ambos materiales.', spec: 'H.A. 20 × 20 cm · 4 Ø10 · E Ø6 @ 15' },
-  { n: '08', t0: 23.4, t1: 26.4, tit: 'Cadena de hormigón armado', txt: 'Amarra los muros en su coronación y cierra el confinamiento.', spec: 'H.A. 20 × 20 cm · 4 Ø10 · E Ø6 @ 20' },
+  { n: '08', t0: 23.4, t1: 26.4, tit: 'Cadena de hormigón armado', txt: 'Amarra los muros en su coronación y cierra el confinamiento.', spec: 'H.A. 20 × 30 cm · 4 Ø10 · E Ø6 @ 20' },
 ];
 const hl = e => t => t < ET[e].t0 ? 0 : t < ET[e].t1 ? 1 : 1 - clamp((t - ET[e].t1) / 0.9);
 
-const Z = { emp0: -65, cim0: -60, sob0: -10, sob1: 20, mur1: 20 + 26 * 8.5, cad1: 20 + 26 * 8.5 + 20 };
+// niveles: sobrecimiento a +0,30 · muro de ladrillo hasta +2,20 · cadena de coronación hasta +2,50
+const Z = { emp0: -65, cim0: -60, sob0: -10, sob1: 30, mur1: 220, cad1: 250 };
+const HILADAS = 22;
 const XMAX = 300, YMAX = 180;
 const items = [];
 function caja(b, o) { items.push(Object.assign({ b }, o)); }
@@ -126,10 +128,10 @@ caja([0, XMAX, 3, 17, Z.mur1 + 3, Z.cad1 - 3], { tipo: 'fierroH', eje: 'x', prio
 caja([3, 17, 20, YMAX, Z.mur1 + 3, Z.cad1 - 3], { tipo: 'fierroH', eje: 'y', prio: 1, et: 8, paso: 20 });
 
 // ladrillos: aparejo trabado, endentado de 5 cm hacia los pilares en hiladas impares
-const LAD = { l: 29, j: 1, h: 7.1, hil: 8.5 };
+const LAD = { l: 29, j: 1, h: 7.1, hil: (Z.mur1 - Z.sob1) / HILADAS }; // hilada ≈ 8,6 cm (ladrillo 7,1 + junta)
 const ladrillos = [];
 function hilada(eje, a, b, k, zonasPilar, corteFinal) {
-  const z0 = Z.sob1 + 1.4 + k * LAD.hil, z1 = z0 + LAD.h;
+  const z0 = Z.sob1 + (LAD.hil - LAD.h) + k * LAD.hil, z1 = z0 + LAD.h;
   let s = a, primera = true;
   while (s < b - 0.5) {
     const largo = primera && k % 2 === 1 ? 14 : LAD.l;
@@ -149,7 +151,7 @@ function hilada(eje, a, b, k, zonasPilar, corteFinal) {
     s = e + LAD.j; primera = false;
   }
 }
-for (let k = 0; k < 26; k++) {
+for (let k = 0; k < HILADAS; k++) {
   const d = k % 2 === 1 ? 5 : 0; // endentado
   hilada('x', 20 - d, 170 + d - LAD.j * (d ? 0 : 1), k, [[0, 20], [170, 190]], false);
   hilada('x', 190 - d, XMAX, k, [[170, 190]], true);
@@ -355,7 +357,7 @@ const ETQ = [
   { e: 5, p: [XMAX, 18, 5], d: [74, -26] },
   { e: 6, p: [255, 17, 150], d: [70, -30] },
   { e: 7, p: [180, 20, 110], d: [44, -64] },
-  { e: 8, p: [110, 20, 251], d: [30, -66] },
+  { e: 8, p: [110, 20, 235], d: [30, -60] },
 ];
 function etiquetas(t) {
   const k = K();
@@ -492,8 +494,9 @@ function render(t) {
   const nv = (e, d = 0.8) => clamp((t - ET[e].t0 - d) / 0.6);
   nivel(0, '±0,00 NTN', clamp((t - ET[1].t0 - 1.2) / 0.6), t);
   nivel(Z.emp0, '−0,65', nv(2), t);
-  nivel(Z.sob1, '+0,20', nv(5), t);
-  nivel(Z.cad1, '+2,61', nv(8, 1.8), t);
+  nivel(Z.sob1, '+0,30', nv(5), t);
+  nivel(Z.mur1, '+2,20', nv(6, 4.2), t);
+  nivel(Z.cad1, '+2,50', nv(8, 1.8), t);
   // cotas en el corte
   cota(P(XMAX, -10, Z.emp0), P(XMAX, 30, Z.emp0), '40', nv(4, 1.2), [0, 26]);
   cota(P(XMAX, 0, Z.sob1), P(XMAX, 20, Z.sob1), '20', nv(5, 1.4), [0, -30]);
