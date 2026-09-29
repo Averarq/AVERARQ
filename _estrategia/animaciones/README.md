@@ -56,6 +56,32 @@ El extremo del muro tiene un corte escalonado que muestra las capas y la solera 
 > ¿Vas a construir en el Valle del Aconcagua? Escríbeme 👉 averarq.cl
 > #arquitectura #construccion #panelessip #construccioneficiente #detalleconstructivo #valledelaconcagua #sanfelipe #losandes #llayllay
 
+## DET. 03 · Panel de madera (feed 4:5)
+
+- **Video para el feed:** `panel-madera-4x5.mp4`. 1080×1350, 33 s, 30 fps, H.264. **Este es el que se sube.**
+- **Video maestro:** `panel-madera-4x5-2160.mp4`. 2160×2700.
+- **Portada:** `panel-madera-portada.jpg` (2160×2700), el panel terminado.
+
+**Secuencia:**
+1. Solera inferior de pino impregnado 2×4" (41 × 90 mm), anclada
+2. Pies derechos 2×4" a ejes c/60 cm y solera superior
+3. Cadenetas (crucetas) alternadas a media altura
+4. Diagonal de arriostramiento 2×4" (≈ 60°), cortada entre pies derechos
+5. Solera de amarre
+6. OSB 11,1 mm exterior
+7. Lana mineral 80 mm
+8. Polietileno y yeso-cartón 15 mm con tornillos
+
+El revestimiento interior va escalonado para que se vea el entramado completo. Las escuadrías, distancias y fijaciones son **referenciales**.
+
+### Texto sugerido para la publicación
+
+> ¿Qué hay dentro de un muro de madera? 🪵
+> 1️⃣ Solera inferior anclada · 2️⃣ Pies derechos c/60 cm · 3️⃣ Cadenetas · 4️⃣ Diagonal de arriostramiento · 5️⃣ Solera de amarre · 6️⃣ OSB exterior · 7️⃣ Aislación · 8️⃣ Barrera de vapor y yeso-cartón
+> Cada pieza cumple una función: las cadenetas traban los pies derechos, la diagonal y el OSB rigidizan frente al sismo y la aislación hace la diferencia en invierno.
+> ¿Vas a construir en el Valle del Aconcagua? Escríbeme 👉 averarq.cl
+> #arquitectura #construccion #construccionenmadera #entramado #detalleconstructivo #valledelaconcagua #sanfelipe #losandes #llayllay
+
 ### Editar o regenerar
 
 ```
@@ -63,6 +89,7 @@ cd _fuente
 node render-video.mjs --fotos 9 18 28   # cuadros sueltos para revisar
 node render-video.mjs                   # DET. 01: video maestro 2160 + feed 1080 (~7 min)
 node render-video.mjs --pieza paneles-sip   # DET. 02
+node render-video.mjs --pieza panel-madera  # DET. 03
 ```
 
 - La escena está en `_fuente/albanileria-confinada.html`: geometría en cm, textos de cada etapa en `ET` y tiempos en segundos.
