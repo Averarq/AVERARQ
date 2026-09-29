@@ -20,7 +20,7 @@ const cv = document.getElementById('c'), g = cv.getContext('2d');
 const SS = Math.max(1, +(new URLSearchParams(location.search).get('escala') || 1));
 const W = 1080, H = new URLSearchParams(location.search).get('formato') === 'reel' ? 1920 : 1350, DUR = 34.5; // reel: solo para la portada
 // formato reel 9:16: rótulo algo más abajo, área de dibujo más alta y cajetín sobre la zona que tapa la interfaz de Instagram
-const REEL = H > 1500, HD = 0, DY = REEL ? 285 : 0, CPY = REEL ? 285 : 0, SR = REEL ? 1.25 : 1;
+const REEL = H > 1500, HD = 0, DY = REEL ? 285 : 0, CPY = REEL ? 285 : 0, SR = REEL ? 1.08 : 1;
 cv.width = W * SS; cv.height = H * SS;
 const OR = '#FC4C02', CR = '#F2F0EB', BG = '#111110';
 const cr = a => `rgba(242,240,235,${a})`, orA = a => `rgba(252,76,2,${a})`;
@@ -42,7 +42,7 @@ const VISTA_TOT = { s: 1.55, fx: 52, fy: -10, cx: 540, cy: 640 }; // construcci�
 function camara(t) {
   const k = ease((t - 15.2) / 2.6);
   for (const p of ['s', 'fx', 'fy', 'cx', 'cy']) cam[p] = lerp(VISTA_CIM[p], VISTA_TOT[p], k);
-  cam.cy += DY; cam.s *= SR;
+  cam.cy += DY; cam.s *= 1 + (SR - 1) * k; // reel: el detalle de cerca queda igual, la vista total crece
 }
 
 // ------------------------------------------------------------------ texturas (achurados de plano)

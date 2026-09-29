@@ -44,7 +44,7 @@ function camara(t) {
   if (CAM_FIJA) { Object.assign(cam, CAM_FIJA); return; }
   const k = ease((t - 9.6) / 1.8);
   for (const p of ['s', 'fx', 'fy', 'cx', 'cy']) cam[p] = lerp(VISTA_BASE[p], VISTA_MURO[p], k);
-  cam.cy += DY; cam.s *= SR;
+  cam.cy += DY; cam.s *= 1 + (SR - 1) * k;
 }
 
 // ------------------------------------------------------------------ texturas
