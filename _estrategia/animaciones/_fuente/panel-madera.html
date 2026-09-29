@@ -439,10 +439,10 @@ function render(t) {
 }
 // ------------------------------------------------------------------ portada del post (imagen fija)
 function renderPortada() {
-  const R = H > 1500, dy = R ? 250 : 0; // reel 9:16: titular y dibujo dentro del recorte 3:4 de la grilla
+  const R = H > 1500, dy = R ? 90 : 0; // reel 9:16: titular arriba, dibujo grande y centrado
   const t = 26.4;
   g.setTransform(SS, 0, 0, SS, 0, 0);
-  CAM_FIJA = R ? { s: 1.65, fx: 92, fy: -38, cx: 540, cy: 1276 } : { s: 1.62, fx: 92, fy: -38, cx: 650, cy: 880 }; ROT = false;
+  CAM_FIJA = R ? { s: 2.33, fx: 92, fy: -38, cx: 540, cy: 1270 } : { s: 1.62, fx: 92, fy: -38, cx: 650, cy: 880 }; ROT = false;
   g.fillStyle = BG; g.fillRect(0, 0, W, H);
   g.save(); g.strokeStyle = 'rgba(242,240,235,0.045)'; g.lineWidth = 1;
   for (let x = M + 30; x < W - M; x += 30) { g.beginPath(); g.moveTo(x, M); g.lineTo(x, H - M - 26); g.stroke(); }
