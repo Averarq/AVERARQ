@@ -19,6 +19,8 @@
 const cv = document.getElementById('c'), g = cv.getContext('2d');
 const SS = Math.max(1, +(new URLSearchParams(location.search).get('escala') || 1));
 const W = 1080, H = new URLSearchParams(location.search).get('formato') === 'reel' ? 1920 : 1350, DUR = 33; // reel: solo para la portada
+// formato reel 9:16: rótulo algo más abajo, área de dibujo más alta y cajetín sobre la zona que tapa la interfaz de Instagram
+const REEL = H > 1500, HD = REEL ? 150 : 0, DY = REEL ? 200 : 0, CPY = REEL ? 200 : 0;
 cv.width = W * SS; cv.height = H * SS;
 const OR = '#FC4C02', CR = '#F2F0EB', BG = '#111110';
 const cr = a => `rgba(242,240,235,${a})`, orA = a => `rgba(252,76,2,${a})`;
@@ -41,6 +43,7 @@ function camara(t) {
   if (CAM_FIJA) { Object.assign(cam, CAM_FIJA); return; }
   const k = ease((t - 5.4) / 1.8);
   for (const p of ['s', 'fx', 'fy', 'cx', 'cy']) cam[p] = lerp(VISTA_BASE[p], VISTA_MURO[p], k);
+  cam.cy += DY;
 }
 
 // ------------------------------------------------------------------ texturas
@@ -329,7 +332,7 @@ function envolver(s, x, y, ancho, font, col, alto, a = 1) {
   for (const p of pal) { const prueba = l ? l + ' ' + p : p; if (g.measureText(prueba).width > ancho && l) { texto(l, x, yy, font, col, 'left', a); l = p; yy += alto; } else l = prueba; }
   if (l) texto(l, x, yy, font, col, 'left', a);
 }
-const M = 36, TOP = 214, CAJ = 1086;
+const M = 36, TOP = 214 + HD, CAJ = 1086 + (REEL ? 244 : 0), CAJ1 = REEL ? CAJ + 202 : H - M - 26;
 function retícula() {
   g.save(); g.strokeStyle = 'rgba(242,240,235,0.045)'; g.lineWidth = 1;
   for (let x = M + 30; x < W - M; x += 30) { g.beginPath(); g.moveTo(x, TOP); g.lineTo(x, CAJ); g.stroke(); }
@@ -340,17 +343,18 @@ function marco(t) {
   g.strokeStyle = cr(.5); g.lineWidth = 1.2; g.strokeRect(M, M, W - 2 * M, H - 2 * M - 26);
   linea([M, TOP], [W - M, TOP], cr(.5), 1.2);
   linea([M, CAJ], [W - M, CAJ], cr(.5), 1.2);
-  isotipo(M + 30, 62, 34, OR);
+  if (REEL) linea([M, CAJ1], [W - M, CAJ1], cr(.5), 1.2);
+  isotipo(M + 30, 62 + HD, 34, OR);
   const hL = 28, wL = hL * LOGOTIPO.naturalWidth / LOGOTIPO.naturalHeight;
-  g.drawImage(LOGOTIPO, M + 76, 64, wL, hL);
-  texto('ARQUITECTURA, DISEÑO Y CONSTRUCCIÓN', W - M - 28, 88, '400 17px "IBM Plex Mono"', cr(.6), 'right');
-  texto('PANEL DE MADERA', M + 28, 168, '700 70px "Barlow Condensed"', CR);
-  texto('DET. 03 · ISOMÉTRICA · S/E', W - M - 28, 166, '500 17px "IBM Plex Mono"', OR, 'right');
-  texto('SOLERAS · PIES DERECHOS · CADENETAS · DIAGONAL · AISLACIÓN', M + 30, 198, '400 16px "IBM Plex Mono"', cr(.55));
-  texto('Detalle referencial. Escuadrías, distancias y fijaciones según el proyecto de cada obra.', W / 2, H - 22, '400 15px "IBM Plex Mono"', cr(.5), 'center');
+  g.drawImage(LOGOTIPO, M + 76, 64 + HD, wL, hL);
+  texto('ARQUITECTURA, DISEÑO Y CONSTRUCCIÓN', W - M - 28, 88 + HD, '400 17px "IBM Plex Mono"', cr(.6), 'right');
+  texto('PANEL DE MADERA', M + 28, 168 + HD, '700 70px "Barlow Condensed"', CR);
+  texto('DET. 03 · ISOMÉTRICA · S/E', W - M - 28, 166 + HD, '500 17px "IBM Plex Mono"', OR, 'right');
+  texto('SOLERAS · PIES DERECHOS · CADENETAS · DIAGONAL · AISLACIÓN', M + 30, 198 + HD, '400 16px "IBM Plex Mono"', cr(.55));
+  texto('Detalle referencial. Escuadrías, distancias y fijaciones según el proyecto de cada obra.', W / 2, REEL ? CAJ1 + 44 : H - 22, '400 15px "IBM Plex Mono"', cr(.5), 'center');
 }
 function cajetin(t) {
-  const y0 = CAJ, y1 = H - M - 26, xN = M + 196;
+  const y0 = CAJ, y1 = CAJ1, xN = M + 196;
   linea([xN, y0], [xN, y1], cr(.5), 1.2);
   for (let i = 1; i <= 8; i++) {
     const w = (W - 2 * M - 196 - 48) / 8, x = xN + 24 + (i - 1) * w, p = clamp((t - ET[i].t0) / (ET[i].t1 - ET[i].t0));
@@ -389,19 +393,19 @@ function contraportada(t) {
   g.strokeStyle = cr(.5 * a); g.lineWidth = 1.2; g.strokeRect(M, M, W - 2 * M, H - 2 * M - 26);
   const e = (d) => { const v = easeOut((t - T_CP - d) / 0.6); return [v, (1 - v) * 18]; };
   let [v, dy] = e(0.2);
-  g.save(); g.globalAlpha = v; isotipo(W / 2 - 42, 300 + dy, 96, OR); g.restore();
+  g.save(); g.globalAlpha = v; isotipo(W / 2 - 42, 300 + CPY + dy, 96, OR); g.restore();
   [v, dy] = e(0.4);
-  texto('¿VAS A CONSTRUIR', W / 2, 560 + dy, '700 112px "Barlow Condensed"', CR, 'center', v);
-  texto('EN EL VALLE?', W / 2, 670 + dy, '700 112px "Barlow Condensed"', CR, 'center', v);
+  texto('¿VAS A CONSTRUIR', W / 2, 560 + CPY + dy, '700 112px "Barlow Condensed"', CR, 'center', v);
+  texto('EN EL VALLE?', W / 2, 670 + CPY + dy, '700 112px "Barlow Condensed"', CR, 'center', v);
   [v, dy] = e(0.7);
-  texto('HÁBLANOS.', W / 2, 810 + dy, '700 132px "Barlow Condensed"', OR, 'center', v);
+  texto('HÁBLANOS.', W / 2, 810 + CPY + dy, '700 132px "Barlow Condensed"', OR, 'center', v);
   [v, dy] = e(0.95);
-  g.save(); g.globalAlpha = v; g.fillStyle = OR; g.fillRect(W / 2 - 60, 870 + dy, 120, 6); g.restore();
-  texto('AVERARQ.CL  ·  @AVERARQ  ·  +56 9 5431 7945', W / 2, 960 + dy, '500 22px "IBM Plex Mono"', CR, 'center', v);
+  g.save(); g.globalAlpha = v; g.fillStyle = OR; g.fillRect(W / 2 - 60, 870 + CPY + dy, 120, 6); g.restore();
+  texto('AVERARQ.CL  ·  @AVERARQ  ·  +56 9 5431 7945', W / 2, 960 + CPY + dy, '500 22px "IBM Plex Mono"', CR, 'center', v);
   [v, dy] = e(1.2);
   const hL = 34, wL = hL * LOGOTIPO.naturalWidth / LOGOTIPO.naturalHeight;
-  g.save(); g.globalAlpha = v; g.drawImage(LOGOTIPO, W / 2 - wL / 2, 1150 + dy, wL, hL); g.restore();
-  texto('ARQUITECTURA, DISEÑO Y CONSTRUCCIÓN', W / 2, 1222 + dy, '400 17px "IBM Plex Mono"', cr(.6), 'center', v);
+  g.save(); g.globalAlpha = v; g.drawImage(LOGOTIPO, W / 2 - wL / 2, 1150 + CPY + dy, wL, hL); g.restore();
+  texto('ARQUITECTURA, DISEÑO Y CONSTRUCCIÓN', W / 2, 1222 + CPY + dy, '400 17px "IBM Plex Mono"', cr(.6), 'center', v);
 }
 
 // ------------------------------------------------------------------ cuadro
