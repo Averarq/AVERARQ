@@ -378,7 +378,7 @@ function etiquetas(t) {
 
 // ------------------------------------------------------------------ interfaz de plano (marco, rótulo y cajetín)
 const ISO = new Path2D('M 57.574219 52.507812 L 46.25 52.507812 L 51.9375 38.394531 L 53.53125 42.492188 L 56.828125 42.492188 L 53.164062 33.398438 L 50.796875 33.398438 L 41.816406 55.308594 L 45.125 55.304688 L 58.695312 55.304688 L 59.8125 58.101562 L 63.183594 58.101562 L 60.898438 52.464844 Z');
-const LOGOTIPO = new Image(); LOGOTIPO.src = 'img/logotipo-averarq.png'; // logotipo oficial, naranjo sobre transparente
+const LOGOTIPO = new Image(); LOGOTIPO.src = 'img/logotipo-averarq-blanco.png'; // logotipo oficial en blanco (mismo tono que el título)
 function isotipo(x, y, h, col) { const s = h / 25.4; g.save(); g.translate(x - 41.6 * s, y - 33 * s); g.scale(s, s); g.fillStyle = col; g.fill(ISO); g.restore(); }
 function texto(s, x, y, font, col, al = 'left', a = 1) { g.save(); g.globalAlpha *= a; g.font = font; g.fillStyle = col; g.textAlign = al; g.textBaseline = 'alphabetic'; g.fillText(s, x, y); g.restore(); }
 function envolver(s, x, y, ancho, font, col, alto, a = 1) {
