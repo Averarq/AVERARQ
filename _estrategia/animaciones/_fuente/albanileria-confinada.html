@@ -594,6 +594,7 @@ function render(t) {
   if (f > 0) { g.fillStyle = `rgba(17,17,16,${f})`; g.fillRect(0, 0, W, H); }
 }
 window.DUR = DUR;
+window.PORTADA = 28.4; // cuadro usado como portada
 window.render = render;
 window.ready = (async () => {
   for (const f of ['400 20px Barlow', '700 20px "Barlow Condensed"', '600 20px "Barlow Condensed"', '400 20px "IBM Plex Mono"', '500 20px "IBM Plex Mono"'])
