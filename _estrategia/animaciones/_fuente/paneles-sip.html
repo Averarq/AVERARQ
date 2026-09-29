@@ -37,7 +37,9 @@ const K = () => cam.s / 1.45;
 const VISTA_BASE = { s: 2.45, fx: 92, fy: 70, cx: 540, cy: 640 };   // radier y solera de cerca
 const VISTA_MURO = { s: 1.84, fx: 92, fy: -38, cx: 540, cy: 676 };  // muro completo, centrado
 const VISTA_ESP = { s: 4.8, fx: 56.5, fy: 23.5, cx: 540, cy: 705 };     // lámina de espesores
+let CAM_FIJA = null, ROT = true; // portada del post: cámara fija y sin rótulos
 function camara(t) {
+  if (CAM_FIJA) { Object.assign(cam, CAM_FIJA); return; }
   const k = ease((t - 9.6) / 1.8);
   for (const p of ['s', 'fx', 'fy', 'cx', 'cy']) cam[p] = lerp(VISTA_BASE[p], VISTA_MURO[p], k);
 }
@@ -253,6 +255,7 @@ function tornillos(t) {
 
 // cotas y niveles
 function nivel(z, txt, a) {
+  if (!ROT) return;
   if (a <= 0) return;
   const k = K(); const [x, y] = P(0, T, z); const x2 = x - 26 * k;
   g.save(); g.globalAlpha = a;
@@ -264,6 +267,7 @@ function nivel(z, txt, a) {
   g.restore();
 }
 function cota(p1, p2, txt, a, off = [0, 18]) {
+  if (!ROT) return;
   if (a <= 0) return;
   const k = K(), [ox, oy] = [off[0] * k, off[1] * k];
   const A = [p1[0] + ox, p1[1] + oy], B = [p2[0] + ox, p2[1] + oy];
@@ -287,6 +291,7 @@ const ETQ = [
   { e: 7, p: [67.5, T, 2], d: [30, 74] },
 ];
 function etiquetas(t) {
+  if (!ROT) return;
   const k = K();
   for (const q of ETQ) {
     const a = clamp((t - ET[q.e].t0 - 0.6) / 0.5);
@@ -488,6 +493,37 @@ function render(t) {
   const f = 1 - clamp(t / 0.5);
   if (f > 0) { g.fillStyle = `rgba(17,17,16,${f})`; g.fillRect(0, 0, W, H); }
 }
+// ------------------------------------------------------------------ portada del post (imagen fija)
+function renderPortada() {
+  const t = 23.4;
+  g.setTransform(SS, 0, 0, SS, 0, 0);
+  CAM_FIJA = { s: 1.62, fx: 92, fy: -38, cx: 650, cy: 880 }; ROT = false;
+  g.fillStyle = BG; g.fillRect(0, 0, W, H);
+  g.save(); g.strokeStyle = 'rgba(242,240,235,0.045)'; g.lineWidth = 1;
+  for (let x = M + 30; x < W - M; x += 30) { g.beginPath(); g.moveTo(x, M); g.lineTo(x, H - M - 26); g.stroke(); }
+  for (let y = M + 30; y < H - M - 26; y += 30) { g.beginPath(); g.moveTo(M, y); g.lineTo(W - M, y); g.stroke(); }
+  g.restore();
+  g.save(); g.beginPath(); g.rect(M, M, W - 2 * M, H - 2 * M - 96); g.clip();
+  escenaMuro(t, 1);
+  g.restore();
+  CAM_FIJA = null; ROT = true;
+  g.strokeStyle = cr(.5); g.lineWidth = 1.2; g.strokeRect(M, M, W - 2 * M, H - 2 * M - 26);
+  isotipo(M + 30, 62, 34, OR);
+  const hL = 28, wL = hL * LOGOTIPO.naturalWidth / LOGOTIPO.naturalHeight;
+  g.drawImage(LOGOTIPO, M + 76, 64, wL, hL);
+  texto('DETALLES CONSTRUCTIVOS · 02', W - M - 28, 88, '500 17px "IBM Plex Mono"', OR, 'right');
+  texto('ASÍ CONSTRUIMOS', M + 28, 208, '700 84px "Barlow Condensed"', CR);
+  texto('EN AVERARQ:', M + 28, 290, '700 84px "Barlow Condensed"', CR);
+  texto('PANELES SIP', M + 24, 420, '700 132px "Barlow Condensed"', OR);
+  g.fillStyle = OR; g.fillRect(M + 30, 452, 110, 6);
+  texto('Del radier al muro,', M + 30, 506, '400 28px "Barlow"', cr(.85));
+  texto('paso a paso.', M + 30, 542, '400 28px "Barlow"', cr(.85));
+  linea([M, H - M - 96], [W - M, H - M - 96], cr(.5), 1.2);
+  texto('SOLERA · PANEL 140 mm · CLAVES · AMARRE · FIJACIÓN', M + 30, H - M - 52, '400 17px "IBM Plex Mono"', cr(.65));
+  texto('AVERARQ.CL', W - M - 28, H - M - 50, '600 26px "Barlow Condensed"', OR, 'right');
+  texto('Detalle referencial.', W / 2, H - 22, '400 15px "IBM Plex Mono"', cr(.5), 'center');
+}
+window.renderPortada = renderPortada;
 window.DUR = DUR;
 window.PORTADA = 23.4; // muro terminado
 window.render = render;
