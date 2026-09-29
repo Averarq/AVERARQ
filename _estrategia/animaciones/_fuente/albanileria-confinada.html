@@ -532,13 +532,8 @@ function contraportada(t) {
 }
 
 // ------------------------------------------------------------------ cuadro
-function render(t) {
-  g.setTransform(SS, 0, 0, SS, 0, 0);
-  camara(t); anclarPatrones();
-  g.fillStyle = BG; g.fillRect(0, 0, W, H);
-  retícula();
-  // área de dibujo recortada
-  g.save(); g.beginPath(); g.rect(M, TOP, W - 2 * M, CAJ - TOP); g.clip();
+// dibujo isométrico en el instante t; sin rótulos (etiquetas, niveles y cotas) para la portada del post
+function escena(t, rotulos) {
   const aTerr = clamp((t - 0.8) / 1.0);
   dibujaZanjaFondo(t, aTerr);
   for (const it of ORDEN) {
@@ -571,6 +566,7 @@ function render(t) {
     g.setLineDash([8 * k, 5 * k]); g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y));
     g.strokeStyle = cr(.8); g.lineWidth = 1.2 * k; g.stroke(); g.setLineDash([]); g.restore();
   }
+  if (!rotulos) return;
   // niveles
   const nv = (e, d = 0.8) => clamp((t - ET[e].t0 - d) / 0.6);
   nivel(0, '±0,00 NTN', clamp((t - ET[1].t0 - 1.2) / 0.6), t);
@@ -584,6 +580,15 @@ function render(t) {
   escalerillasOcultas(t);
   etiquetas(t);
   rotuloEscalerilla(t);
+}
+function render(t) {
+  g.setTransform(SS, 0, 0, SS, 0, 0);
+  camara(t); anclarPatrones();
+  g.fillStyle = BG; g.fillRect(0, 0, W, H);
+  retícula();
+  // área de dibujo recortada
+  g.save(); g.beginPath(); g.rect(M, TOP, W - 2 * M, CAJ - TOP); g.clip();
+  escena(t, true);
   g.restore();
   marco(t);
   cajetin(t);
@@ -593,6 +598,40 @@ function render(t) {
   const f = 1 - clamp(t / 0.5);
   if (f > 0) { g.fillStyle = `rgba(17,17,16,${f})`; g.fillRect(0, 0, W, H); }
 }
+// ------------------------------------------------------------------ portada del post (imagen fija)
+function renderPortada() {
+  const t = 28.4;
+  g.setTransform(SS, 0, 0, SS, 0, 0);
+  Object.assign(cam, { s: 1.28, fx: 52, fy: -10, cx: 640, cy: 905 }); anclarPatrones();
+  g.fillStyle = BG; g.fillRect(0, 0, W, H);
+  g.save(); g.strokeStyle = 'rgba(242,240,235,0.045)'; g.lineWidth = 1;
+  for (let x = M + 30; x < W - M; x += 30) { g.beginPath(); g.moveTo(x, M); g.lineTo(x, H - M - 26); g.stroke(); }
+  for (let y = M + 30; y < H - M - 26; y += 30) { g.beginPath(); g.moveTo(M, y); g.lineTo(W - M, y); g.stroke(); }
+  g.restore();
+  g.save(); g.beginPath(); g.rect(M, M, W - 2 * M, H - 2 * M - 96); g.clip(); // el dibujo no invade el pie
+  escena(t, false);
+  g.restore();
+  g.strokeStyle = cr(.5); g.lineWidth = 1.2; g.strokeRect(M, M, W - 2 * M, H - 2 * M - 26);
+  // rótulo superior
+  isotipo(M + 30, 62, 34, OR);
+  const hL = 28, wL = hL * LOGOTIPO.naturalWidth / LOGOTIPO.naturalHeight;
+  g.drawImage(LOGOTIPO, M + 76, 64, wL, hL);
+  texto('DETALLES CONSTRUCTIVOS · 01', W - M - 28, 88, '500 17px "IBM Plex Mono"', OR, 'right');
+  // titular
+  texto('ASÍ CONSTRUIMOS', M + 28, 208, '700 84px "Barlow Condensed"', CR);
+  texto('EN AVERARQ:', M + 28, 290, '700 84px "Barlow Condensed"', CR);
+  texto('ALBAÑILERÍA', M + 24, 420, '700 132px "Barlow Condensed"', OR);
+  texto('CONFINADA', M + 24, 540, '700 132px "Barlow Condensed"', OR);
+  g.fillStyle = OR; g.fillRect(M + 30, 572, 110, 6);
+  texto('Del suelo a la cadena,', M + 30, 626, '400 28px "Barlow"', cr(.85));
+  texto('paso a paso.', M + 30, 662, '400 28px "Barlow"', cr(.85));
+  // pie
+  linea([M, H - M - 96], [W - M, H - M - 96], cr(.5), 1.2);
+  texto('CIMIENTO · SOBRECIMIENTO · MURO · PILARES · CADENA', M + 30, H - M - 52, '400 17px "IBM Plex Mono"', cr(.65));
+  texto('AVERARQ.CL', W - M - 28, H - M - 50, '600 26px "Barlow Condensed"', OR, 'right');
+  texto('Detalle referencial.', W / 2, H - 22, '400 15px "IBM Plex Mono"', cr(.5), 'center');
+}
+window.renderPortada = renderPortada;
 window.DUR = DUR;
 window.PORTADA = 28.4; // cuadro usado como portada
 window.render = render;
