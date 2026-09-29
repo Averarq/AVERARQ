@@ -2,8 +2,9 @@
 
 ## DET. 01 · Albañilería confinada (feed 4:5)
 
-- **Video:** `albanileria-confinada-4x5.mp4`. 1080×1350, 34,5 s, 30 fps, H.264. Listo para el feed de Instagram y Facebook.
-- **Portada:** `albanileria-confinada-portada.jpg`, el cuadro final completo. Úsala como miniatura del reel o del anuncio.
+- **Video para el feed:** `albanileria-confinada-4x5.mp4`. 1080×1350, 34,5 s, 30 fps, H.264. Es la resolución máxima que Instagram y Facebook muestran en 4:5. Se dibuja a 2160×2700 y se reduce con filtro Lanczos (sobremuestreo), así que las líneas finas quedan limpias y sin pixelado. **Este es el que se sube.**
+- **Video maestro:** `albanileria-confinada-4x5-2160.mp4`. 2160×2700, misma animación, para la web, presentaciones o pantalla grande.
+- **Portada:** `albanileria-confinada-portada.jpg` (2160×2700), el cuadro final del detalle. Úsala como miniatura del reel o del anuncio.
 
 **Secuencia (8 etapas):**
 1. Trazado y excavación
@@ -35,7 +36,7 @@ Niveles del detalle: fondo de excavación −0,65 · sobrecimiento +0,30 · muro
 ```
 cd _fuente
 node render-video.mjs --fotos 9 18 28   # cuadros sueltos para revisar
-node render-video.mjs                   # video completo (~2 min)
+node render-video.mjs                   # video maestro 2160 + feed 1080 (~8 min)
 ```
 
 - La escena está en `_fuente/albanileria-confinada.html`: geometría en cm, textos de cada etapa en `ET` y tiempos en segundos.
