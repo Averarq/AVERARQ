@@ -18,7 +18,7 @@
 const cv = document.getElementById('c'), g = cv.getContext('2d');
 // resolución de render: ?escala=2 dibuja a 2160 × 2700 (todo es vectorial, no se amplía una imagen)
 const SS = Math.max(1, +(new URLSearchParams(location.search).get('escala') || 1));
-const W = 1080, H = 1350, DUR = 34.5;
+const W = 1080, H = new URLSearchParams(location.search).get('formato') === 'reel' ? 1920 : 1350, DUR = 34.5; // reel: solo para la portada
 cv.width = W * SS; cv.height = H * SS;
 const OR = '#FC4C02', CR = '#F2F0EB', BG = '#111110';
 const cr = a => `rgba(242,240,235,${a})`, orA = a => `rgba(252,76,2,${a})`;
@@ -600,9 +600,10 @@ function render(t) {
 }
 // ------------------------------------------------------------------ portada del post (imagen fija)
 function renderPortada() {
+  const R = H > 1500, dy = R ? 250 : 0; // reel 9:16: titular y dibujo dentro del recorte 3:4 de la grilla
   const t = 28.4;
   g.setTransform(SS, 0, 0, SS, 0, 0);
-  Object.assign(cam, { s: 1.28, fx: 52, fy: -10, cx: 640, cy: 905 }); anclarPatrones();
+  Object.assign(cam, R ? { s: 1.45, fx: 52, fy: -10, cx: 540, cy: 1278 } : { s: 1.28, fx: 52, fy: -10, cx: 640, cy: 905 }); anclarPatrones();
   g.fillStyle = BG; g.fillRect(0, 0, W, H);
   g.save(); g.strokeStyle = 'rgba(242,240,235,0.045)'; g.lineWidth = 1;
   for (let x = M + 30; x < W - M; x += 30) { g.beginPath(); g.moveTo(x, M); g.lineTo(x, H - M - 26); g.stroke(); }
@@ -613,18 +614,18 @@ function renderPortada() {
   g.restore();
   g.strokeStyle = cr(.5); g.lineWidth = 1.2; g.strokeRect(M, M, W - 2 * M, H - 2 * M - 26);
   // rótulo superior
-  isotipo(M + 30, 62, 34, OR);
+  isotipo(M + 30, 62 + dy, 34, OR);
   const hL = 28, wL = hL * LOGOTIPO.naturalWidth / LOGOTIPO.naturalHeight;
-  g.drawImage(LOGOTIPO, M + 76, 64, wL, hL);
-  texto('DETALLES CONSTRUCTIVOS · 01', W - M - 28, 88, '500 17px "IBM Plex Mono"', OR, 'right');
+  g.drawImage(LOGOTIPO, M + 76, 64 + dy, wL, hL);
+  texto('DETALLES CONSTRUCTIVOS · 01', W - M - 28, 88 + dy, '500 17px "IBM Plex Mono"', OR, 'right');
   // titular
-  texto('ASÍ CONSTRUIMOS', M + 28, 208, '700 84px "Barlow Condensed"', CR);
-  texto('EN AVERARQ:', M + 28, 290, '700 84px "Barlow Condensed"', CR);
-  texto('ALBAÑILERÍA', M + 24, 420, '700 132px "Barlow Condensed"', OR);
-  texto('CONFINADA', M + 24, 540, '700 132px "Barlow Condensed"', OR);
-  g.fillStyle = OR; g.fillRect(M + 30, 572, 110, 6);
-  texto('Del suelo a la cadena,', M + 30, 626, '400 28px "Barlow"', cr(.85));
-  texto('paso a paso.', M + 30, 662, '400 28px "Barlow"', cr(.85));
+  texto('ASÍ CONSTRUIMOS', M + 28, 208 + dy, '700 84px "Barlow Condensed"', CR);
+  texto('EN AVERARQ:', M + 28, 290 + dy, '700 84px "Barlow Condensed"', CR);
+  texto('ALBAÑILERÍA', M + 24, 420 + dy, '700 132px "Barlow Condensed"', OR);
+  texto('CONFINADA', M + 24, 540 + dy, '700 132px "Barlow Condensed"', OR);
+  g.fillStyle = OR; g.fillRect(M + 30, 572 + dy, 110, 6);
+  texto('Del suelo a la cadena,', M + 30, 626 + dy, '400 28px "Barlow"', cr(.85));
+  texto('paso a paso.', M + 30, 662 + dy, '400 28px "Barlow"', cr(.85));
   // pie
   linea([M, H - M - 96], [W - M, H - M - 96], cr(.5), 1.2);
   texto('CIMIENTO · SOBRECIMIENTO · MURO · PILARES · CADENA', M + 30, H - M - 52, '400 17px "IBM Plex Mono"', cr(.65));

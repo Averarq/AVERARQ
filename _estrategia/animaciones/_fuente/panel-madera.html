@@ -18,7 +18,7 @@
 */
 const cv = document.getElementById('c'), g = cv.getContext('2d');
 const SS = Math.max(1, +(new URLSearchParams(location.search).get('escala') || 1));
-const W = 1080, H = 1350, DUR = 33;
+const W = 1080, H = new URLSearchParams(location.search).get('formato') === 'reel' ? 1920 : 1350, DUR = 33; // reel: solo para la portada
 cv.width = W * SS; cv.height = H * SS;
 const OR = '#FC4C02', CR = '#F2F0EB', BG = '#111110';
 const cr = a => `rgba(242,240,235,${a})`, orA = a => `rgba(252,76,2,${a})`;
@@ -439,9 +439,10 @@ function render(t) {
 }
 // ------------------------------------------------------------------ portada del post (imagen fija)
 function renderPortada() {
+  const R = H > 1500, dy = R ? 250 : 0; // reel 9:16: titular y dibujo dentro del recorte 3:4 de la grilla
   const t = 26.4;
   g.setTransform(SS, 0, 0, SS, 0, 0);
-  CAM_FIJA = { s: 1.62, fx: 92, fy: -38, cx: 650, cy: 880 }; ROT = false;
+  CAM_FIJA = R ? { s: 1.65, fx: 92, fy: -38, cx: 540, cy: 1276 } : { s: 1.62, fx: 92, fy: -38, cx: 650, cy: 880 }; ROT = false;
   g.fillStyle = BG; g.fillRect(0, 0, W, H);
   g.save(); g.strokeStyle = 'rgba(242,240,235,0.045)'; g.lineWidth = 1;
   for (let x = M + 30; x < W - M; x += 30) { g.beginPath(); g.moveTo(x, M); g.lineTo(x, H - M - 26); g.stroke(); }
@@ -452,17 +453,17 @@ function renderPortada() {
   g.restore();
   CAM_FIJA = null; ROT = true;
   g.strokeStyle = cr(.5); g.lineWidth = 1.2; g.strokeRect(M, M, W - 2 * M, H - 2 * M - 26);
-  isotipo(M + 30, 62, 34, OR);
+  isotipo(M + 30, 62 + dy, 34, OR);
   const hL = 28, wL = hL * LOGOTIPO.naturalWidth / LOGOTIPO.naturalHeight;
-  g.drawImage(LOGOTIPO, M + 76, 64, wL, hL);
-  texto('DETALLES CONSTRUCTIVOS · 03', W - M - 28, 88, '500 17px "IBM Plex Mono"', OR, 'right');
-  texto('ASÍ CONSTRUIMOS', M + 28, 208, '700 84px "Barlow Condensed"', CR);
-  texto('EN AVERARQ:', M + 28, 290, '700 84px "Barlow Condensed"', CR);
-  texto('PANEL DE', M + 24, 420, '700 132px "Barlow Condensed"', OR);
-  texto('MADERA', M + 24, 540, '700 132px "Barlow Condensed"', OR);
-  g.fillStyle = OR; g.fillRect(M + 30, 572, 110, 6);
-  texto('Del radier al panel,', M + 30, 626, '400 28px "Barlow"', cr(.85));
-  texto('pieza por pieza.', M + 30, 662, '400 28px "Barlow"', cr(.85));
+  g.drawImage(LOGOTIPO, M + 76, 64 + dy, wL, hL);
+  texto('DETALLES CONSTRUCTIVOS · 03', W - M - 28, 88 + dy, '500 17px "IBM Plex Mono"', OR, 'right');
+  texto('ASÍ CONSTRUIMOS', M + 28, 208 + dy, '700 84px "Barlow Condensed"', CR);
+  texto('EN AVERARQ:', M + 28, 290 + dy, '700 84px "Barlow Condensed"', CR);
+  texto('PANEL DE', M + 24, 420 + dy, '700 132px "Barlow Condensed"', OR);
+  texto('MADERA', M + 24, 540 + dy, '700 132px "Barlow Condensed"', OR);
+  g.fillStyle = OR; g.fillRect(M + 30, 572 + dy, 110, 6);
+  texto('Del radier al panel,', M + 30, 626 + dy, '400 28px "Barlow"', cr(.85));
+  texto('pieza por pieza.', M + 30, 662 + dy, '400 28px "Barlow"', cr(.85));
   linea([M, H - M - 96], [W - M, H - M - 96], cr(.5), 1.2);
   texto('SOLERAS · PIES DERECHOS · CADENETAS · DIAGONAL · AISLACIÓN', M + 30, H - M - 52, '400 17px "IBM Plex Mono"', cr(.65));
   texto('AVERARQ.CL', W - M - 28, H - M - 50, '600 26px "Barlow Condensed"', OR, 'right');
