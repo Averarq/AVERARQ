@@ -378,6 +378,7 @@ function etiquetas(t) {
 
 // ------------------------------------------------------------------ interfaz de plano (marco, rótulo y cajetín)
 const ISO = new Path2D('M 57.574219 52.507812 L 46.25 52.507812 L 51.9375 38.394531 L 53.53125 42.492188 L 56.828125 42.492188 L 53.164062 33.398438 L 50.796875 33.398438 L 41.816406 55.308594 L 45.125 55.304688 L 58.695312 55.304688 L 59.8125 58.101562 L 63.183594 58.101562 L 60.898438 52.464844 Z');
+const LOGOTIPO = new Image(); LOGOTIPO.src = 'img/logotipo-averarq.png'; // logotipo oficial, naranjo sobre transparente
 function isotipo(x, y, h, col) { const s = h / 25.4; g.save(); g.translate(x - 41.6 * s, y - 33 * s); g.scale(s, s); g.fillStyle = col; g.fill(ISO); g.restore(); }
 function texto(s, x, y, font, col, al = 'left', a = 1) { g.save(); g.globalAlpha *= a; g.font = font; g.fillStyle = col; g.textAlign = al; g.textBaseline = 'alphabetic'; g.fillText(s, x, y); g.restore(); }
 function envolver(s, x, y, ancho, font, col, alto, a = 1) {
@@ -398,7 +399,8 @@ function marco(t) {
   linea([M, CAJ], [W - M, CAJ], cr(.5), 1.2);
   // rótulo superior
   isotipo(M + 30, 62, 34, OR);
-  texto('AVERARQ', M + 76, 90, '600 30px "Barlow Condensed"', CR);
+  const hL = 28, wL = hL * LOGOTIPO.naturalWidth / LOGOTIPO.naturalHeight;
+  g.drawImage(LOGOTIPO, M + 76, 64, wL, hL);
   texto('ARQUITECTURA · VALLE DEL ACONCAGUA', W - M - 28, 88, '400 17px "IBM Plex Mono"', cr(.6), 'right');
   texto('ALBAÑILERÍA CONFINADA', M + 28, 168, '700 70px "Barlow Condensed"', CR);
   texto('DET. 01 · ISOMÉTRICA · S/E', W - M - 28, 166, '500 17px "IBM Plex Mono"', OR, 'right');
@@ -508,6 +510,7 @@ window.render = render;
 window.ready = (async () => {
   for (const f of ['400 20px Barlow', '700 20px "Barlow Condensed"', '600 20px "Barlow Condensed"', '400 20px "IBM Plex Mono"', '500 20px "IBM Plex Mono"'])
     await document.fonts.load(f, 'ÁÑáñ±−Ø');
+  await LOGOTIPO.decode();
   render(0); return true;
 })();
 </script>
