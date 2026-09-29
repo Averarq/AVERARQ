@@ -25,7 +25,7 @@ Niveles del detalle: fondo de excavación −0,65 · sobrecimiento +0,30 · muro
 > Del suelo a la cadena, en 8 pasos:
 > 1️⃣ Trazado y excavación · 2️⃣ Emplantillado · 3️⃣ Armadura de pilares · 4️⃣ Cimiento corrido · 5️⃣ Sobrecimiento · 6️⃣ Muro de ladrillo con escalerillas · 7️⃣ Pilares de hormigón armado · 8️⃣ Cadena
 > La clave: primero se levanta el muro y después se hormigonan pilares y cadenas contra él. El endentado traba ambos materiales y el muro trabaja en conjunto.
-> ¿Vas a construir en el Valle del Aconcagua? Diseño, cálculo y permisos hasta la recepción final. Escríbeme 👉 averarq.cl
+> ¿Vas a construir en el Valle del Aconcagua? Diseño, permisos y construcción hasta la recepción final. Escríbeme 👉 averarq.cl
 > #arquitectura #construccion #albañileriaconfinada #detalleconstructivo #valledelaconcagua #sanfelipe #losandes #llayllay
 
 **Como anuncio:** úsalo en la campaña de marca (C3 · ThruPlay). Así llena el público de retargeting con personas interesadas en construir.

@@ -464,7 +464,7 @@ function marco(t) {
   texto('DET. 01 · ISOMÉTRICA · S/E', W - M - 28, 166, '500 17px "IBM Plex Mono"', OR, 'right');
   texto('CIMIENTO · SOBRECIMIENTO · MURO · PILARES · CADENA', M + 30, 198, '400 16px "IBM Plex Mono"', cr(.55));
   // nota al pie
-  texto('Detalle referencial. Dimensiones y armaduras según cálculo estructural de cada proyecto.', W / 2, H - 22, '400 15px "IBM Plex Mono"', cr(.5), 'center');
+  texto('Detalle referencial. Dimensiones y armaduras según el proyecto estructural de cada obra.', W / 2, H - 22, '400 15px "IBM Plex Mono"', cr(.5), 'center');
 }
 function cajetin(t) {
   const y0 = CAJ, y1 = H - M - 26, xN = M + 196;
@@ -518,7 +518,7 @@ function contraportada(t) {
   g.save(); g.globalAlpha = v;
   g.fillStyle = OR; g.fillRect(W / 2 - 60, 870 + dy, 120, 6);
   g.restore();
-  texto('Diseño, cálculo y permisos hasta la recepción final.', W / 2, 950 + dy, '400 30px "Barlow"', cr(.9), 'center', v);
+  texto('Diseño, permisos y construcción hasta la recepción final.', W / 2, 950 + dy, '400 30px "Barlow"', cr(.9), 'center', v);
   texto('AVERARQ.CL  ·  @AVERARQ  ·  +56 9 5431 7945', W / 2, 1010 + dy, '500 22px "IBM Plex Mono"', CR, 'center', v);
   [v, dy] = e(1.2);
   const hL = 34, wL = hL * LOGOTIPO.naturalWidth / LOGOTIPO.naturalHeight;
