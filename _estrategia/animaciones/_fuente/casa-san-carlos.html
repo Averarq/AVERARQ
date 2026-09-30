@@ -387,11 +387,16 @@ function escena(t) {
     if (lerp(ZM0, ZM1, p) > VT[2]) caja([VT[0], VT[1], 0, EM, VT[2], lerp(ZM0, ZM1, p)], 'estuco', { h: h(4) });
     caja(sube([VT[1], L, 0, EM, ZM0, ZM1], p), 'estuco', { corte: cc, h: h(4) });
   });
-  // huella del muro separador (proyección en línea segmentada)
+  // huella del muro separador (proyección naranja en línea segmentada): a 1 m del muro del fondo, con dintel sobre el paso
   cuando(ap(4, 1.0, 1.2), p => {
-    const [a, b] = XS, y0 = EM, y1 = D - EM, zt = lerp(0, ZC, p), col = h(4) > 0 ? orA(.9) : cr(.6), dash = [7 * k, 5 * k];
-    for (const x of [a, b]) { linea(P(x, y0, 0), P(x, y1, 0), col, 1.3 * k, dash); linea(P(x, y0, zt), P(x, y1, zt), col, 1.3 * k, dash); }
-    for (const y of [y0, y1]) { linea(P(a, y, 0), P(b, y, 0), col, 1.3 * k, dash); linea(P(a, y, zt), P(b, y, zt), col, 1.3 * k, dash); for (const x of [a, b]) linea(P(x, y, 0), P(x, y, zt), col, 1.3 * k, dash); }
+    const [a, b] = XS, col = orA(.95), dash = [7 * k, 5 * k], zt = lerp(0, ZC, p), zd = Math.min(zt, VT[2]);
+    const caja3 = (y0, y1, z0, z1) => {
+      for (const x of [a, b]) for (const z of [z0, z1]) linea(P(x, y0, z), P(x, y1, z), col, 1.4 * k, dash);
+      for (const y of [y0, y1]) for (const z of [z0, z1]) linea(P(a, y, z), P(b, y, z), col, 1.4 * k, dash);
+      for (const y of [y0, y1]) for (const x of [a, b]) linea(P(x, y, z0), P(x, y, z1), col, 1.4 * k, dash);
+    };
+    caja3(EM + 100, D - EM, 0, zt);                           // muro
+    if (zt > VT[2]) caja3(EM, EM + 100, VT[2], zt);             // dintel sobre el paso de 1 m
   });
   // fachada: pilares (armadura → hormigón) y paños de ladrillo con vanos
   const pj = ap(3, 0.2, 1.8), zj = lerp(ZM0, ZC - 3, pj), pp = ap(4, 3.2, 1.0), pv = ap(5, 0.2, 1.0);
