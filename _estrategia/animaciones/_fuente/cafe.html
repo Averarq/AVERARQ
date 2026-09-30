@@ -469,6 +469,10 @@ function renderPortada() {
   g.fillStyle = OR; g.fillRect(M + 30, 452 + dy, 110, 6);
   texto('El primer detalle', M + 30, 506 + dy, '400 28px "Barlow"', cr(.85));
   texto('de cada proyecto.', M + 30, 542 + dy, '400 28px "Barlow"', cr(.85));
+  // sello "¡Feliz Día del Café!"
+  g.font = '700 44px "Barlow Condensed"'; const wS = g.measureText('¡FELIZ DÍA DEL CAFÉ!').width + 40;
+  g.fillStyle = OR; g.fillRect(M + 30, 580 + dy, wS, 62);
+  texto('¡FELIZ DÍA DEL CAFÉ!', M + 50, 626 + dy, '700 44px "Barlow Condensed"', '#fff');
   linea([M, H - M - 96], [W - M, H - M - 96], cr(.5), 1.2);
   texto('TAZA · ESPRESSO · CREMA · VAPOR', M + 30, H - M - 52, '400 17px "IBM Plex Mono"', cr(.65));
   texto('AVERARQ.CL', W - M - 28, H - M - 50, '600 26px "Barlow Condensed"', OR, 'right');
