@@ -16,7 +16,7 @@
 const Q = new URLSearchParams(location.search);
 const cv = document.getElementById('c'), g = cv.getContext('2d');
 const SS = Math.max(1, +(Q.get('escala') || 1));
-const W = 1080, H = Q.get('formato') === 'reel' ? 1920 : 1350, DUR = 41;
+const W = 1080, H = Q.get('formato') === 'reel' ? 1920 : 1350, DUR = 45;
 const REEL = H > 1500, CPY = REEL ? 285 : 0;
 cv.width = W * SS; cv.height = H * SS;
 const OR = '#FC4C02', CR = '#F2F0EB', BG = '#111110';
@@ -230,27 +230,31 @@ function rotulo(txt, p, d, act) { // texto con recuadro y guía
 // ------------------------------------------------------------------ guion
 const ET = [
   null,
-  { n: '01', t0: 2.6, t1: 6.0, tit: 'Fundación', txt: 'Cimiento corrido y sobrecimiento de hormigón: reciben los muros y los separan del suelo.', spec: 'CIMIENTO 40 × 60 cm · SOBRECIMIENTO 20 × 40 cm' },
-  { n: '02', t0: 6.0, t1: 8.4, tit: 'Radier', txt: 'Losa de piso sobre base compactada y barrera de humedad.', spec: 'HORMIGÓN e = 10 cm · NPT ±0,00' },
-  { n: '03', t0: 8.4, t1: 13.0, tit: 'Albañilería confinada', txt: 'Paños de ladrillo confinados por pilares de hormigón armado.', spec: 'LADRILLO · PILARES H.A. 20 × 15 cm' },
-  { n: '04', t0: 13.0, t1: 15.6, tit: 'Ventanas proyectantes', txt: 'Ventanas altas de hoja proyectante: luz y ventilación sin perder privacidad.', spec: 'MARCO DE MADERA · HOJA PROYECTANTE' },
-  { n: '05', t0: 15.6, t1: 18.4, tit: 'Cadena y solera', txt: 'La cadena amarra los muros; la solera de madera y sus tacos reciben las cerchas.', spec: 'CADENA H.A. · SOLERA PINO 2×4" · TACOS' },
-  { n: '06', t0: 18.4, t1: 23.0, tit: 'Cerchas', txt: 'Cerchas de una agua, ancladas a la solera con conectores metálicos.', spec: 'PINO 2×4" · A EJES C/90 cm · CONECTORES' },
-  { n: '07', t0: 23.0, t1: 26.0, tit: 'Tableros OSB', txt: 'Clavados sobre las cerchas: arriostran la estructura y forman el plano de cubierta.', spec: 'OSB 11,1 mm · UNIONES TRABADAS' },
-  { n: '08', t0: 26.0, t1: 29.4, tit: 'Fieltro y costaneras', txt: 'Fieltro sobre los tableros y costaneras para apoyar la teja; tapacán en el alero.', spec: 'FIELTRO ASFÁLTICO · COSTANERAS 2×2" · TAPACÁN' },
-  { n: '09', t0: 29.4, t1: 33.4, tit: 'Teja colonial', txt: 'Teja cerámica traslapada, del alero hacia la cumbrera.', spec: 'TEJA CERÁMICA COLONIAL · PENDIENTE 35 %' },
+  { n: '01', t0: 2.6, t1: 7.0, tit: 'Fundación', txt: 'Cimiento corrido; sobre él, la armadura del sobrecimiento y su hormigonado.', spec: 'CIMIENTO 40 × 60 · SOBRECIMIENTO H.A. 20 × 40 cm' },
+  { n: '02', t0: 7.0, t1: 9.2, tit: 'Radier', txt: 'Losa de piso sobre base compactada y barrera de humedad.', spec: 'HORMIGÓN e = 10 cm · NPT ±0,00' },
+  { n: '03', t0: 9.2, t1: 11.8, tit: 'Armadura de pilares', txt: 'Enfierradura de los pilares, anclada al sobrecimiento.', spec: '4 Ø10 · ESTRIBOS Ø6 @ 15 cm' },
+  { n: '04', t0: 11.8, t1: 16.4, tit: 'Albañilería confinada', txt: 'Se levantan los paños de ladrillo y luego se hormigonan los pilares contra el muro.', spec: 'LADRILLO · PILARES H.A. 20 × 15 cm' },
+  { n: '05', t0: 16.4, t1: 18.8, tit: 'Ventanas proyectantes', txt: 'Ventanas altas de hoja proyectante: luz y ventilación sin perder privacidad.', spec: 'VANO 60 × 100 cm · MARCO DE MADERA' },
+  { n: '06', t0: 18.8, t1: 22.2, tit: 'Cadena de coronación', txt: 'Armadura sobre los muros y hormigonado: amarra pilares y paños en un solo anillo.', spec: 'CADENA H.A. 15 × 20 · 4 Ø10 · E Ø6 @ 20' },
+  { n: '07', t0: 22.2, t1: 27.0, tit: 'Cerchas y pletinas', txt: 'Cerchas de una agua entre muros, fijadas a la cadena con pletinas de acero, tirafondos y pernos de anclaje.', spec: 'PINO 2×4" · C/90 cm · PLETINAS GALVANIZADAS' },
+  { n: '08', t0: 27.0, t1: 30.0, tit: 'Tableros OSB', txt: 'Clavados sobre las cerchas: arriostran la estructura y forman el plano de cubierta.', spec: 'OSB 11,1 mm · UNIONES TRABADAS' },
+  { n: '09', t0: 30.0, t1: 33.4, tit: 'Fieltro y costaneras', txt: 'Fieltro sobre los tableros y costaneras para apoyar la teja; tapacán en el alero.', spec: 'FIELTRO ASFÁLTICO · COSTANERAS 2×2" · TAPACÁN' },
+  { n: '10', t0: 33.4, t1: 37.4, tit: 'Teja colonial', txt: 'Teja cerámica traslapada, del alero hacia la cumbrera.', spec: 'TEJA CERÁMICA COLONIAL · PENDIENTE 25 %' },
 ];
-const N = ET.length - 1, T_RES = 33.8, T_CP = 37.4;
+const N = ET.length - 1, T_RES = 37.8, T_CP = 41.4;
 const hl = e => t => t < ET[e].t0 ? 0 : t < ET[e].t1 ? 1 : 1 - clamp((t - ET[e].t1) / 0.9);
 
 // ------------------------------------------------------------------ geometría (cm)
 // x a lo largo de la fachada (corte en x = L), y de la fachada trasera (0) a la delantera (D), z desde el NPT
-const L = 540, D = 400, EM = 15, ZM0 = 20, ZM1 = 240, ZC = 260, ZS = ZC + 4.1, TP = 0.35, AL = 40;
+const L = 540, D = 400, EM = 15, ZM0 = 20, ZM1 = 240, ZC = 260, TP = 0.25, AL = 40;
 const PIL = [[0, 20], [190, 210], [380, 400]];                                      // pilares de la fachada
-const VEN = [[255, 335], [430, 510]], VZ = [150, 225];                              // vanos de ventanas
-const CER = [20, 110, 200, 290, 380, 470];                                          // cerchas c/90
-const zTC = y => ZS + 9 + (D - y) * TP + 9 / Math.cos(Math.atan(TP));               // cara superior de la cuerda superior
+const VEN = [[265, 325], [440, 500]], VZ = [125, 225];                              // vanos 60 × 100
+const CER = [30, 120, 210, 300, 390, 480];                                          // cerchas c/90, entre muros
+const TV = 9 / Math.cos(Math.atan(TP));
+const zb = y => ZC + (D - y) * TP;                                                   // cara inferior de la cuerda superior
+const zTC = y => zb(y) + TV;                                                         // cara superior de la cuerda superior
 const zO = y => zTC(y) + 1.1, zF = y => zO(y) + .5, zLi = y => zF(y) + 4.1;        // OSB, fieltro, costaneras
+const ZB = 244;                                                                      // cuerda inferior (junto a la cadena)
 const YA = -20, YE = D + AL;                                                         // cumbrera (atrás) y alero (adelante)
 const XR = { osb: L - 40, fie: L - 80, cos: L - 110, tej: L - 150 };                // cubierta escalonada hacia el corte
 const BB = [-30, L, YA, YE, -60, zO(YA) + 12];
@@ -258,7 +262,7 @@ TONO.ladrillo = { sup: '#8c4a33', fy: '#7a3f2b', fx: '#6c3827', pat: null, corte
 TONO.estuco = { sup: '#b9b7b1', fy: '#a8a6a0', fx: '#9e9c96', pat: null, corte: '#2b2b29', patCorte: 'corte' };
 TONO.teja = { sup: '#b4532e', fy: '#8e3f22', fx: '#a04a28', pat: null };
 TONO.osb = { sup: '#b99a62', fy: '#9c8250', fx: '#a88c58', pat: 'osb', patA: 1 };
-TONO.metal = { sup: '#3b3b3b', fy: '#2a2a2a', fx: '#333', pat: null };
+TONO.metal = { sup: '#4a4a4a', fy: '#2e2e2e', fx: '#3a3a3a', pat: null };
 TONO.vidrio = { sup: '#56616a', fy: '#4a545c', fx: '#505a62', pat: null };
 PAT.osb = patron(80, 80, (c, w, h) => {
   const r = rng(19); c.lineCap = 'round';
@@ -266,7 +270,22 @@ PAT.osb = patron(80, 80, (c, w, h) => {
     c.strokeStyle = r() > .5 ? 'rgba(255,240,200,0.18)' : 'rgba(60,40,10,0.22)'; c.lineWidth = .9 + r() * .8;
     c.beginPath(); c.moveTo(x, y); c.lineTo(x + l * Math.cos(a), y + l * Math.sin(a)); c.stroke(); }
 });
-
+// armaduras (naranjo, como en el detalle de albañilería): jaula vertical y jaula horizontal
+function jaulaV(x0, x1, y0, y1, z0, z1, a = 1) {
+  if (z1 <= z0) return;
+  const k = K(); g.save(); g.globalAlpha *= a;
+  for (let z = Math.ceil((z0 + 2) / 15) * 15; z < z1; z += 15) poli([P(x0, y0, z), P(x1, y0, z), P(x1, y1, z), P(x0, y1, z)], null, orA(.85), 1.2 * k);
+  for (const [x, y] of [[x0, y0], [x1, y0], [x0, y1], [x1, y1]]) linea(P(x, y, z0), P(x, y, z1), OR, 2.2 * k);
+  g.restore();
+}
+function jaulaH(eje, a0, a1, b0, b1, z0, z1, al = 1) {
+  if (a1 <= a0) return;
+  const k = K(), Q = (a, b, z) => eje === 'x' ? P(a, b, z) : P(b, a, z);
+  g.save(); g.globalAlpha *= al;
+  for (let a = Math.ceil((a0 + 5) / 20) * 20; a < a1; a += 20) poli([Q(a, b0, z0), Q(a, b1, z0), Q(a, b1, z1), Q(a, b0, z1)], null, orA(.85), 1.2 * k);
+  for (const [b, z] of [[b0, z0], [b1, z0], [b0, z1], [b1, z1]]) linea(Q(a0, b, z), Q(a1, b, z), OR, 2.2 * k);
+  g.restore();
+}
 // muro de ladrillo: caja con hiladas y llagas trazadas sobre la cara frontal (y) y la superior
 function ladrillo(b, o = {}) {
   caja(b, 'ladrillo', o);
@@ -334,104 +353,129 @@ function escena(t) {
   const ap = (e, d, dur = 0.9) => ease((t - ET[e].t0 - d) / dur);
   const sube = (b, p) => [b[0], b[1], b[2], b[3], b[4], lerp(b[4], b[5], p)];
   const cuando = (p, f) => { if (p <= 0) return; g.save(); g.globalAlpha *= clamp(p * 3); f(p); g.restore(); };
-  // 1 · fundación
+  // 1 · fundación: cimiento, armadura del sobrecimiento y hormigonado
   const CIM = [[0, L, -12.5, 27.5], [-12.5, 27.5, 27.5, D - 27.5], [0, L, D - 27.5, D + 12.5]];
   const SOB = [[0, L, 0, 20], [0, 20, 20, D - 20], [0, L, D - 18, D + 2]];
-  CIM.forEach((c, i) => cuando(ap(1, i * 0.3), p => caja(sube([...c, -60, -20], p), 'conc', { corte: cc, h: h(1) })));
-  cuando(ap(1, 1.4), p => { caja(sube([...SOB[0], -20, ZM0], p), 'conc', { corte: cc, h: h(1) }); caja(sube([...SOB[1], -20, ZM0], p), 'conc', { corte: cc, h: h(1) }); });
+  CIM.forEach((c, i) => cuando(ap(1, i * 0.25, 0.8), p => caja(sube([...c, -60, -20], p), 'conc', { corte: cc, h: h(1) })));
+  const pa = ap(1, 0.9, 1.1), ph = ap(1, 2.4, 1.2);                                // armadura, hormigón
+  const armSob = (i) => { const [x0, x1, y0, y1] = SOB[i];
+    if (i === 1) jaulaH('y', 20, lerp(20, D - 20, pa), x0 + 4, x1 - 4, -16, 16); else jaulaH('x', 0, lerp(0, L, pa), y0 + 4, y1 - 4, -16, 16); };
+  const sob = (i) => { if (ph < 1) armSob(i); cuando(ph, p => caja(sube([...SOB[i], -20, ZM0], p), 'conc', { corte: cc, h: h(1) })); };
+  sob(0); sob(1);
   // 2 · radier
   cuando(ap(2, 0.2, 1.2), p => caja([20, lerp(20, L, p), 20, D - 20, -10, 0], 'conc', { corte: cc, h: h(2) }));
-  cuando(ap(1, 1.4), p => caja(sube([...SOB[2], -20, ZM0], p), 'conc', { corte: cc, h: h(1) }));
-  // 3 · muros: trasero y lateral (caras interiores estucadas), luego la fachada de ladrillo con pilares
-  const pm = ap(3, 0.2, 3.2);
-  cuando(pm, p => { caja(sube([0, L, 0, EM, ZM0, ZM1], p), 'estuco', { corte: cc, h: h(3) }); caja(sube([0, EM, EM, D - EM, ZM0, ZM1], p), 'estuco', { h: h(3) }); });
-  const pv = ap(4, 0.2, 1.0), zt = z => lerp(ZM0, ZM1, pm) >= z;
+  sob(2);
+  // 4 · muros trasero y lateral (caras interiores estucadas)
+  const pm = ap(4, 0.2, 2.8), zTop = lerp(ZM0, ZM1, pm);
+  cuando(pm, p => { caja(sube([0, L, 0, EM, ZM0, ZM1], p), 'estuco', { corte: cc, h: h(4) }); caja(sube([0, EM, EM, D - EM, ZM0, ZM1], p), 'estuco', { h: h(4) }); });
+  // fachada: pilares (armadura → hormigón) y paños de ladrillo con vanos
+  const pj = ap(3, 0.2, 1.8), zj = lerp(ZM0, ZC - 3, pj), pp = ap(4, 3.2, 1.0), pv = ap(5, 0.2, 1.0);
   const tramos = [];
   for (let i = 0; i < PIL.length; i++) {
     tramos.push({ pil: true, x: PIL[i] });
-    const xa = PIL[i][1], xb = i + 1 < PIL.length ? PIL[i + 1][0] : L, v = VEN.find(([a, b]) => a > xa && b < xb);
-    tramos.push({ pil: false, x: [xa, xb], v });
+    const xa = PIL[i][1], xb = i + 1 < PIL.length ? PIL[i + 1][0] : L;
+    tramos.push({ pil: false, x: [xa, xb], v: VEN.find(([a, b]) => a > xa && b < xb) });
   }
-  if (pm > 0) for (const tr of tramos) {
-    const zTop = lerp(ZM0, ZM1, pm), [xa, xb] = tr.x, o = { h: h(3), corte: xb === L ? cc : [] };
+  for (const tr of tramos) {
+    const [xa, xb] = tr.x, o = { h: h(4), corte: xb === L ? cc : [] };
+    if (tr.pil) {
+      if (pp < 1 && pj > 0) jaulaV(xa + 4, xb - 4, D - EM + 3, D - 3, ZM0 - 15, zj);
+      cuando(pp, p => caja([xa, xb, D - EM, D, ZM0, lerp(ZM0, ZM1, p)], 'conc', { h: Math.max(h(4), 0) }));
+      continue;
+    }
+    if (pm <= 0) continue;
     g.save(); g.globalAlpha *= clamp(pm * 3);
-    if (tr.pil) caja([xa, xb, D - EM, D, ZM0, zTop], 'conc', o);
-    else if (!tr.v) ladrillo([xa, xb, D - EM, D, ZM0, zTop], o);
+    if (!tr.v) ladrillo([xa, xb, D - EM, D, ZM0, zTop], o);
     else {
       const [va, vb] = tr.v;
       ladrillo([xa, xb, D - EM, D, ZM0, Math.min(zTop, VZ[0])], o);
       if (zTop > VZ[0]) {
         const zz = Math.min(zTop, VZ[1]);
-        ladrillo([xa, va, D - EM, D, VZ[0], zz], { h: h(3) });
-        if (pv > 0) { // marco y hoja proyectante abierta hacia afuera
-          caja([va, vb, D - EM, D - 2, VZ[0], VZ[1]], 'vidrio', {});
-        }
+        ladrillo([xa, va, D - EM, D, VZ[0], zz], { h: h(4) });
+        if (pv > 0) caja([va, vb, D - EM, D - 2, VZ[0], VZ[1]], 'vidrio', {});
         ladrillo([vb, xb, D - EM, D, VZ[0], zz], o);
         if (zTop > VZ[1]) ladrillo([xa, xb, D - EM, D, VZ[1], zTop], o);
       }
     }
     g.restore();
   }
-  // 4 · ventanas: marco de madera y hoja proyectante (bisagra arriba, abierta 25°)
+  // 5 · ventanas: marco de madera y hoja proyectante (bisagra arriba, abierta 25°)
   if (pv > 0) for (const [va, vb] of VEN) {
     g.save(); g.globalAlpha *= clamp(pv * 3);
-    const o = { h: h(4) };
+    const o = { h: h(5) };
     caja([va, vb, D - 4, D + 1, VZ[0], VZ[0] + 5], 'madera', o);
     caja([va, va + 5, D - 4, D + 1, VZ[0], VZ[1]], 'madera', o);
     caja([vb - 5, vb, D - 4, D + 1, VZ[0], VZ[1]], 'madera', o);
-    const ang = 25 * Math.PI / 180 * easeOut(pv), hh = VZ[1] - VZ[0] - 6, yb = D + 1 + Math.sin(ang) * hh, zb = VZ[1] - 1 - Math.cos(ang) * hh;
-    const hoja = (xa, xb, e, f) => poli([P(xa, D + 1, VZ[1] - 1), P(xb, D + 1, VZ[1] - 1), P(xb, yb + e, zb), P(xa, yb + e, zb)], f, h(4) > 0 ? mezcla('#F2F0EB', OR, h(4)) : cr(.85), 1.1 * k);
-    hoja(va + 4, vb - 4, 0, mezcla(TONO.madera.fy, '#6e2a0c', .45 * h(4)));
-    hoja(va + 9, vb - 9, 0, 'rgba(110,125,135,0.85)');
+    const ang = 25 * Math.PI / 180 * easeOut(pv), hh = VZ[1] - VZ[0] - 6, yb = D + 1 + Math.sin(ang) * hh, zb2 = VZ[1] - 1 - Math.cos(ang) * hh;
+    const hoja = (xa, xb, f) => poli([P(xa, D + 1, VZ[1] - 1), P(xb, D + 1, VZ[1] - 1), P(xb, yb, zb2), P(xa, yb, zb2)], f, h(5) > 0 ? mezcla('#F2F0EB', OR, h(5)) : cr(.85), 1.1 * k);
+    hoja(va + 4, vb - 4, mezcla(TONO.madera.fy, '#6e2a0c', .45 * h(5)));
+    hoja(va + 9, vb - 9, 'rgba(110,125,135,0.85)');
     caja([va, vb, D - 4, D + 1, VZ[1] - 5, VZ[1]], 'madera', o);
     g.restore();
   }
-  // 5 · cadena y solera con tacos
-  const pc = ap(5, 0.2, 1.0), ps = ap(5, 1.2, 0.8);
-  cuando(pc, p => { for (const b of [[0, L, 0, EM], [0, EM, EM, D - EM], [0, L, D - EM, D]]) caja([...b, ZM1, lerp(ZM1, ZC, p)], 'conc', { corte: b[1] === L ? cc : [], h: h(5) }); });
-  cuando(ps, p => {
-    const dz = (1 - p) * 20;
-    caja([0, L, 3, 12, ZC + dz, ZS + dz], 'madera', { corte: cc, h: h(5) });
-    caja([0, L, D - 12, D - 3, ZC + dz, ZS + dz], 'madera', { corte: cc, h: h(5) });
-    for (let i = 0; i + 1 < CER.length; i++) caja([CER[i] + 4.1, CER[i + 1], D - 12, D - 3, ZS + dz, ZS + 9 + dz], 'madera', { h: h(5) });
-  });
-  // 6 · cerchas de una agua con conectores
-  const TV = 9 / Math.cos(Math.atan(TP)), zb = y => ZS + 9 + (D - y) * TP, sup = y => zb(y) + 3;
-  const piezas = [];
-  for (const y of [300, 200, 100]) piezas.push(barraYZ([y, ZS + 4.5], [y, sup(y)], 8));
-  for (const [a, b] of [[300, 200], [200, 100], [100, 8]]) piezas.push(barraYZ([a, ZS + 4.5], [b, sup(b)], 8));
-  piezas.push([[4, ZS], [D, ZS], [D, ZS + 9], [4, ZS + 9]]);
-  piezas.push([[0, ZS], [8, ZS], [8, sup(8) + 4], [0, sup(0) + 4]]);
-  piezas.push([[YA, zb(YA)], [YE, zb(YE)], [YE, zb(YE) + TV], [YA, zb(YA) + TV]]);
-  CER.forEach((xc, i) => cuando(easeOut((t - ET[6].t0 - 0.3 - i * 0.6) / 0.9), p => {
+  // 6 · cadena de coronación: armadura y hormigonado
+  const pca = ap(6, 0.2, 1.1), pch = ap(6, 1.6, 1.2);
+  const CAD = [[0, L, 0, EM, 'x'], [0, EM, EM, D - EM, 'y'], [0, L, D - EM, D, 'x']];
+  const cadena = ([x0, x1, y0, y1, eje]) => {
+    if (pch < 1 && pca > 0) { if (eje === 'x') jaulaH('x', x0, lerp(x0, x1, pca), y0 + 3, y1 - 3, ZM1 + 3, ZC - 3); else jaulaH('y', y0, lerp(y0, y1, pca), x0 + 3, x1 - 3, ZM1 + 3, ZC - 3); }
+    cuando(pch, p => caja([x0, x1, y0, y1, ZM1, lerp(ZM1, ZC, p)], 'conc', { corte: x1 === L ? cc : [], h: h(6) }));
+  };
+  cadena(CAD[0]); cadena(CAD[1]);                                   // la delantera va después de las cerchas (queda por delante)
+  // 7 · cerchas de una agua entre muros + pletinas con tirafondos y pernos de anclaje
+  const sup = y => zb(y) + 3, piezas = [];
+  for (const y of [300, 200, 100]) piezas.push(barraYZ([y, ZB + 4.5], [y, sup(y)], 8));
+  for (const [a, b] of [[300, 200], [200, 100], [100, EM + 4]]) piezas.push(barraYZ([a, ZB + 4.5], [b, sup(b)], 8));
+  piezas.push([[EM, ZB], [D - EM, ZB], [D - EM, ZB + 9], [EM, ZB + 9]]);                               // cuerda inferior
+  piezas.push([[EM, ZB], [EM + 8, ZB], [EM + 8, sup(EM + 8) + 4], [EM, sup(EM) + 4]]);                   // montante de apoyo trasero
+  piezas.push([[D - EM - 8, ZB], [D - EM, ZB], [D - EM, zb(D - EM) + 2], [D - EM - 8, zb(D - EM - 8) + 2]]); // talón delantero
+  piezas.push([[YA, zb(YA)], [YE, zb(YE)], [YE, zb(YE) + TV], [YA, zb(YA) + TV]]);                        // cuerda superior
+  const pletina = (xc, lado, hh) => {                                                   // pletina en L: ala sobre la cercha y ala contra la cadena
+    const yC = lado ? D - EM : EM, s = lado ? -1 : 1, col = hh > 0 ? mezcla('#3a3a3a', OR, hh) : '#3a3a3a', tr = hh > 0 ? OR : CR;
+    const ya = yC + s * 2, yb2 = yC + s * 24, x1 = xc + 4.1 + .3;
+    poli([P(x1, ya, ZB - 2), P(x1, yb2, ZB - 2), P(x1, yb2, ZB + 14), P(x1, ya, ZB + 14)], col, tr, 1 * k);
+    for (const [yy, zz] of [[yC + s * 9, ZB + 2], [yC + s * 17, ZB + 9], [yC + s * 9, ZB + 10], [yC + s * 17, ZB + 3]]) { const [px, py] = P(x1, yy, zz); g.beginPath(); g.arc(px, py, 1.6 * k, 0, 7); g.fillStyle = tr; g.fill(); }
+    if (!lado) { // ala contra la cara interior de la cadena trasera, con pernos de anclaje
+      poli([P(xc + 4.1, yC + .3, ZM1 + 2), P(xc + 16, yC + .3, ZM1 + 2), P(xc + 16, yC + .3, ZB + 14), P(xc + 4.1, yC + .3, ZB + 14)], col, tr, 1 * k);
+      for (const zz of [ZM1 + 6, ZB + 9]) { const [px, py] = P(xc + 11, yC + .3, zz); g.beginPath(); g.arc(px, py, 2.4 * k, 0, 7); g.fillStyle = tr; g.fill(); }
+    }
+  };
+  CER.forEach((xc, i) => cuando(easeOut((t - ET[7].t0 - 0.3 - i * 0.5) / 0.9), p => {
     const dz = (1 - p) * 90;
-    for (const pz of piezas) prismaX(pz.map(([y, z]) => [y, z + dz]), xc, xc + 4.1, 'madera', { h: h(6) });
-    if (p > .95) for (const y of [2, D - 14]) caja([xc + 4.1, xc + 4.6, y, y + 12, ZS - 6, ZS + 12], 'metal', {});
+    for (const pz of piezas) prismaX(pz.map(([y, z]) => [y, z + dz]), xc, xc + 4.1, 'madera', { h: h(7) });
+    const q = clamp((t - ET[7].t0 - 1.6 - i * 0.5) / 0.5);
+    if (q > 0) { g.save(); g.globalAlpha *= q; pletina(xc, 0, h(7)); pletina(xc, 1, h(7)); g.restore(); }
   }));
-  // 7 · OSB, 8 · tapacán, fieltro y costaneras, 9 · teja
-  const po = ap(7, 0.2, 2.2);
-  cuando(ap(8, 2.0, 0.6), () => caja([-30, XR.osb, YE - 2.5, YE, zTC(YE) - 18, zTC(YE)], 'madera', { h: h(8) }));
+  cadena(CAD[2]);
+  // tramo en voladizo de las cuerdas superiores, por delante de la cadena delantera
+  const vuelo = [[D - EM - 6, zb(D - EM - 6)], [YE, zb(YE)], [YE, zb(YE) + TV], [D - EM - 6, zb(D - EM - 6) + TV]];
+  CER.forEach((xc, i) => cuando(easeOut((t - ET[7].t0 - 0.3 - i * 0.5) / 0.9), p => prismaX(vuelo.map(([y, z]) => [y, z + (1 - p) * 90]), xc, xc + 4.1, 'madera', { h: h(7) })));
+  // 8 · OSB, 9 · tapacán, fieltro y costaneras, 10 · teja
+  const po = ap(8, 0.2, 2.2);
+  cuando(ap(9, 2.0, 0.6), () => caja([-30, XR.osb, YE - 2.5, YE, zTC(YE) - 18, zTC(YE)], 'madera', { h: h(9) }));
   if (po > 0) { const placas = [[-30, 95], [95, 245], [245, 395], [395, XR.osb]];
-    placas.forEach(([a, b], i) => cuando(easeOut((po * placas.length - i)), p => capa(a, b, YA, YE, y => zTC(y) + (1 - p) * 25, 1.1, 'osb', { h: h(7) }))); }
-  cuando(ap(8, 0.2, 1.2), p => capa(-30, lerp(-30, XR.fie, p), YA, YE, zO, .5, 'fieltro', { h: h(8) }));
+    placas.forEach(([a, b], i) => cuando(easeOut(po * placas.length - i), p => capa(a, b, YA, YE, y => zTC(y) + (1 - p) * 25, 1.1, 'osb', { h: h(8) }))); }
+  cuando(ap(9, 0.2, 1.2), p => capa(-30, lerp(-30, XR.fie, p), YA, YE, zO, .5, 'fieltro', { h: h(9) }));
   const cos = []; for (let y = YA + 6; y < YE - 4; y += 38) cos.push(y);
-  cos.forEach((y, i) => cuando(easeOut((t - ET[8].t0 - 1.0 - i * 0.12) / 0.5), p => caja([-30, XR.cos, y - 2, y + 2, zF(y) + (1 - p) * 20, zLi(y) + (1 - p) * 20], 'madera', { h: h(8) })));
-  const pt = ap(9, 0.2, 3.0);
-  if (pt > 0) tejas(-30, lerp(-30, XR.tej, pt), YA, YE, zLi, { h: h(9) });
+  cos.forEach((y, i) => cuando(easeOut((t - ET[9].t0 - 1.0 - i * 0.12) / 0.5), p => caja([-30, XR.cos, y - 2, y + 2, zF(y) + (1 - p) * 20, zLi(y) + (1 - p) * 20], 'madera', { h: h(9) })));
+  const pt = ap(10, 0.2, 3.0);
+  if (pt > 0) tejas(-30, lerp(-30, XR.tej, pt), YA, YE, zLi, { h: h(10) });
   if (!ROT) return;
   // rótulos
   const nv = (e, d) => clamp((t - ET[e].t0 - d) / 0.6);
   g.save(); g.globalAlpha = nv(2, 1.0); nivel([0, D + 2, 0], '±0,00 NPT', 70); g.restore();
+  g.save(); g.globalAlpha = nv(5, 1.2); cota(P(VEN[0][0], D + 1, VZ[0]), P(VEN[0][1], D + 1, VZ[0]), '60', [-10, 26]); g.restore();
+  g.save(); g.globalAlpha = nv(5, 1.4); cota(P(VEN[0][0], D + 1, VZ[0]), P(VEN[0][0], D + 1, VZ[1]), '100', [-30, 0]); g.restore();
   const ETQ = [
-    { e: 1, p: [L, D - 7, -40], d: [60, 40] },
+    { e: 1, p: [L, D - 8, 0], d: [60, 40] },
     { e: 2, p: [L, 200, -5], d: [70, 30] },
-    { e: 3, p: [100, D, 120], d: [-70, 60] },
-    { e: 4, p: [(VEN[0][0] + VEN[0][1]) / 2, D + 10, 200], d: [-40, 70] },
-    { e: 5, p: [L, D - 7, ZC - 10], d: [70, 10] },
-    { e: 6, p: [474.1, 250, sup(250) - 30], d: [80, -20] },
-    { e: 7, p: [XR.osb - 20, 150, zO(150)], d: [80, -40] },
-    { e: 8, p: [XR.fie - 15, 120, zF(120)], d: [80, -70] },
-    { e: 9, p: [200, 200, zLi(200) + 7], d: [-60, -90] },
+    { e: 3, p: [200, D - 3, 60], d: [-60, 70] },
+    { e: 4, p: [100, D, 120], d: [-70, 60] },
+    { e: 5, p: [(VEN[1][0] + VEN[1][1]) / 2, D + 10, 180], d: [50, 60] },
+    { e: 6, p: [L, D - 7, ZC - 10], d: [70, 10] },
+    { e: 7, p: [CER[5] + 4.1, EM + 12, ZB + 6], d: [80, -30] },
+    { e: 8, p: [XR.osb - 20, 150, zO(150)], d: [80, -40] },
+    { e: 9, p: [XR.fie - 15, 120, zF(120)], d: [80, -70] },
+    { e: 10, p: [200, 200, zLi(200) + 7], d: [-60, -90] },
   ];
   for (const q of ETQ) {
     const a = clamp((t - ET[q.e].t0 - 0.6) / 0.5);
@@ -489,7 +533,7 @@ function cajetin(t) {
     const a = clamp((t - T_RES) / 0.5);
     isotipo(M + 70, y0 + 64, 70, OR);
     texto('CASA SAN CARLOS', xN + 24, y0 + 80, '700 46px "Barlow Condensed"', CR, 'left', a);
-    envolver('Albañilería confinada, cerchas de una agua y teja colonial: cada pieza en su lugar.', xN + 24, y0 + 118, 780, '400 26px "Barlow"', cr(.85), 33, a);
+    envolver('Albañilería confinada, cerchas con pletinas y teja colonial: cada pieza en su lugar.', xN + 24, y0 + 118, 780, '400 26px "Barlow"', cr(.85), 33, a);
     return;
   }
   let e = 0; for (let i = 1; i <= N; i++) if (t >= ET[i].t0) e = i;
@@ -541,7 +585,7 @@ function render(t) {
 // ------------------------------------------------------------------ portada del post (imagen fija)
 function renderPortada() {
   const R = H > 1500, dy = R ? 90 : 0; // reel 9:16: titular arriba, dibujo grande abajo
-  const t = 36.0;
+  const t = 40.0;
   g.setTransform(SS, 0, 0, SS, 0, 0);
   CAM_FIJA = encuadre(BB, R ? [M, 620, W - M, H - M - 110] : [300, 330, W - M, H - M - 110], [10, 10]); ROT = false;
   g.fillStyle = BG; g.fillRect(0, 0, W, H);
@@ -568,7 +612,7 @@ function renderPortada() {
 }
 window.renderPortada = renderPortada;
 window.DUR = DUR;
-window.PORTADA = 36.0; // casa terminada
+window.PORTADA = 40.0; // casa terminada
 window.render = render;
 window.ready = (async () => {
   for (const f of ['400 20px Barlow', '700 20px "Barlow Condensed"', '600 20px "Barlow Condensed"', '400 20px "IBM Plex Mono"', '500 20px "IBM Plex Mono"'])
