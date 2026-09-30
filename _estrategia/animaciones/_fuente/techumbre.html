@@ -19,7 +19,7 @@
 const Q = new URLSearchParams(location.search);
 const cv = document.getElementById('c'), g = cv.getContext('2d');
 const SS = Math.max(1, +(Q.get('escala') || 1));
-const W = 1080, H = Q.get('formato') === 'reel' ? 1920 : 1350, DUR = 29;
+const W = 1080, H = Q.get('formato') === 'reel' ? 1920 : 1350, DUR = 32;
 const REEL = H > 1500, CPY = REEL ? 285 : 0;
 cv.width = W * SS; cv.height = H * SS;
 const OR = '#FC4C02', CR = '#F2F0EB', BG = '#111110';
@@ -171,7 +171,7 @@ const barra = (a, b, w) => { // rectángulo de ancho w a lo largo del segmento a
 // capa delgada que sigue un faldón: z = zf(x) entre xa y xb, espesor e
 function faldon(xa, xb, y0, y1, zf, e, tipo, o = {}) {
   const k = K(), h = o.h || 0, tn = TONO[tipo];
-  const trazo = h > 0 ? mezcla('#F2F0EB', OR, h) : cr(.85), tinte = f => h > 0 ? mezcla(f, '#6e2a0c', .45 * h) : f;
+  const trazo = h > 0 ? mezcla('#F2F0EB', OR, h) : cr(.85), tinte = f => h > 0 ? mezcla(f, o.vivo ? OR : '#6e2a0c', (o.vivo ? .8 : .45) * h) : f;
   const A = zf(xa), B = zf(xb);
   poli([P(xa, y1, A), P(xb, y1, B), P(xb, y1, B + e), P(xa, y1, A + e)], tinte(tn.fy), trazo, 1.1 * k);
   if (B < A) poli([P(xb, y0, B), P(xb, y1, B), P(xb, y1, B + e), P(xb, y0, B + e)], tinte(tn.fx), trazo, 1.1 * k);
@@ -257,10 +257,11 @@ const ET = [
   { n: '01', t0: 2.6, t1: 7.4, tit: 'Cerchas', txt: 'Estructura triangulada de 6 m de luz, con montantes y diagonales que llevan la carga a los apoyos.', spec: 'PINO 2×4" · PENDIENTE 60 % · A EJES C/90 cm' },
   { n: '02', t0: 7.4, t1: 11.0, tit: 'Costaneras', txt: 'Piezas horizontales clavadas sobre las cuerdas superiores de las cerchas.', spec: 'PINO 2×2" · C/50 cm' },
   { n: '03', t0: 11.0, t1: 14.6, tit: 'Tableros de OSB o terciado', txt: 'Clavados sobre las costaneras: arriostran las cerchas y amarran todo el sistema.', spec: 'OSB 11,1 mm O TERCIADO · UNIONES TRABADAS' },
-  { n: '04', t0: 14.6, t1: 17.2, tit: 'Fieltro', txt: 'Barrera bajo la cubierta, contra filtraciones y condensación.', spec: 'FIELTRO ASFÁLTICO · TRASLAPADO' },
-  { n: '05', t0: 17.2, t1: 21.0, tit: 'Cubierta', txt: 'Plancha trapezoidal PV4 fijada en las crestas, traslapada en el sentido del agua.', spec: 'ACERO PREPINTADO PV4 · TORNILLO AUTOPERFORANTE' },
+  { n: '04', t0: 14.6, t1: 17.6, tit: 'Cintas de sellado', txt: 'Cintas adhesivas sobre las uniones de los tableros: cortan las fugas de aire y los puentes térmicos.', spec: 'CINTA DE SELLADO TIPO ROTHOBLAAS · EN TODAS LAS UNIONES' },
+  { n: '05', t0: 17.6, t1: 20.2, tit: 'Fieltro', txt: 'Barrera bajo la cubierta, contra filtraciones y condensación.', spec: 'FIELTRO ASFÁLTICO · TRASLAPADO' },
+  { n: '06', t0: 20.2, t1: 24.0, tit: 'Cubierta', txt: 'Plancha trapezoidal PV4 fijada en las crestas, traslapada en el sentido del agua.', spec: 'ACERO PREPINTADO PV4 · TORNILLO AUTOPERFORANTE' },
 ];
-const N = ET.length - 1, T_RES = 21.4, T_CP = 25.0;
+const N = ET.length - 1, T_RES = 24.4, T_CP = 28.0;
 const hl = e => t => t < ET[e].t0 ? 0 : t < ET[e].t1 ? 1 : 1 - clamp((t - ET[e].t1) / 0.9);
 
 // ------------------------------------------------------------------ geometría
@@ -274,6 +275,7 @@ const Y0 = -15, Y1 = REEL ? 379 : 199, CERCHAS = REEL ? [0, 90, 180, 270, 360] :
 const XL = [-30, CUM], XR = [CUM, LUZ + 30];                         // faldones con alero de 30 cm
 const COST_L = [285, 240, 195, 150, 105, 60, 15, -24], COST_R = [315, 360, 405, 450, 495, 540, 585, 624];
 const TAB_Y = REEL ? [[Y0, 107], [107, 229], [229, Y1]] : [[Y0, 107], [107, Y1]];
+const JUNTAS_Y = TAB_Y.slice(1).map(([a]) => a).reverse(); // uniones entre tableros a lo largo de la pendiente (la de adelante primero)
 const TAB_L = [[XL[0], 135], [135, CUM]], TAB_R = [[CUM, 465], [465, XR[1]]];
 // faldón de adelante escalonado: costaneras completas, tableros, fieltro y zinc cada vez más cortos
 const Y_TAB_R = REEL ? 290 : 140, Y_FIELTRO_R = REEL ? 200 : 85;
@@ -291,6 +293,7 @@ function piezasCercha() {
   return p;
 }
 const CERCHA = piezasCercha();
+TONO.cinta = { sup: '#5b8fb0', fy: '#3b6580', fx: '#44718f', pat: null }; // cinta de sellado (azul, como las de obra)
 TONO.osb = { sup: '#6a5538', fy: '#56452e', fx: '#5f4c33', pat: 'osb', patA: 1 };
 PAT.osb = patron(80, 80, (c, w, h) => { // hojuelas orientadas del OSB
   const r = rng(19); c.lineCap = 'round';
@@ -316,8 +319,9 @@ const ETQ = [
   { e: 1, p: [480.6, YF, 30], d: [70, 50] },
   { e: 2, p: [540, Y1 - 10, zK(540)], d: [60, -20] },
   { e: 3, p: [517, Y_TAB_R - 25, zO(517)], d: [80, -40] },
-  { e: 4, p: [470, Y_FIELTRO_R - 20, zF(470)], d: [70, -60] },
-  { e: 5, p: [430, 15, zF(430) + .8], d: [40, -90] },
+  { e: 4, p: [575, JUNTAS_Y[0], zO(575) + .2], d: [60, -40] },
+  { e: 5, p: [470, Y_FIELTRO_R - 20, zF(470)], d: [70, -60] },
+  { e: 6, p: [430, 15, zF(430) + .8], d: [40, -90] },
 ];
 function etiquetas(t) {
   if (!ROT) return;
@@ -369,15 +373,22 @@ function escena(t) {
       faldon(a, b, c, d, x => zK(x) + (1 - q) * 30, 1.1, 'osb', { h: h(3) });
       g.restore();
     }
-    // 4 · fieltro: se desenrolla a lo largo de la techumbre
-    const yf = L ? Y1 : Y_FIELTRO_R, pf = ease((t - ET[4].t0 - 0.3 - (L ? 0 : 0.9)) / 1.3);
-    if (pf > 0) faldon(X[0], X[1], Y0, lerp(Y0, yf, pf), zO, .5, 'fieltro', { h: h(4) });
+    // 4 · cintas de sellado sobre las uniones de los tableros (a lo largo de la pendiente, a lo ancho y en la cumbrera)
+    const yT = L ? Y1 : Y_TAB_R, zT = x => zO(x) - .95, ct = (i, d = 0.9) => ease((t - ET[4].t0 - 0.2 - (i + (L ? 0 : 4)) * 0.3) / d);
+    JUNTAS_Y.forEach((yj, i) => { const q = ct(i); if (q > 0 && yj < yT) faldon(X[0], lerp(X[0], X[1], q), yj - 5, yj + 5, zT, 1, 'cinta', { h: h(4), vivo: true }); });
+    const xj = L ? 135 : 465, xc = L ? [CUM - 10, CUM] : [CUM, CUM + 10];
+    for (const [i, [a, b]] of [[2, [xj - 5, xj + 5]], [3, xc]]) {
+      const q = ct(i, 1.1); if (q > 0) faldon(a, b, Y0, lerp(Y0, yT, q), zT, 1, 'cinta', { h: h(4), vivo: true });
+    }
+    // 5 · fieltro: se desenrolla a lo largo de la techumbre
+    const yf = L ? Y1 : Y_FIELTRO_R, pf = ease((t - ET[5].t0 - 0.3 - (L ? 0 : 0.9)) / 1.3);
+    if (pf > 0) faldon(X[0], X[1], Y0, lerp(Y0, yf, pf), zO, .5, 'fieltro', { h: h(5) });
     // 5 · cubierta PV4
     (L ? PLANCHAS_L : PLANCHAS_R).forEach(([a, b], i) => {
-      const q = easeOut((t - ET[5].t0 - 0.2 - (L ? i : PLANCHAS_L.length + i) * 0.45) / 0.6);
+      const q = easeOut((t - ET[6].t0 - 0.2 - (L ? i : PLANCHAS_L.length + i) * 0.45) / 0.6);
       if (q <= 0) return;
       g.save(); g.globalAlpha *= clamp(q * 3);
-      pv4(X[0], X[1], a, b, x => zF(x) + (1 - q) * 30, { h: h(5) });
+      pv4(X[0], X[1], a, b, x => zF(x) + (1 - q) * 30, { h: h(6) });
       g.restore();
     });
   };
@@ -387,10 +398,10 @@ function escena(t) {
   PLANCHAS_R.forEach(([a, b]) => COST_R.forEach((x, i) => {
     for (let y = Y0 + NERVIO.paso / 2; y < b; y += NERVIO.paso) {
       if (y - NERVIO.base < a || y + NERVIO.base > b) continue;
-      const q = clamp((t - ET[5].t0 - 2.4 - i * 0.1) / 0.2);
+      const q = clamp((t - ET[6].t0 - 2.4 - i * 0.1) / 0.2);
       if (q <= 0) continue;
       const [px, py] = P(x, y, zF(x) + .5 + NERVIO.alto);
-      g.save(); g.globalAlpha *= q; g.beginPath(); g.arc(px, py, 1.9 * k, 0, 7); g.fillStyle = t < ET[5].t1 + 0.6 ? OR : cr(.9); g.fill(); g.restore();
+      g.save(); g.globalAlpha *= q; g.beginPath(); g.arc(px, py, 1.9 * k, 0, 7); g.fillStyle = t < ET[6].t1 + 0.6 ? OR : cr(.9); g.fill(); g.restore();
     }
   }));
   if (ROT) {
@@ -429,7 +440,7 @@ function marco() {
   texto('ARQUITECTURA, DISEÑO Y CONSTRUCCIÓN', W - M - 28, 88, '400 17px "IBM Plex Mono"', cr(.6), 'right');
   texto('TECHUMBRE', M + 28, 168, '700 70px "Barlow Condensed"', CR);
   texto('DET. 05 · ISOMÉTRICA · S/E', W - M - 28, 166, '500 17px "IBM Plex Mono"', OR, 'right');
-  texto('CERCHAS · COSTANERAS · TABLEROS · FIELTRO · CUBIERTA', M + 30, 198, '400 16px "IBM Plex Mono"', cr(.55));
+  texto('CERCHAS · COSTANERAS · TABLEROS · SELLADO · FIELTRO · CUBIERTA', M + 30, 198, '400 16px "IBM Plex Mono"', cr(.55));
   texto('Detalle referencial. Estructura y cubierta según el proyecto de cada obra.', W / 2, H - 22, '400 15px "IBM Plex Mono"', cr(.5), 'center');
 }
 function cajetin(t) {
@@ -451,7 +462,7 @@ function cajetin(t) {
     const a = clamp((t - T_RES) / 0.5);
     isotipo(M + 70, y0 + 64, 70, OR);
     texto('TECHUMBRE', xN + 24, y0 + 80, '700 46px "Barlow Condensed"', CR, 'left', a);
-    envolver('Cerchas arriostradas con tableros, barrera contra el agua y cubierta bien fijada: un techo que dura.', xN + 24, y0 + 118, 780, '400 26px "Barlow"', cr(.85), 33, a);
+    envolver('Cerchas arriostradas con tableros, uniones selladas y cubierta bien fijada: un techo que dura.', xN + 24, y0 + 118, 780, '400 26px "Barlow"', cr(.85), 33, a);
     return;
   }
   let e = 0; for (let i = 1; i <= N; i++) if (t >= ET[i].t0) e = i;
@@ -503,7 +514,7 @@ function render(t) {
 // ------------------------------------------------------------------ portada del post (imagen fija)
 function renderPortada() {
   const R = H > 1500, dy = R ? 90 : 0; // reel 9:16: titular arriba, dibujo grande abajo
-  const t = 23.5;
+  const t = 26.5;
   g.setTransform(SS, 0, 0, SS, 0, 0);
   CAM_FIJA = encuadre(BB, R ? [M - 90, 590, W - M + 170, H - M - 300] : [110, 540, W - M + 40, H - M - 110], [0, 0]); ROT = false;
   g.fillStyle = BG; g.fillRect(0, 0, W, H);
@@ -524,13 +535,13 @@ function renderPortada() {
   texto('De la cercha a la cubierta,', M + 30, 506 + dy, '400 28px "Barlow"', cr(.85));
   texto('pieza por pieza.', M + 30, 542 + dy, '400 28px "Barlow"', cr(.85));
   linea([M, H - M - 96], [W - M, H - M - 96], cr(.5), 1.2);
-  texto('CERCHAS · COSTANERAS · TABLEROS · FIELTRO · CUBIERTA', M + 30, H - M - 52, '400 17px "IBM Plex Mono"', cr(.65));
+  texto('CERCHAS · COSTANERAS · TABLEROS · SELLADO · FIELTRO · CUBIERTA', M + 30, H - M - 52, '400 17px "IBM Plex Mono"', cr(.65));
   texto('AVERARQ.CL', W - M - 28, H - M - 50, '600 26px "Barlow Condensed"', OR, 'right');
   texto('Detalle referencial.', W / 2, H - 22, '400 15px "IBM Plex Mono"', cr(.5), 'center');
 }
 window.renderPortada = renderPortada;
 window.DUR = DUR;
-window.PORTADA = 23.5; // techumbre terminada
+window.PORTADA = 26.5; // techumbre terminada
 window.render = render;
 window.ready = (async () => {
   for (const f of ['400 20px Barlow', '700 20px "Barlow Condensed"', '600 20px "Barlow Condensed"', '400 20px "IBM Plex Mono"', '500 20px "IBM Plex Mono"'])
