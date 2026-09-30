@@ -234,7 +234,7 @@ const ET = [
   { n: '02', t0: 7.0, t1: 9.2, tit: 'Radier', txt: 'Losa de piso sobre base compactada y barrera de humedad.', spec: 'HORMIGÓN e = 10 cm · NPT ±0,00' },
   { n: '03', t0: 9.2, t1: 11.8, tit: 'Armadura de pilares', txt: 'Enfierradura de los pilares, anclada al sobrecimiento.', spec: '4 Ø10 · ESTRIBOS Ø6 @ 15 cm' },
   { n: '04', t0: 11.8, t1: 16.4, tit: 'Albañilería confinada', txt: 'Se levantan los paños de ladrillo y luego se hormigonan los pilares contra el muro.', spec: 'LADRILLO · PILARES H.A. 20 × 15 cm' },
-  { n: '05', t0: 16.4, t1: 18.8, tit: 'Ventanas', txt: 'Ventanas altas proyectantes en la fachada y un ventanal a piso en el muro del fondo.', spec: 'VANOS 60 × 100 · VENTANAL A PISO 150 × 200 cm' },
+  { n: '05', t0: 16.4, t1: 18.8, tit: 'Ventanas proyectantes', txt: 'Ventanas altas de hoja proyectante: luz y ventilación sin perder privacidad.', spec: 'VANO 60 × 100 cm · MARCO DE MADERA' },
   { n: '06', t0: 18.8, t1: 22.2, tit: 'Cadena de coronación', txt: 'Armadura y hormigonado: amarra pilares y paños en un solo anillo. Atrás, el muro sigue hasta la cubierta.', spec: 'CADENA H.A. 15 × 20 · 4 Ø10 · E Ø6 @ 20' },
   { n: '07', t0: 22.2, t1: 27.0, tit: 'Cerchas y pletinas', txt: 'Cerchas de una agua entre muros, fijadas a la albañilería con pletinas de acero, tirafondos y pernos de anclaje.', spec: 'PINO 2×4" · C/90 cm · PLETINAS GALVANIZADAS' },
   { n: '08', t0: 27.0, t1: 30.0, tit: 'Tableros OSB', txt: 'Clavados sobre las cerchas: arriostran la estructura y forman el plano de cubierta.', spec: 'OSB 11,1 mm · UNIONES TRABADAS' },
@@ -250,7 +250,7 @@ const L = 540, D = 400, EM = 15, ZM0 = 20, ZM1 = 240, ZC = 260, TP = 0.25, AL = 
 const PIL = [[0, 20], [190, 210], [380, 400]];                                      // pilares de la fachada
 const VEN = [[265, 325], [440, 500]], VZ = [125, 225];                              // vanos 60 × 100
 const CER = [30, 120, 210, 300, 390, 480];
-const XS = [330, 345], VT = [385, 535, 210], VV = [170, 320, 200];              // VV: ventanal a piso 150 × 200                                       // huella del muro separador · vano de 150 cm en el muro trasero                                          // cerchas c/90, entre muros
+const XS = [330, 345], VT = [385, 535, 210], VV = [170, 320, 200];              // VV: vano a piso 150 × 200                                       // huella del muro separador · vano de 150 cm en el muro trasero                                          // cerchas c/90, entre muros
 const TV = 9 / Math.cos(Math.atan(TP));
 const zb = y => ZC + (D - y) * TP;                                                   // cara inferior de la cuerda superior
 const zTC = y => zb(y) + TV;                                                         // cara superior de la cuerda superior
@@ -397,17 +397,6 @@ function escena(t) {
     caja(sube([VV[1], VT[0], 0, EM, ZM0, ZM1], p), 'estuco', { h: h(4) });
     if (lerp(ZM0, ZM1, p) > VT[2]) caja([VT[0], VT[1], 0, EM, VT[2], lerp(ZM0, ZM1, p)], 'estuco', { h: h(4) });
     caja(sube([VT[1], L, 0, EM, ZM0, ZM1], p), 'estuco', { corte: cc, h: h(4) });
-  });
-  // ventanal a piso en el muro trasero: marco de madera, montante central y vidrio
-  cuando(ap(5, 0.4, 1.0), p => {
-    const [a, b, zt] = VV, o = { h: h(5) }, ym = [4, 11], m = (a + b) / 2;
-    caja([a, b, ...ym, 0, 5], 'madera', o);
-    caja([a, a + 6, ...ym, 0, zt], 'madera', o);
-    poli([P(a + 6, 7.5, 5), P(m - 3, 7.5, 5), P(m - 3, 7.5, zt - 6), P(a + 6, 7.5, zt - 6)], 'rgba(110,125,135,0.55)', cr(.6), 1 * k);
-    caja([m - 3, m + 3, ...ym, 5, zt - 6], 'madera', o);
-    poli([P(m + 3, 7.5, 5), P(b - 6, 7.5, 5), P(b - 6, 7.5, zt - 6), P(m + 3, 7.5, zt - 6)], 'rgba(110,125,135,0.55)', cr(.6), 1 * k);
-    caja([b - 6, b, ...ym, 0, zt], 'madera', o);
-    caja([a, b, ...ym, zt - 6, zt], 'madera', o);
   });
   // huella del muro separador (proyección naranja en línea segmentada): a 1 m del muro del fondo, con dintel sobre el paso
   cuando(ap(4, 1.0, 1.2), p => {
