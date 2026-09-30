@@ -250,7 +250,7 @@ const L = 540, D = 400, EM = 15, ZM0 = 20, ZM1 = 240, ZC = 260, TP = 0.25, AL = 
 const PIL = [[0, 20], [190, 210], [380, 400]];                                      // pilares de la fachada
 const VEN = [[265, 325], [440, 500]], VZ = [125, 225];                              // vanos 60 × 100
 const CER = [30, 120, 210, 300, 390, 480];
-const XS = [330, 345], VT = [385, 535, 210], VV = [170, 320, 200];              // VV: vano a piso 150 × 200                                       // huella del muro separador · vano de 150 cm en el muro trasero                                          // cerchas c/90, entre muros
+const XS = [330, 345], VT = [385, 535, 210], VV = [35, 185, 200];              // VV: vano a piso 150 × 200                                       // huella del muro separador · vano de 150 cm en el muro trasero                                          // cerchas c/90, entre muros
 const TV = 9 / Math.cos(Math.atan(TP));
 const zb = y => ZC + (D - y) * TP;                                                   // cara inferior de la cuerda superior
 const zTC = y => zb(y) + TV;                                                         // cara superior de la cuerda superior
