@@ -235,7 +235,7 @@ const ET = [
   { n: '03', t0: 9.2, t1: 11.8, tit: 'Armadura de pilares', txt: 'Enfierradura de los pilares, anclada al sobrecimiento.', spec: '4 Ø10 · ESTRIBOS Ø6 @ 15 cm' },
   { n: '04', t0: 11.8, t1: 16.4, tit: 'Albañilería confinada', txt: 'Se levantan los paños de ladrillo y luego se hormigonan los pilares contra el muro.', spec: 'LADRILLO · PILARES H.A. 20 × 15 cm' },
   { n: '05', t0: 16.4, t1: 18.8, tit: 'Ventanas proyectantes', txt: 'Ventanas altas de hoja proyectante: luz y ventilación sin perder privacidad.', spec: 'VANO 60 × 100 cm · MARCO DE MADERA' },
-  { n: '06', t0: 18.8, t1: 22.2, tit: 'Cadena de coronación', txt: 'Armadura y hormigonado: amarra pilares y paños en un solo anillo. Atrás, el muro sigue hasta la cubierta.', spec: 'CADENA H.A. 15 × 20 · 4 Ø10 · E Ø6 @ 20' },
+  { n: '06', t0: 18.8, t1: 22.2, tit: 'Cadena de coronación', txt: 'Armadura y hormigonado: amarra pilares y paños en un solo anillo. Atrás, el muro sigue hasta la cubierta.', spec: 'CADENA H.A. 15 × 30 · 4 Ø10 · E Ø6 @ 20' },
   { n: '07', t0: 22.2, t1: 27.0, tit: 'Cerchas y pletinas', txt: 'Cerchas de una agua entre muros, fijadas a la albañilería con pletinas de acero, tirafondos y pernos de anclaje.', spec: 'PINO 2×4" · C/90 cm · PLETINAS GALVANIZADAS' },
   { n: '08', t0: 27.0, t1: 30.0, tit: 'Tableros OSB', txt: 'Clavados sobre las cerchas: arriostran la estructura y forman el plano de cubierta.', spec: 'OSB 11,1 mm · UNIONES TRABADAS' },
   { n: '09', t0: 30.0, t1: 33.4, tit: 'Fieltro y costaneras', txt: 'Fieltro sobre los tableros y costaneras para apoyar la teja; tapacán en el alero.', spec: 'FIELTRO ASFÁLTICO · COSTANERAS 2×2" · TAPACÁN' },
@@ -246,7 +246,7 @@ const hl = e => t => t < ET[e].t0 ? 0 : t < ET[e].t1 ? 1 : 1 - clamp((t - ET[e].
 
 // ------------------------------------------------------------------ geometría (cm)
 // x a lo largo de la fachada (corte en x = L), y de la fachada trasera (0) a la delantera (D), z desde el NPT
-const L = 540, D = 400, EM = 15, ZM0 = 20, ZM1 = 240, ZC = 260, TP = 0.25, AL = 40;
+const L = 540, D = 400, EM = 15, ZM0 = 20, ZM1 = 240, ZC = 270, TP = 0.25, AL = 40;
 const PIL = [[0, 20], [190, 210], [380, 400]];                                      // pilares de la fachada
 const VEN = [[265, 325], [440, 500]], VZ = [125, 225];                              // vanos 60 × 100
 const CER = [30, 120, 210, 300, 390, 480];
