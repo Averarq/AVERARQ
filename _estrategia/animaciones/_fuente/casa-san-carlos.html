@@ -266,7 +266,7 @@ TONO.teja = { sup: '#b4532e', fy: '#8e3f22', fx: '#a04a28', pat: null };
 TONO.osb = { sup: '#b99a62', fy: '#9c8250', fx: '#a88c58', pat: 'osb', patA: 1 };
 TONO.metal = { sup: '#4a4a4a', fy: '#2e2e2e', fx: '#3a3a3a', pat: null };
 TONO.cinta = { sup: '#ecebe6', fy: '#bdbcb7', fx: '#d3d2cd', pat: null }; // cinta de sellado blanca
-TONO.vidrio = { sup: '#56616a', fy: '#4a545c', fx: '#505a62', pat: null };
+TONO.vidrio = { sup: '#3a3c3e', fy: '#2f3133', fx: '#35373a', pat: null }; // vidrio gris oscuro opaco
 PAT.osb = patron(80, 80, (c, w, h) => {
   const r = rng(19); c.lineCap = 'round';
   for (let i = 0; i < 60; i++) { const x = r() * w, y = r() * h, l = 3 + r() * 6, a = (r() - .5) * 1.1;
@@ -391,14 +391,14 @@ function escena(t) {
   // 4 · muros trasero y lateral (caras interiores estucadas)
   const pm = ap(4, 0.2, 2.8), zTop = lerp(ZM0, ZM1, pm);
   cuando(pm, p => {
-    caja(sube([0, EM, EM, D - EM, ZM0, ZM1], p), 'estuco', { h: h(4) });
+    ladrilloX(sube([0, EM, EM, D - EM, ZM0, ZM1], p), { h: h(4) });
     // muro trasero con vano de 150 cm (dintel bajo la cadena)
     const zz = lerp(ZM0, ZM1, p);
-    caja(sube([0, PB[0][0], 0, EM, ZM0, ZM1], p), 'estuco', { h: h(4) });
-    if (zz > VV[2]) caja([VV[0], VV[1], 0, EM, VV[2], zz], 'estuco', { h: h(4) });   // dintel del vano a piso
-    caja(sube([PB[1][1], PB[2][0], 0, EM, ZM0, ZM1], p), 'estuco', { h: h(4) });
-    if (zz > VT[2]) caja([VT[0], VT[1], 0, EM, VT[2], zz], 'estuco', { h: h(4) });
-    caja(sube([VT[1], L, 0, EM, ZM0, ZM1], p), 'estuco', { corte: cc, h: h(4) });
+    ladrillo(sube([0, PB[0][0], 0, EM, ZM0, ZM1], p), { h: h(4) });
+    if (zz > VV[2]) ladrillo([VV[0], VV[1], 0, EM, VV[2], zz], { h: h(4) });   // dintel del vano a piso
+    ladrillo(sube([PB[1][1], PB[2][0], 0, EM, ZM0, ZM1], p), { h: h(4) });
+    if (zz > VT[2]) ladrillo([VT[0], VT[1], 0, EM, VT[2], zz], { h: h(4) });
+    ladrillo(sube([VT[1], L, 0, EM, ZM0, ZM1], p), { corte: cc, h: h(4) });
   });
   // pilares del muro del fondo, junto a los vanos: armadura y hormigonado (como en la fachada)
   for (const [xa, xb] of PB) {
@@ -457,7 +457,7 @@ function escena(t) {
     const ang = 25 * Math.PI / 180 * easeOut(pv), hh = VZ[1] - VZ[0] - 6, yb = D + 1 + Math.sin(ang) * hh, zb2 = VZ[1] - 1 - Math.cos(ang) * hh;
     const hoja = (xa, xb, f) => poli([P(xa, D + 1, VZ[1] - 1), P(xb, D + 1, VZ[1] - 1), P(xb, yb, zb2), P(xa, yb, zb2)], f, h(5) > 0 ? mezcla('#F2F0EB', OR, h(5)) : cr(.85), 1.1 * k);
     hoja(va + 4, vb - 4, mezcla(TONO.madera.fy, '#6e2a0c', .45 * h(5)));
-    hoja(va + 9, vb - 9, 'rgba(110,125,135,0.85)');
+    hoja(va + 9, vb - 9, '#34363a');
     caja([va, vb, D - 4, D + 1, VZ[1] - 5, VZ[1]], 'madera', o);
     g.restore();
   }
@@ -470,7 +470,7 @@ function escena(t) {
   };
   cadena(CAD[0]); cadena(CAD[1]);
   // sobremuro trasero: la albañilería sigue sobre la cadena hasta bajo la cuerda superior (ahí se anclan las pletinas)
-  cuando(ap(6, 2.4, 1.2), p => caja([0, L, 0, EM, ZC, lerp(ZC, zb(EM) - 3, p)], 'estuco', { corte: cc, h: h(6) }));
+  cuando(ap(6, 2.4, 1.2), p => ladrillo([0, L, 0, EM, ZC, lerp(ZC, zb(EM) - 3, p)], { corte: cc, h: h(6) }));
                                     // la delantera va después de las cerchas (queda por delante)
   // 7 · cerchas de una agua entre muros + pletinas con tirafondos y pernos de anclaje
   const sup = y => zb(y) + 3, piezas = [];
