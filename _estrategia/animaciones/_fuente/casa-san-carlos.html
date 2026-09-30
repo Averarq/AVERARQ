@@ -250,7 +250,7 @@ const L = 540, D = 400, EM = 15, ZM0 = 20, ZM1 = 240, ZC = 260, TP = 0.25, AL = 
 const PIL = [[0, 20], [190, 210], [380, 400]];                                      // pilares de la fachada
 const VEN = [[265, 325], [440, 500]], VZ = [125, 225];                              // vanos 60 × 100
 const CER = [30, 120, 210, 300, 390, 480];
-const XS = [330, 345], VT = [385, 535, 210];                                       // muro separador · vano de 150 cm en el muro trasero                                          // cerchas c/90, entre muros
+const XS = [330, 345], VT = [385, 535, 210];                                       // huella del muro separador · vano de 150 cm en el muro trasero                                          // cerchas c/90, entre muros
 const TV = 9 / Math.cos(Math.atan(TP));
 const zb = y => ZC + (D - y) * TP;                                                   // cara inferior de la cuerda superior
 const zTC = y => zb(y) + TV;                                                         // cara superior de la cuerda superior
@@ -368,7 +368,7 @@ function escena(t) {
   const cuando = (p, f) => { if (p <= 0) return; g.save(); g.globalAlpha *= clamp(p * 3); f(p); g.restore(); };
   // 1 · fundación: cimiento, armadura del sobrecimiento y hormigonado
   const CIM = [[0, L, -12.5, 27.5], [-12.5, 27.5, 27.5, D - 27.5], [0, L, D - 27.5, D + 12.5]];
-  const SOB = [[0, L, 0, 20], [0, 20, 20, D - 20], [0, L, D - 18, D + 2], [XS[0] - 2.5, XS[1] + 2.5, 20, D - 20]];
+  const SOB = [[0, L, 0, 20], [0, 20, 20, D - 20], [0, L, D - 18, D + 2]];
   CIM.forEach((c, i) => cuando(ap(1, i * 0.25, 0.8), p => caja(sube([...c, -60, -20], p), 'conc', { corte: cc, h: h(1) })));
   const pa = ap(1, 0.9, 1.1), ph = ap(1, 2.4, 1.2);                                // armadura, hormigón
   const armSob = (i) => { const [x0, x1, y0, y1] = SOB[i];
@@ -377,7 +377,7 @@ function escena(t) {
   sob(0); sob(1);
   // 2 · radier
   cuando(ap(2, 0.2, 1.2), p => caja([20, lerp(20, L, p), 20, D - 20, -10, 0], 'conc', { corte: cc, h: h(2) }));
-  sob(3); sob(2);
+  sob(2);
   // 4 · muros trasero y lateral (caras interiores estucadas)
   const pm = ap(4, 0.2, 2.8), zTop = lerp(ZM0, ZM1, pm);
   cuando(pm, p => {
@@ -386,8 +386,12 @@ function escena(t) {
     caja(sube([0, VT[0], 0, EM, ZM0, ZM1], p), 'estuco', { h: h(4) });
     if (lerp(ZM0, ZM1, p) > VT[2]) caja([VT[0], VT[1], 0, EM, VT[2], lerp(ZM0, ZM1, p)], 'estuco', { h: h(4) });
     caja(sube([VT[1], L, 0, EM, ZM0, ZM1], p), 'estuco', { corte: cc, h: h(4) });
-    // muro separador de albañilería
-    ladrilloX(sube([XS[0], XS[1], EM, D - EM, ZM0, ZM1], p), { h: h(4) });
+  });
+  // huella del muro separador (proyección en línea segmentada)
+  cuando(ap(4, 1.0, 1.2), p => {
+    const [a, b] = XS, y0 = EM, y1 = D - EM, zt = lerp(0, ZC, p), col = h(4) > 0 ? orA(.9) : cr(.6), dash = [7 * k, 5 * k];
+    for (const x of [a, b]) { linea(P(x, y0, 0), P(x, y1, 0), col, 1.3 * k, dash); linea(P(x, y0, zt), P(x, y1, zt), col, 1.3 * k, dash); }
+    for (const y of [y0, y1]) { linea(P(a, y, 0), P(b, y, 0), col, 1.3 * k, dash); linea(P(a, y, zt), P(b, y, zt), col, 1.3 * k, dash); for (const x of [a, b]) linea(P(x, y, 0), P(x, y, zt), col, 1.3 * k, dash); }
   });
   // fachada: pilares (armadura → hormigón) y paños de ladrillo con vanos
   const pj = ap(3, 0.2, 1.8), zj = lerp(ZM0, ZC - 3, pj), pp = ap(4, 3.2, 1.0), pv = ap(5, 0.2, 1.0);
@@ -436,12 +440,12 @@ function escena(t) {
   }
   // 6 · cadena de coronación: armadura y hormigonado
   const pca = ap(6, 0.2, 1.1), pch = ap(6, 1.6, 1.2);
-  const CAD = [[0, L, 0, EM, 'x'], [0, EM, EM, D - EM, 'y'], [0, L, D - EM, D, 'x'], [XS[0], XS[1], EM, D - EM, 'y']];
+  const CAD = [[0, L, 0, EM, 'x'], [0, EM, EM, D - EM, 'y'], [0, L, D - EM, D, 'x']];
   const cadena = ([x0, x1, y0, y1, eje]) => {
     if (pch < 1 && pca > 0) { if (eje === 'x') jaulaH('x', x0, lerp(x0, x1, pca), y0 + 3, y1 - 3, ZM1 + 3, ZC - 3); else jaulaH('y', y0, lerp(y0, y1, pca), x0 + 3, x1 - 3, ZM1 + 3, ZC - 3); }
     cuando(pch, p => caja([x0, x1, y0, y1, ZM1, lerp(ZM1, ZC, p)], 'conc', { corte: x1 === L ? cc : [], h: h(6) }));
   };
-  cadena(CAD[0]); cadena(CAD[1]); cadena(CAD[3]);                                   // la delantera va después de las cerchas (queda por delante)
+  cadena(CAD[0]); cadena(CAD[1]);                                   // la delantera va después de las cerchas (queda por delante)
   // 7 · cerchas de una agua entre muros + pletinas con tirafondos y pernos de anclaje
   const sup = y => zb(y) + 3, piezas = [];
   for (const y of [300, 200, 100]) piezas.push(barraYZ([y, ZB + 4.5], [y, sup(y)], 8));
