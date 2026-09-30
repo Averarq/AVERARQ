@@ -505,7 +505,7 @@ function renderPortada() {
   const R = H > 1500, dy = R ? 90 : 0; // reel 9:16: titular arriba, dibujo grande abajo
   const t = 23.5;
   g.setTransform(SS, 0, 0, SS, 0, 0);
-  CAM_FIJA = encuadre(BB, R ? [M, 700, W - M + 30, H - M - 130] : [110, 540, W - M + 40, H - M - 110], [0, 0]); ROT = false;
+  CAM_FIJA = encuadre(BB, R ? [M - 90, 590, W - M + 170, H - M - 300] : [110, 540, W - M + 40, H - M - 110], [0, 0]); ROT = false;
   g.fillStyle = BG; g.fillRect(0, 0, W, H);
   retícula(M, H - M - 26);
   g.save(); g.beginPath(); g.rect(M, M, W - 2 * M, H - 2 * M - 96); g.clip();
