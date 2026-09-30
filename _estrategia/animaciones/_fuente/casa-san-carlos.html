@@ -466,17 +466,17 @@ function escena(t) {
     const col = hh > 0 ? mezcla('#3a3a3a', OR, hh) : '#3a3a3a', tr = hh > 0 ? OR : CR, x1 = xc + 4.1 + .3;
     const pto = (P3, r) => { const [px, py] = P(...P3); g.beginPath(); g.arc(px, py, r * k, 0, 7); g.fillStyle = tr; g.fill(); };
     if (lado) { // talón delantero: pletina sobre la cercha, anclada a la cadena delantera
-      const yC = D - EM, ya = yC - 2, yb2 = yC - 24;
+      const yC = D - EM, ya = yC - 2, yb2 = yC - 38;
       poli([P(x1, ya, ZB - 2), P(x1, yb2, ZB - 2), P(x1, yb2, ZB + 14), P(x1, ya, ZB + 14)], col, tr, 1 * k);
-      for (const [yy, zz] of [[yC - 9, ZB + 2], [yC - 17, ZB + 9], [yC - 9, ZB + 10], [yC - 17, ZB + 3]]) pto([x1, yy, zz], 1.6);
+      for (const [yy, zz] of [[yC - 9, ZB + 2], [yC - 17, ZB + 9], [yC - 25, ZB + 2], [yC - 33, ZB + 9], [yC - 9, ZB + 10], [yC - 25, ZB + 10]]) pto([x1, yy, zz], 1.6);
       return;
     }
     // apoyo trasero: pletina en el montante de la cercha, anclada al sobremuro de albañilería con pernos
-    const z0 = ZC + 18, z1 = ZC + 58;
+    const z0 = ZC + 10, z1 = ZC + 82;
     poli([P(x1, EM + 1, z0), P(x1, EM + 9, z0), P(x1, EM + 9, z1), P(x1, EM + 1, z1)], col, tr, 1 * k);
-    for (const zz of [z0 + 8, z0 + 20, z0 + 32]) pto([x1, EM + 5, zz], 1.6);
-    poli([P(xc + 4.1, EM + .3, z0), P(xc + 18, EM + .3, z0), P(xc + 18, EM + .3, z1), P(xc + 4.1, EM + .3, z1)], col, tr, 1 * k);
-    for (const zz of [z0 + 10, z1 - 10]) pto([xc + 12, EM + .3, zz], 2.4);
+    for (const zz of [z0 + 8, z0 + 22, z0 + 36, z0 + 50, z0 + 64]) pto([x1, EM + 5, zz], 1.6);
+    poli([P(xc + 4.1, EM + .3, z0), P(xc + 22, EM + .3, z0), P(xc + 22, EM + .3, z1), P(xc + 4.1, EM + .3, z1)], col, tr, 1 * k);
+    for (const zz of [z0 + 10, (z0 + z1) / 2, z1 - 10]) pto([xc + 14, EM + .3, zz], 2.4);
   };
   CER.forEach((xc, i) => cuando(easeOut((t - ET[7].t0 - 0.3 - i * 0.5) / 0.9), p => {
     const dz = (1 - p) * 90;
