@@ -230,8 +230,8 @@ function rotulo(txt, p, d, act) { // texto con recuadro y guía
 // ------------------------------------------------------------------ guion
 const ET = [
   null,
-  { n: '01', t0: 2.6, t1: 7.0, tit: 'Fundación', txt: 'Cimiento corrido; sobre él, la armadura del sobrecimiento y su hormigonado.', spec: 'CIMIENTO 40 × 60 · SOBRECIMIENTO H.A. 20 × 40 cm' },
-  { n: '02', t0: 7.0, t1: 9.2, tit: 'Radier', txt: 'Losa de piso sobre base compactada y barrera de humedad.', spec: 'HORMIGÓN e = 10 cm · NPT ±0,00' },
+  { n: '01', t0: 2.6, t1: 7.0, tit: 'Fundación', txt: 'Zapata corrida sobre emplantillado; el sobrecimiento armado llega al nivel de piso terminado.', spec: 'ZAPATA 50 × 60 · SOBRECIMIENTO H.A. 15 × 50 cm' },
+  { n: '02', t0: 7.0, t1: 9.2, tit: 'Radier', txt: 'Losa de piso al nivel terminado del sobrecimiento, sobre base compactada.', spec: 'HORMIGÓN e = 10 cm · NPT ±0,00' },
   { n: '03', t0: 9.2, t1: 11.8, tit: 'Armadura de pilares', txt: 'Enfierradura de los pilares, anclada al sobrecimiento.', spec: '4 Ø10 · ESTRIBOS Ø6 @ 15 cm' },
   { n: '04', t0: 11.8, t1: 16.4, tit: 'Albañilería confinada', txt: 'Se levantan los paños de ladrillo y luego se hormigonan los pilares contra el muro.', spec: 'LADRILLO · PILARES H.A. 20 × 15 cm' },
   { n: '05', t0: 16.4, t1: 18.8, tit: 'Ventanas proyectantes', txt: 'Ventanas altas de hoja proyectante: luz y ventilación sin perder privacidad.', spec: 'VANO 60 × 100 cm · MARCO DE MADERA' },
@@ -247,7 +247,7 @@ const hl = e => t => t < ET[e].t0 ? 0 : t < ET[e].t1 ? 1 : 1 - clamp((t - ET[e].
 
 // ------------------------------------------------------------------ geometría (cm)
 // x a lo largo de la fachada (corte en x = L), y de la fachada trasera (0) a la delantera (D), z desde el NPT
-const L = 540, D = 400, EM = 15, ZM0 = 20, ZM1 = 240, ZC = 270, TP = 0.25, AL = 40;
+const L = 540, D = 400, EM = 15, ZM0 = 0, ZM1 = 240, ZC = 270, TP = 0.25, AL = 40;
 const PIL = [[0, 20], [190, 210], [380, 400]];                                      // pilares de la fachada
 const VEN = [[265, 325], [440, 500]], VZ = [125, 225];                              // vanos 60 × 100
 const CER = [30, 120, 210, 300, 390, 480];
@@ -259,7 +259,7 @@ const zK = y => zTC(y) + 4.1, zO = y => zK(y) + 1.2, zF = y => zO(y) + .5, zLi =
 const ZB = 244;                                                                      // cuerda inferior (junto a la cadena)
 const YA = -20, YE = D + AL;                                                         // cumbrera (atrás) y alero (adelante)
 const XR = { cst: L - 20, osb: L - 45, fie: L - 80, cos: L - 110, tej: L - 150 };                // cubierta escalonada hacia el corte
-const BB = [-30, L, YA, YE, -60, zO(YA) + 12];
+const BB = [-30, L, YA, YE, -115, zO(YA) + 12];
 TONO.ladrillo = { sup: '#8c4a33', fy: '#7a3f2b', fx: '#6c3827', pat: null, corte: '#6c3827' };
 TONO.estuco = { sup: '#b9b7b1', fy: '#a8a6a0', fx: '#9e9c96', pat: null, corte: '#2b2b29', patCorte: 'corte' };
 TONO.teja = { sup: '#b4532e', fy: '#8e3f22', fx: '#a04a28', pat: null };
@@ -369,24 +369,24 @@ function escena(t) {
   const sube = (b, p) => [b[0], b[1], b[2], b[3], b[4], lerp(b[4], b[5], p)];
   const cuando = (p, f) => { if (p <= 0) return; g.save(); g.globalAlpha *= clamp(p * 3); f(p); g.restore(); };
   // 1 · fundación: cimiento, armadura del sobrecimiento y hormigonado
-  const CIM = [[0, L, -12.5, 27.5], [-12.5, 27.5, 27.5, D - 27.5], [0, L, D - 27.5, D + 12.5]];
-  const SOB = [[0, L, 0, 20], [0, 20, 20, D - 20], [0, L, D - 18, D + 2]];
-  CIM.forEach((c, i) => cuando(ap(1, i * 0.25, 0.8), p => caja(sube([...c, -60, -20], p), 'conc', { corte: cc, h: h(1) })));
+  const CIM = [[0, L, -17.5, 32.5], [-17.5, 32.5, 32.5, D - 32.5], [0, L, D - 32.5, D + 17.5]];   // zapata corrida 50 × 60
+  const SOB = [[0, L, 0, EM], [0, EM, EM, D - EM], [0, L, D - EM, D]];                               // sobrecimiento 15 × 50
+  CIM.forEach((c, i) => cuando(ap(1, i * 0.25, 0.8), p => { caja([...c, -115, -110], 'conc', { corte: cc }); caja(sube([...c, -110, -50], p), 'conc', { corte: cc, h: h(1) }); }));
   const pa = ap(1, 0.9, 1.1), ph = ap(1, 2.4, 1.2);                                // armadura, hormigón
   const armSob = (i) => { const [x0, x1, y0, y1] = SOB[i];
-    if (x1 - x0 < y1 - y0) jaulaH('y', y0, lerp(y0, y1, pa), x0 + 4, x1 - 4, -16, 16); else jaulaH('x', 0, lerp(0, L, pa), y0 + 4, y1 - 4, -16, 16); };
+    if (x1 - x0 < y1 - y0) jaulaH('y', y0, lerp(y0, y1, pa), x0 + 3.5, x1 - 3.5, -46, -4); else jaulaH('x', 0, lerp(0, L, pa), y0 + 3.5, y1 - 3.5, -46, -4); };
   const sob = (i) => {
     if (ph < 1) armSob(i);
-    if (i) { cuando(ph, p => caja(sube([...SOB[i], -20, ZM0], p), 'conc', { corte: cc, h: h(1) })); return; }
+    if (i) { cuando(ph, p => caja(sube([...SOB[i], -50, 0], p), 'conc', { corte: cc, h: h(1) })); return; }
     // trasero: baja a nivel de piso bajo el ventanal
     cuando(ph, p => { const [, , y0, y1] = SOB[0];
-      caja(sube([0, VV[0], y0, y1, -20, ZM0], p), 'conc', { h: h(1) });
-      caja(sube([VV[0], VV[1], y0, y1, -20, 0], p), 'conc', { h: h(1) });
-      caja(sube([VV[1], L, y0, y1, -20, ZM0], p), 'conc', { corte: cc, h: h(1) }); });
+      caja(sube([0, VV[0], y0, y1, -50, 0], p), 'conc', { h: h(1) });
+      caja(sube([VV[0], VV[1], y0, y1, -50, 0], p), 'conc', { h: h(1) });
+      caja(sube([VV[1], L, y0, y1, -50, 0], p), 'conc', { corte: cc, h: h(1) }); });
   };
   sob(0); sob(1);
   // 2 · radier
-  cuando(ap(2, 0.2, 1.2), p => caja([20, lerp(20, L, p), 20, D - 20, -10, 0], 'conc', { corte: cc, h: h(2) }));
+  cuando(ap(2, 0.2, 1.2), p => caja([EM, lerp(EM, L, p), EM, D - EM, -10, 0], 'conc', { corte: cc, h: h(2) }));
   sob(2);
   // 4 · muros trasero y lateral (caras interiores estucadas)
   const pm = ap(4, 0.2, 2.8), zTop = lerp(ZM0, ZM1, pm);
