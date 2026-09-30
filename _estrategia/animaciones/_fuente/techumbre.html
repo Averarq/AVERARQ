@@ -14,7 +14,7 @@
   Misma línea gráfica y motor que las animaciones DET. 01–03 (primitivas de bocetos.html).
   render(t) dibuja el instante t (segundos). render-video.mjs --pieza techumbre la codifica en MP4.
   Unidades: centímetros. x a lo largo de la luz de la cercha, y a lo largo de la techumbre, z hacia arriba.
-  Cerchas de 6 m de luz (pino 2×4", pendiente 20,1°) a ejes c/90 cm, costaneras 2×2", tableros OSB o terciado, fieltro y zinc ondulado. Dimensiones referenciales.
+  Cerchas de 6 m de luz (pino 2×4", pendiente 60 % ≈ 31°) a ejes c/90 cm, costaneras 2×2", tableros OSB o terciado, fieltro y plancha trapezoidal PV4. Dimensiones referenciales.
 */
 const Q = new URLSearchParams(location.search);
 const cv = document.getElementById('c'), g = cv.getContext('2d');
@@ -230,21 +230,42 @@ function rotulo(txt, p, d, act) { // texto con recuadro y guía
   g.fillStyle = act ? OR : CR; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, X, Y + 1); g.textAlign = 'left';
 }
 
+// plancha trapezoidal PV4: lámina base y nervios a lo largo de la pendiente (c/25 cm, 3,5 cm de alto)
+const NERVIO = { paso: 25, base: 4, cima: 1.6, alto: 3.5 };
+TONO.pv4 = { sup: '#a4a8ab', fy: '#5e6164', fx: '#7a7d80', base: '#80848a', pat: null };
+function pv4(xa, xb, y0, y1, zf, o = {}) {
+  const k = K(), h = o.h || 0, tn = TONO.pv4, e = .5;
+  const trazo = h > 0 ? mezcla('#F2F0EB', OR, h) : cr(.8), tinte = f => h > 0 ? mezcla(f, '#6e2a0c', .45 * h) : f;
+  const A = zf(xa), B = zf(xb), bajaX = B < A ? xb : null;
+  poli([P(xa, y1, A), P(xb, y1, B), P(xb, y1, B + e), P(xa, y1, A + e)], tinte(tn.fy), trazo, 1 * k);
+  if (bajaX != null) poli([P(xb, y0, B), P(xb, y1, B), P(xb, y1, B + e), P(xb, y0, B + e)], tinte(tn.fx), trazo, 1 * k);
+  poli([P(xa, y0, A + e), P(xb, y0, B + e), P(xb, y1, B + e), P(xa, y1, A + e)], tinte(tn.base), trazo, 1.1 * k);
+  const { paso, base, cima, alto } = NERVIO;
+  for (let yc = Y0 + paso / 2; yc < y1; yc += paso) {
+    if (yc - base < y0 - .01 || yc + base > y1 + .01) continue;
+    const z0a = A + e, z0b = B + e;
+    // cara frontal del nervio (mira a +y), cara superior y perfil en el extremo bajo
+    poli([P(xa, yc + base, z0a), P(xb, yc + base, z0b), P(xb, yc + cima, z0b + alto), P(xa, yc + cima, z0a + alto)], tinte(tn.fy), trazo, .9 * k);
+    poli([P(xa, yc - cima, z0a + alto), P(xb, yc - cima, z0b + alto), P(xb, yc + cima, z0b + alto), P(xa, yc + cima, z0a + alto)], tinte(tn.sup), trazo, .9 * k);
+    if (bajaX != null) poli([P(xb, yc - base, z0b), P(xb, yc + base, z0b), P(xb, yc + cima, z0b + alto), P(xb, yc - cima, z0b + alto)], tinte(tn.fx), trazo, .9 * k);
+  }
+}
+
 // ------------------------------------------------------------------ guion
 const ET = [
   null,
-  { n: '01', t0: 2.6, t1: 7.4, tit: 'Cerchas', txt: 'Estructura triangulada de 6 m de luz, con montantes y diagonales que llevan la carga a los apoyos.', spec: 'PINO 2×4" · PENDIENTE 20° · A EJES C/90 cm' },
+  { n: '01', t0: 2.6, t1: 7.4, tit: 'Cerchas', txt: 'Estructura triangulada de 6 m de luz, con montantes y diagonales que llevan la carga a los apoyos.', spec: 'PINO 2×4" · PENDIENTE 60 % · A EJES C/90 cm' },
   { n: '02', t0: 7.4, t1: 11.0, tit: 'Costaneras', txt: 'Piezas horizontales clavadas sobre las cuerdas superiores de las cerchas.', spec: 'PINO 2×2" · C/50 cm' },
   { n: '03', t0: 11.0, t1: 14.6, tit: 'Tableros de OSB o terciado', txt: 'Clavados sobre las costaneras: arriostran las cerchas y amarran todo el sistema.', spec: 'OSB 11,1 mm O TERCIADO · UNIONES TRABADAS' },
   { n: '04', t0: 14.6, t1: 17.2, tit: 'Fieltro', txt: 'Barrera bajo la cubierta, contra filtraciones y condensación.', spec: 'FIELTRO ASFÁLTICO · TRASLAPADO' },
-  { n: '05', t0: 17.2, t1: 21.0, tit: 'Cubierta', txt: 'Planchas de zinc atornilladas a las costaneras, traslapadas en el sentido del agua.', spec: 'ZINC ONDULADO · TORNILLO AUTOPERFORANTE' },
+  { n: '05', t0: 17.2, t1: 21.0, tit: 'Cubierta', txt: 'Plancha trapezoidal PV4 fijada en las crestas, traslapada en el sentido del agua.', spec: 'ACERO PREPINTADO PV4 · TORNILLO AUTOPERFORANTE' },
 ];
 const N = ET.length - 1, T_RES = 21.4, T_CP = 25.0;
 const hl = e => t => t < ET[e].t0 ? 0 : t < ET[e].t1 ? 1 : 1 - clamp((t - ET[e].t1) / 0.9);
 
 // ------------------------------------------------------------------ geometría
-// cercha de 6,00 m de luz, pendiente 20,1°: nudos inferiores a 1,194 · 0,903 · 0,903 · 0,903 · 0,903 · 1,194 m
-const ANG = 20.1 * Math.PI / 180, TAN = Math.tan(ANG), TV = 9 / Math.cos(ANG), LUZ = 600, CUM = 300;
+// cercha de 6,00 m de luz, pendiente 60 % (≈ 31°): nudos inferiores a 1,194 · 0,903 · 0,903 · 0,903 · 0,903 · 1,194 m
+const ANG = Math.atan(0.6), TAN = Math.tan(ANG), TV = 9 / Math.cos(ANG), LUZ = 600, CUM = 300;
 const zl = x => 9 + x * TAN, zr = x => 9 + (LUZ - x) * TAN;          // cara inferior de las cuerdas superiores
 const zc = x => x <= CUM ? zl(x) : zr(x);
 const zK = x => zc(x) + TV + 4.1, zO = x => zK(x) + 1.1, zF = x => zO(x) + .5; // sobre costaneras, tableros y fieltro
@@ -258,7 +279,7 @@ const TAB_L = [[XL[0], 135], [135, CUM]], TAB_R = [[CUM, 465], [465, XR[1]]];
 const Y_TAB_R = REEL ? 290 : 140, Y_FIELTRO_R = REEL ? 200 : 85;
 const PLANCHAS_L = REEL ? [[Y0, 57], [57, 129], [129, 201], [201, 273], [273, Y1]] : [[Y0, 57], [57, 129], [129, Y1]];
 const PLANCHAS_R = REEL ? [[Y0, 57], [57, 110]] : [[Y0, 35]];
-const BB = [-30, 630, Y0, Y1, -45, 125], YF = CERCHAS[CERCHAS.length - 1] + 4.1; // YF: cara de la cercha de adelante
+const BB = [-30, 630, Y0, Y1, -45, 215], YF = CERCHAS[CERCHAS.length - 1] + 4.1; // YF: cara de la cercha de adelante
 function piezasCercha() {
   const p = [], nb = [119.4, 209.7, CUM, 390.3, 480.6], sup = x => zc(x) + 3;
   for (const x of nb) p.push(barra([x, 4.5], [x, sup(x)], 8));                                   // montantes
@@ -351,23 +372,24 @@ function escena(t) {
     // 4 · fieltro: se desenrolla a lo largo de la techumbre
     const yf = L ? Y1 : Y_FIELTRO_R, pf = ease((t - ET[4].t0 - 0.3 - (L ? 0 : 0.9)) / 1.3);
     if (pf > 0) faldon(X[0], X[1], Y0, lerp(Y0, yf, pf), zO, .5, 'fieltro', { h: h(4) });
-    // 5 · zinc
+    // 5 · cubierta PV4
     (L ? PLANCHAS_L : PLANCHAS_R).forEach(([a, b], i) => {
       const q = easeOut((t - ET[5].t0 - 0.2 - (L ? i : PLANCHAS_L.length + i) * 0.45) / 0.6);
       if (q <= 0) return;
       g.save(); g.globalAlpha *= clamp(q * 3);
-      faldon(X[0], X[1], a, b, x => zF(x) + (1 - q) * 30, .8, 'zinc', { onda: 7.6, h: h(5) });
+      pv4(X[0], X[1], a, b, x => zF(x) + (1 - q) * 30, { h: h(5) });
       g.restore();
     });
   };
   capas('l');
   capas('r');
-  // tornillos del zinc, sobre las costaneras
+  // tornillos de la cubierta: en las crestas, sobre las costaneras
   PLANCHAS_R.forEach(([a, b]) => COST_R.forEach((x, i) => {
-    for (let y = a + 8; y < b - 3; y += 15.2) {
+    for (let y = Y0 + NERVIO.paso / 2; y < b; y += NERVIO.paso) {
+      if (y - NERVIO.base < a || y + NERVIO.base > b) continue;
       const q = clamp((t - ET[5].t0 - 2.4 - i * 0.1) / 0.2);
       if (q <= 0) continue;
-      const [px, py] = P(x, y, zF(x) + .8);
+      const [px, py] = P(x, y, zF(x) + .5 + NERVIO.alto);
       g.save(); g.globalAlpha *= q; g.beginPath(); g.arc(px, py, 1.9 * k, 0, 7); g.fillStyle = t < ET[5].t1 + 0.6 ? OR : cr(.9); g.fill(); g.restore();
     }
   }));
