@@ -1,0 +1,172 @@
+# -*- coding: utf-8 -*-
+"""
+extraer_secuencias.py — prepara el material de V5 con la línea visual AVERARQ.
+
+1. Tramos de video (dron 4K, celular, recorrido): corta, encuadra en vertical
+   1080×1920 a 30 fps y guarda JPG numerados en secuencias/<nombre>/0001.jpg …
+2. Imágenes fijas (renders y fotos de dron): las guarda en secuencias/_fijas/.
+
+A todo le aplica la misma LUT de color (color/averarq.cube). El video del iPhone
+viene en HDR (HLG, BT.2020) y se convierte a SDR antes de la LUT.
+secuencias/ está fuera de git: se regenera con este script.
+
+Uso:
+    python3 extraer_secuencias.py          # lo que falte
+    python3 extraer_secuencias.py --forzar # rehace todo (p. ej. tras cambiar la LUT)
+
+Requiere ffmpeg (con zscale). Las rutas apuntan a las carpetas de proyecto en el
+PC de Alejandro; si cambian, edita PROYECTO.
+"""
+import os, shutil, subprocess, sys
+
+AQUI = os.path.dirname(os.path.abspath(__file__))
+SALIDA = os.path.join(AQUI, 'secuencias')
+PROYECTO = r'C:/Users/Alejandro Vera/Documents/0.AVERARQ/2025/2025_Andrés Martinez'
+ORIGEN = PROYECTO + '/09_AUDIOVISUAL'
+LUT = 'color/averarq.cube'   # relativa a AQUI (ffmpeg corre con cwd=AQUI)
+FPS = 30
+
+HDR_A_SDR = ('zscale=tin=arib-std-b67:pin=bt2020:min=bt2020nc:t=linear:npl=203,format=gbrpf32le,'
+             'zscale=p=bt709,tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p')
+
+# nombre: (archivo, inicio s, duración s, centro del encuadre al inicio y al final [0-1] o None si ya es vertical,
+#          ajuste previo de exposición/contraste para igualar fuentes)
+SEP = 'Septiembre 2026/'
+TRAMOS = {
+    # cenital del 16-sep que asciende, girado 90° horario ('cw': el 16:9 queda 9:16 completo, sin recorte)
+    # para que el ala larga quede vertical como en la planta; el cuadro inicial (28,5 s) calza con ella
+    'sc-cenital':   (SEP + 'DJI_20260916111716_0203_D.MP4', 28.5, 3.0, 'cw', None, 'eq=brightness=0.0'),
+    # tomas amplias en horizontal ('ancho': 1280×720 sin recorte; el video las muestra en una franja ancha)
+    'sc-orbita':    (SEP + 'DJI_20260916112103_0209_D.MP4', 8.0, 2.1, 'ancho', None, 'eq=brightness=0.0'),
+    'sc-fachada':   (SEP + 'DJI_20260916113524_0216_D.MP4', 6.8, 2.1, 'ancho', None, 'eq=brightness=0.0'),
+    # Alejandro recibe el dron en la mano; corta a los 24,4 s, antes de que sonría
+    'sc-dron-mano': ('IMG_5241.MOV', 20.4, 4.0, None, None, 'eq=brightness=0.03:contrast=0.97'),
+}
+
+# V6 · tomas de dron de un centro de eventos (solo como imagen; el video no lo nombra)
+RB = r'C:/Users/Alejandro Vera/Documents/0.AVERARQ/2026/2026_C.E. EL ROBLE/07_AUDIOVISUAL/'
+TRAMOS.update({
+    # todo en vertical, recorte FIJO (no compite con el movimiento del dron). Tramos elegidos midiendo el
+    # desplazamiento de cámara cuadro a cuadro: velocidad pareja de principio a fin, sin cambios de dirección.
+    'rb-valle':    (RB + 'DJI_20260922162735_0237_D.MP4', 38.0, 4.0, 0.50, 0.50, 'eq=brightness=0.0'),       # paneo +327 px/s
+    'rb-orbita':   (RB + 'DJI_20260922162250_0231_D.MP4', 34.5, 4.0, 0.50, 0.50, 'eq=brightness=0.0'),       # +71 px/s
+    'rb-piscina':  (RB + 'DJI_20260922162134_0230_D.MP4', 7.5, 2.0, 0.45, 0.45, 'eq=brightness=0.0'),        # +174 px/s
+    # dron a baja altura avanzando por la terraza (sin paneo) y el salón a través del vidrio
+    'rb-terraza':  (RB + 'DJI_20260803155452_0067_D.MP4', 50.0, 4.0, 0.50, 0.50, 'eq=brightness=0.02', 2.0),
+    'rb-vitral':   (RB + 'DJI_20260803155452_0067_D.MP4', 24.0, 2.0, 0.50, 0.50, 'eq=brightness=0.02'),      # −465 px/s
+    'rb-salon':    (RB + 'DJI_20260803160553_0074_D.MP4', 13.0, 2.0, 0.50, 0.50, 'eq=brightness=0.02'),      # +390 px/s
+    # cenital que asciende de forma pareja hasta mostrar recinto y piscina completos (x2)
+    'rb-cenital':  (RB + 'DJI_20260803154451_0062_D.MP4', 21.0, 12.0, 0.46, 0.46, 'eq=brightness=0.0', 2.0),
+})
+
+# imágenes fijas: nombre de salida → (ruta dentro de PROYECTO o patrón glob, ajuste previo o None = gráfica sin LUT)
+FIJAS = {
+    'render-aereo': ('/RENDERS/Escena 4.png', 'eq=saturation=0.92:contrast=1.03'),
+    'dron-oblicua': ('/09_AUDIOVISUAL/' + SEP + 'DJI_20260916111954_0208_D.JPG', 'eq=brightness=0.0'),
+    'int-cielo':    ('/09_AUDIOVISUAL/' + SEP + '1790392291243.jpg', 'eq=brightness=0.01'),
+    'int-ventanal': ('/09_AUDIOVISUAL/' + SEP + '1790392290144.jpg', 'eq=brightness=0.0'),
+    'int-puerta':   ('/09_AUDIOVISUAL/' + SEP + '1790392290481.jpg', 'eq=brightness=0.0'),
+}
+
+# gráficas de marca (sin LUT). Las plantas se recortan al dibujo (misma caja para ambas), en su orientación original.
+GRAFICAS = {
+    'planta-naranjo': ('/09_AUDIOVISUAL/Patr*-08.png', True),
+    'planta-blanca':  ('/09_AUDIOVISUAL/Patr*-09.png', True),
+    'patron':         ('/09_AUDIOVISUAL/Patr*-10.png', False),
+}
+
+
+def info(ruta):
+    out = subprocess.check_output(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries',
+                                   'stream=width,height,color_transfer', '-of', 'csv=p=0', ruta]).decode()
+    w, h, tr = (out.strip().split(',') + [''])[:3]
+    return int(w), int(h), tr
+
+
+def ffmpeg(args):
+    subprocess.run(['ffmpeg', '-v', 'error', '-y'] + args, check=True, cwd=AQUI)
+
+
+def extraer(nombre, archivo, inicio, dur, c0, c1, ajuste, forzar, vel=1.0):
+    dst = os.path.join(SALIDA, nombre)
+    if os.path.isdir(dst) and os.listdir(dst) and not forzar:
+        print('--', nombre, '(ya existe)')
+        return
+    shutil.rmtree(dst, ignore_errors=True)
+    os.makedirs(dst)
+    ruta = os.path.join(ORIGEN, archivo)
+    w, h, tr = info(ruta)
+    cadena = [HDR_A_SDR] if tr == 'arib-std-b67' else []
+    cadena.append('fps=%g' % (FPS / vel))      # vel=2 → la mitad de cuadros: se ve al doble de velocidad
+    if c0 == 'cw':
+        cadena.append('transpose=1')
+    elif c0 == 'ancho':
+        pass
+    elif c0 is not None:
+        cw = round(h * 9 / 16)
+        # el centro del encuadre se desplaza linealmente durante el tramo (sigue al sujeto)
+        x = "max(0,min(iw-{cw},({c0}+({c1}-{c0})*t/{d})*iw-{cw}/2))".format(cw=cw, c0=c0, c1=c1, d=dur)
+        cadena.append("crop={cw}:{h}:'{x}':0".format(cw=cw, h=h, x=x))
+    cadena += ['scale=%s:flags=lanczos' % ('1280:720' if c0 == 'ancho' else '1080:1920'), ajuste, 'lut3d=' + LUT]
+    ffmpeg(['-ss', str(inicio), '-t', str(dur), '-i', ruta, '-vf', ','.join(cadena), '-q:v', '3',
+            os.path.join(dst, '%04d.jpg')])
+    print('ok', nombre, len(os.listdir(dst)), 'cuadros')
+
+
+def fija(nombre, ruta, ajuste, forzar):
+    dst = os.path.join(SALIDA, '_fijas', nombre + '.jpg')
+    if os.path.exists(dst) and not forzar:
+        print('--', nombre, '(ya existe)')
+        return
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    # PIL limpia metadatos dañados (algunos PNG exportados traen EXIF inválido que ffmpeg rechaza)
+    from PIL import Image
+    import glob as _g
+    im = Image.open(_g.glob(PROYECTO + ruta)[0]).convert('RGB')
+    if im.width > 1920:
+        im = im.resize((1920, round(im.height * 1920 / im.width)), Image.LANCZOS)
+    tmp = dst + '.tmp.png'
+    im.save(tmp)
+    ffmpeg(['-i', tmp, '-vf', ajuste + ',lut3d=' + LUT, '-frames:v', '1', '-q:v', '2', dst])
+    os.remove(tmp)
+    print('ok', nombre)
+
+
+def graficas(forzar):
+    import glob
+    from PIL import Image
+    ref = glob.glob(PROYECTO + GRAFICAS['planta-naranjo'][0])[0]
+    import numpy as np
+    al = np.asarray(Image.open(ref))[..., 3]
+    yy, xx = np.where(al > 20)
+    caja = (xx.min(), yy.min(), xx.max() + 1, yy.max() + 1)     # misma caja para ambas plantas
+    for nombre, (patron, es_planta) in GRAFICAS.items():
+        dst = os.path.join(SALIDA, '_fijas', nombre + ('.png' if es_planta else '.jpg'))
+        if os.path.exists(dst) and not forzar:
+            print('--', nombre, '(ya existe)')
+            continue
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        im = Image.open(glob.glob(PROYECTO + patron)[0])
+        if es_planta:
+            im = im.crop(caja).convert('RGBA')
+            if nombre == 'planta-blanca':
+                # el fondo gris de la lámina pasa a transparente: solo quedan las líneas (sin "caja" en el fundido)
+                px = np.asarray(im).astype(float)
+                lum = px[..., :3].max(-1)
+                px[..., 3] = np.clip((lum - 45) / 170, 0, 1) * 255
+                px[..., :3] = 255
+                im = Image.fromarray(px.astype(np.uint8), 'RGBA')
+            im = im.resize((im.width // 2, im.height // 2), Image.LANCZOS)
+            im.save(dst, optimize=True)
+        else:
+            im = im.convert('RGB'); im.thumbnail((1400, 2240), Image.LANCZOS); im.save(dst, quality=90)
+        print('ok', nombre, im.size)
+
+
+if __name__ == '__main__':
+    forzar = '--forzar' in sys.argv
+    for nombre, t in TRAMOS.items():
+        extraer(nombre, *t[:6], forzar, *t[6:])
+    for nombre, (ruta, ajuste) in FIJAS.items():
+        fija(nombre, ruta, ajuste, forzar)
+    graficas(forzar)

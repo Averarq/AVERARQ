@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>AVERARQ · Portada compilado café</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>html,body{margin:0;background:#111110}canvas{display:block}</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+/* Portada del reel compilado del café (V60, espresso, prensa francesa y tazas): ?formato=reel|post, ?escala=2 */
+const Q = new URLSearchParams(location.search), SS = +(Q.get('escala') || 1);
+const W = 1080, H = Q.get('formato') === 'post' ? 1350 : 1920, R = H > 1500;
+const cv = document.getElementById('c'), g = cv.getContext('2d'); cv.width = W * SS; cv.height = H * SS;
+const OR = '#FC4C02', CR = '#F2F0EB', BG = '#111110', cr = a => `rgba(242,240,235,${a})`, M = 36;
+const ISO = new Path2D('M 57.574219 52.507812 L 46.25 52.507812 L 51.9375 38.394531 L 53.53125 42.492188 L 56.828125 42.492188 L 53.164062 33.398438 L 50.796875 33.398438 L 41.816406 55.308594 L 45.125 55.304688 L 58.695312 55.304688 L 59.8125 58.101562 L 63.183594 58.101562 L 60.898438 52.464844 Z');
+const carga = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = src; });
+function isotipo(x, y, h, col) { const s = h / 25.4; g.save(); g.translate(x - 41.6 * s, y - 33 * s); g.scale(s, s); g.fillStyle = col; g.fill(ISO); g.restore(); }
+function texto(s, x, y, font, col, al = 'left') { g.font = font; g.fillStyle = col; g.textAlign = al; g.textBaseline = 'alphabetic'; g.fillText(s, x, y); }
+window.ready = (async () => {
+  for (const f of ['400 20px Barlow', '700 20px "Barlow Condensed"', '600 20px "Barlow Condensed"', '500 20px "IBM Plex Mono"', '400 20px "IBM Plex Mono"']) await document.fonts.load(f, 'ÁÉÍÓÚÑáéíóúñ');
+  const [logo, ...dib] = await Promise.all(['img/logotipo-averarq-blanco.png', ...['v60', 'espresso', 'prensa', 'cafe'].map(n => `img/compilado/${n}.png`)].map(carga));
+  g.setTransform(SS, 0, 0, SS, 0, 0);
+  g.fillStyle = BG; g.fillRect(0, 0, W, H);
+  g.strokeStyle = 'rgba(242,240,235,0.045)'; g.lineWidth = 1;
+  for (let x = M + 30; x < W - M; x += 30) { g.beginPath(); g.moveTo(x, M); g.lineTo(x, H - M - 26); g.stroke(); }
+  for (let y = M + 30; y < H - M - 26; y += 30) { g.beginPath(); g.moveTo(M, y); g.lineTo(W - M, y); g.stroke(); }
+  g.strokeStyle = cr(.5); g.lineWidth = 1.2; g.strokeRect(M, M, W - 2 * M, H - 2 * M - 26);
+  const dy = R ? 90 : 0;
+  isotipo(M + 30, 62 + dy, 34, OR);
+  const hL = 28; g.drawImage(logo, M + 76, 64 + dy, hL * logo.naturalWidth / logo.naturalHeight, hL);
+  texto('1 DE OCTUBRE', W - M - 28, 88 + dy, '500 17px "IBM Plex Mono"', OR, 'right');
+  // titular: Feliz Día del Café
+  const cx = W / 2, yT = R ? 380 : 230;
+  texto('FELIZ DÍA', cx, yT, `700 ${R ? 150 : 120}px "Barlow Condensed"`, CR, 'center');
+  texto('DEL CAFÉ', cx, yT + (R ? 150 : 118), `700 ${R ? 150 : 120}px "Barlow Condensed"`, OR, 'center');
+  g.fillStyle = OR; g.fillRect(cx - 55, yT + (R ? 185 : 148), 110, 6);
+  texto('Así lo preparamos en AVERARQ:', cx, yT + (R ? 245 : 196), `400 ${R ? 30 : 26}px "Barlow"`, cr(.85), 'center');
+  texto('cuatro métodos, cuatro detalles constructivos.', cx, yT + (R ? 285 : 230), `400 ${R ? 30 : 26}px "Barlow"`, cr(.85), 'center');
+  // grilla 2 × 2 con los cuatro métodos
+  const y0 = R ? 730 : 480, y1 = H - M - 120, x0 = M + 20, x1 = W - M - 20, cw = (x1 - x0) / 2, ch = (y1 - y0) / 2;
+  const nom = ['01 · V60', '02 · ESPRESSO', '03 · PRENSA FRANCESA', '04 · TAZAS'];
+  dib.forEach((im, i) => {
+    const cx = x0 + (i % 2) * cw, cy = y0 + Math.floor(i / 2) * ch, bw = cw - 30, bh = ch - 60;
+    const s = Math.min(bw / im.width, bh / im.height), w = im.width * s, h = im.height * s;
+    g.drawImage(im, cx + (cw - w) / 2, cy + (bh - h) / 2, w, h);
+    texto(nom[i], cx + cw / 2, cy + ch - 18, '500 17px "IBM Plex Mono"', i % 2 ? CR : CR, 'center');
+    g.fillStyle = OR; g.fillRect(cx + cw / 2 - 20, cy + ch - 10, 40, 3);
+  });
+  g.strokeStyle = cr(.5); g.lineWidth = 1.2;
+  g.beginPath(); g.moveTo(M, H - M - 96); g.lineTo(W - M, H - M - 96); g.stroke();
+  texto('V60 · ESPRESSO · PRENSA FRANCESA · TAZAS', M + 30, H - M - 52, '400 17px "IBM Plex Mono"', cr(.65));
+  texto('AVERARQ.CL', W - M - 28, H - M - 50, '600 26px "Barlow Condensed"', OR, 'right');
+  texto('Detalle referencial.', W / 2, H - 22, '400 15px "IBM Plex Mono"', cr(.5), 'center');
+  return true;
+})();
+</script>
+</body>
+</html>

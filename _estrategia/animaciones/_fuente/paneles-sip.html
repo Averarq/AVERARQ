@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>AVERARQ · Paneles SIP</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>html,body{margin:0;background:#111110}canvas{display:block}</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1350"></canvas>
+<script>
+/*
+  Animación isométrica: armado de un muro de paneles SIP (DET. 02).
+  Misma línea gráfica y motor que albanileria-confinada.html.
+  render(t) dibuja el instante t (segundos). render-video.mjs --pieza paneles-sip la codifica en MP4.
+  Unidades del modelo: centímetros. Ejes: x a lo largo del muro, y a través del espesor (y = 14 es la cara interior, la que se ve), z hacia arriba.
+  Panel de 140 mm = OSB 11,1 + EPS 118 + OSB 11,1. Solera de pino cepillado 2×5" (41 × 115 mm). Dimensiones referenciales.
+*/
+const cv = document.getElementById('c'), g = cv.getContext('2d');
+const SS = Math.max(1, +(new URLSearchParams(location.search).get('escala') || 1));
+const W = 1080, H = new URLSearchParams(location.search).get('formato') === 'reel' ? 1920 : 1350, DUR = 36.5; // reel: solo para la portada
+// formato reel 9:16: rótulo algo más abajo, área de dibujo más alta y cajetín sobre la zona que tapa la interfaz de Instagram
+const REEL = H > 1500, HD = 0, DY = REEL ? 285 : 0, CPY = REEL ? 285 : 0, SR = REEL ? 1.25 : 1;
+cv.width = W * SS; cv.height = H * SS;
+const OR = '#FC4C02', CR = '#F2F0EB', BG = '#111110';
+const cr = a => `rgba(242,240,235,${a})`, orA = a => `rgba(252,76,2,${a})`;
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const ease = t => { t = clamp(t); return t * t * (3 - 2 * t); };
+const easeOut = t => { t = clamp(t); return 1 - Math.pow(1 - t, 3); };
+const lerp = (a, b, t) => a + (b - a) * t;
+
+// ------------------------------------------------------------------ cámara isométrica
+const cam = { s: 1.5, fx: 0, fy: 0, cx: 540, cy: 680 };
+const C30 = Math.cos(Math.PI / 6);
+const iso = (x, y, z) => [(x - y) * C30, (x + y) * 0.5 - z];
+function P(x, y, z) { const [X, Y] = iso(x, y, z); return [cam.cx + (X - cam.fx) * cam.s, cam.cy + (Y - cam.fy) * cam.s]; }
+const K = () => cam.s / 1.45;
+
+const VISTA_BASE = { s: 2.45, fx: 92, fy: 70, cx: 540, cy: 640 };   // radier y solera de cerca
+const VISTA_MURO = { s: 1.84, fx: 92, fy: -38, cx: 540, cy: 676 };  // muro completo, centrado
+const VISTA_ESP = { s: 4.8, fx: 56.5, fy: 23.5, cx: 540, cy: 705 };     // lámina de espesores
+let CAM_FIJA = null, ROT = true; // portada del post: cámara fija y sin rótulos
+function camara(t) {
+  if (CAM_FIJA) { Object.assign(cam, CAM_FIJA); return; }
+  const k = ease((t - 9.6) / 1.8);
+  for (const p of ['s', 'fx', 'fy', 'cx', 'cy']) cam[p] = lerp(VISTA_BASE[p], VISTA_MURO[p], k);
+  cam.cy += DY; cam.s *= 1 + (SR - 1) * k;
+}
+
+// ------------------------------------------------------------------ texturas
+function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+function patron(w, h, dibujar) {
+  const c = document.createElement('canvas'); c.width = w * SS; c.height = h * SS;
+  const x = c.getContext('2d'); x.scale(SS, SS); dibujar(x, w, h); return g.createPattern(c, 'repeat');
+}
+const PAT = {
+  hormigon: patron(90, 90, (c, w, h) => {
+    const r = rng(7); c.fillStyle = cr(.35);
+    for (let i = 0; i < 26; i++) { c.beginPath(); c.arc(r() * w, r() * h, .9, 0, 7); c.fill(); }
+    c.strokeStyle = cr(.28); c.lineWidth = .9;
+    for (let i = 0; i < 5; i++) { const x = r() * w, y = r() * h, s = 3 + r() * 2.5, a = r() * 6;
+      c.beginPath(); for (let k = 0; k < 3; k++) c.lineTo(x + s * Math.cos(a + k * 2.1), y + s * Math.sin(a + k * 2.1)); c.closePath(); c.stroke(); }
+  }),
+  corte: patron(70, 70, (c, w, h) => {
+    const r = rng(11); c.fillStyle = cr(.55);
+    for (let i = 0; i < 34; i++) { c.beginPath(); c.arc(r() * w, r() * h, 1, 0, 7); c.fill(); }
+    c.strokeStyle = cr(.5); c.lineWidth = 1;
+    for (let i = 0; i < 9; i++) { const x = r() * w, y = r() * h, s = 3.5 + r() * 3, a = r() * 6;
+      c.beginPath(); for (let k = 0; k < 3; k++) c.lineTo(x + s * Math.cos(a + k * 2.1), y + s * Math.sin(a + k * 2.1)); c.closePath(); c.stroke(); }
+  }),
+  osb: patron(80, 80, (c, w, h) => { // hojuelas orientadas del OSB
+    const r = rng(19); c.lineCap = 'round';
+    for (let i = 0; i < 60; i++) { const x = r() * w, y = r() * h, l = 3 + r() * 6, a = (r() - .5) * 1.1;
+      c.strokeStyle = r() > .5 ? 'rgba(242,220,180,0.10)' : 'rgba(20,14,8,0.18)'; c.lineWidth = .9 + r() * .8;
+      c.beginPath(); c.moveTo(x, y); c.lineTo(x + l * Math.cos(a), y + l * Math.sin(a)); c.stroke(); }
+  }),
+  eps: patron(30, 30, (c, w, h) => { // perlas del poliestireno expandido
+    const r = rng(23); c.strokeStyle = cr(.22); c.lineWidth = .8;
+    for (let i = 0; i < 9; i++) { c.beginPath(); c.arc(r() * w, r() * h, 1.8 + r() * 1.6, 0, 7); c.stroke(); }
+  }),
+  madera: patron(60, 12, (c, w, h) => { // veta a lo largo de la pieza
+    c.strokeStyle = 'rgba(242,220,180,0.22)'; c.lineWidth = .9;
+    for (let y = 2; y < h; y += 4) { c.beginPath(); c.moveTo(0, y); c.bezierCurveTo(w * .3, y - 1.2, w * .6, y + 1.2, w, y); c.stroke(); }
+  }),
+};
+function anclarPatrones() {
+  const [ox, oy] = P(0, 0, 0), k = cam.s / 1.45;
+  for (const p of Object.values(PAT)) p.setTransform(new DOMMatrix([k / SS, 0, 0, k / SS, ox, oy]));
+}
+
+// ------------------------------------------------------------------ guion
+const ET = [
+  null,
+  { n: '01', t0: 2.6, t1: 5.0, tit: 'Radier y trazado', txt: 'Sobre el radier nivelado se traza el espesor del panel y la línea de la solera.', spec: 'TRAZADO e = 140 mm · RADIER NIVELADO' },
+  { n: '02', t0: 5.0, t1: 7.8, tit: 'Solera inferior', txt: 'Pino cepillado e impregnado, anclado al radier.', spec: 'PINO 2×5" (41 × 115 mm) · ANCLAJES C/60 cm' },
+  { n: '03', t0: 7.8, t1: 9.8, tit: 'Sello de poliuretano', txt: 'Cordón de espuma compatible con EPS: sella el encuentro y evita puentes térmicos.', spec: 'ESPUMA PU · EN SOLERAS Y UNIONES' },
+  { n: '04', t0: 9.8, t1: 13.2, tit: 'Montaje del panel', txt: 'El panel se encaja sobre la solera: el EPS viene rebajado en la base.', spec: 'PANEL SIP 140 mm · OSB 11,1 + EPS 118 + OSB 11,1' },
+  { n: '05', t0: 13.2, t1: 16.6, tit: 'Unión entre paneles', txt: 'Claves de OSB en ranuras del EPS unen cada panel con el siguiente.', spec: 'CLAVE OSB 11,1 × 75 mm · ESPUMA PU' },
+  { n: '06', t0: 16.6, t1: 19.6, tit: 'Solera superior y amarre', txt: 'Solera en el rebaje superior y una solera de amarre que traslapa las uniones.', spec: 'PINO 2×5" + AMARRE 2×6" (41 × 138 mm)' },
+  { n: '07', t0: 19.6, t1: 22.4, tit: 'Fijación', txt: 'Tornillos a las soleras y a las claves, por ambas caras del panel.', spec: 'TORNILLOS C/15 cm · AMBAS CARAS' },
+  { n: '08', t0: 24.4, t1: 30.8, tit: 'Espesor según la necesidad', txt: 'Mismo sistema en cuatro espesores: se elige según aislación térmica, uso y carga.', spec: '90 · 114 · 140 · 162 mm' },
+];
+const T_RES = 22.6;   // resumen del muro
+const T_ESC2 = 24.2;  // cambio a la lámina de espesores
+const hl = e => t => t < ET[e].t0 ? 0 : t < ET[e].t1 ? 1 : 1 - clamp((t - ET[e].t1) / 0.9);
+
+// ------------------------------------------------------------------ geometría del muro
+const OSB = 1.11, T = 14, EPS0 = OSB, EPS1 = T - OSB;      // capas del panel de 140 mm
+const SOL = { h: 4.1, y0: 1.25, y1: 12.75 };                // solera 2×5" cepillada (41 × 115) centrada en el núcleo
+const HP = 244, XMAX = 244;                                  // panel de 1,22 × 2,44 m; dos paneles
+const CUT = { int: 210, eps: 227 };                          // corte escalonado del segundo panel (se ven las capas)
+const items = [];
+function caja(b, o) { items.push(Object.assign({ b }, o)); }
+
+caja([-30, 264, -40, 60, -10, 0], { tipo: 'conc', prio: 3, et: 1, cutX: true });
+caja([0, XMAX, SOL.y0, SOL.y1, 0, SOL.h], { tipo: 'madera', prio: 3, et: 2, crece: 'x', cutX: true });
+const PERNOS = [30, 90, 150, 214];
+PERNOS.forEach((x, i) => caja([x - 1.6, x + 1.6, 5.4, 8.6, SOL.h, SOL.h + 1.2], { tipo: 'metal', prio: 2, et: 2, i }));
+// cordón de sello, dividido por panel (una pieza continua rompería el orden de dibujo)
+for (const [y0, y1] of [[SOL.y0, SOL.y0 + 1], [SOL.y1 - 1, SOL.y1]])
+  for (const [a, b] of [[0, 122], [122, XMAX]])
+    caja([a, b, y0, y1, SOL.h, SOL.h + 0.6], { tipo: 'sello', prio: 1, et: 3, crece: 'x', total: [0, XMAX] });
+
+// panel 1 (x 0–122) y panel 2 (x 122–244, con corte escalonado)
+function panel(x0, x1, o, corte) {
+  caja([x0, x1, 0, OSB, 0, HP], Object.assign({ tipo: 'osb', prio: 3, cutX: corte }, o));
+  caja([x0, corte ? CUT.eps : x1, EPS0, EPS1, SOL.h, HP - SOL.h], Object.assign({ tipo: 'eps', prio: 3, cutX: corte }, o));
+  caja([x0, corte ? CUT.int : x1, EPS1, T, 0, HP], Object.assign({ tipo: 'osb', prio: 3, cutX: corte }, o));
+}
+panel(0, 122, { et: 4, mov: 'z', d: 80 }, false);
+panel(122, XMAX, { et: 5, mov: 'x', d: 110, tr: 1.2 }, true);
+// claves de OSB (se dividen en el límite entre paneles para el orden de dibujo)
+for (const [y0, y1] of [[EPS0, EPS0 + OSB], [EPS1 - OSB, EPS1]])
+  for (const [a, b] of [[118.25, 122], [122, 125.75]])
+    caja([a, b, y0, y1, SOL.h, HP - SOL.h], { tipo: 'osb', prio: 2, et: 5, mov: 'z', d: 40, tr: 0.1, clave: true });
+// solera superior (en el rebaje) y solera de amarre
+caja([0, XMAX, SOL.y0, SOL.y1, HP - SOL.h, HP], { tipo: 'madera', prio: 3, et: 6, mov: 'z', d: 50, tr: 0.2, cutX: true });
+caja([0, XMAX, 0.1, 13.9, HP, HP + 4.1], { tipo: 'madera', prio: 3, et: 6, mov: 'z', d: 50, tr: 1.1, cutX: true });
+
+// ------------------------------------------------------------------ orden de dibujo
+function relacion(A, B) {
+  const a = A.b, b = B.b, e = 1e-6;
+  const aAtras = a[1] <= b[0] + e || a[3] <= b[2] + e || a[5] <= b[4] + e;
+  const bAtras = b[1] <= a[0] + e || b[3] <= a[2] + e || b[5] <= a[4] + e;
+  if (aAtras && !bAtras) return -1;
+  if (bAtras && !aAtras) return 1;
+  if (!aAtras && !bAtras) return Math.sign(A.prio - B.prio);
+  return 0;
+}
+function ordenar(lista) {
+  const n = lista.length, ent = new Array(n).fill(0), sig = lista.map(() => []);
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+    const r = relacion(lista[i], lista[j]);
+    if (r < 0) { sig[i].push(j); ent[j]++; } else if (r > 0) { sig[j].push(i); ent[i]++; }
+  }
+  const prof = i => { const b = lista[i].b; return (b[0] + b[1]) / 2 + (b[2] + b[3]) / 2 + (b[4] + b[5]) / 2; };
+  let libres = []; for (let i = 0; i < n; i++) if (!ent[i]) libres.push(i);
+  const out = [];
+  while (libres.length) {
+    libres.sort((p, q) => prof(p) - prof(q));
+    const i = libres.shift(); out.push(lista[i]);
+    for (const j of sig[i]) if (!--ent[j]) libres.push(j);
+  }
+  if (out.length !== n) console.warn('ciclo en el orden de dibujo', n - out.length);
+  return out;
+}
+const ORDEN = ordenar(items);
+
+// ------------------------------------------------------------------ dibujo
+function poli(pts, fill, stroke, lw, pat, patAlpha = 1, dash) {
+  g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath();
+  if (fill) { g.fillStyle = fill; g.fill(); }
+  if (pat) { g.save(); g.globalAlpha *= patAlpha; g.fillStyle = pat; g.fill(); g.restore(); }
+  if (stroke) { g.setLineDash(dash || []); g.strokeStyle = stroke; g.lineWidth = lw; g.lineJoin = 'round'; g.stroke(); g.setLineDash([]); }
+}
+function caras(b) {
+  const [x0, x1, y0, y1, z0, z1] = b;
+  return {
+    sup: [P(x0, y0, z1), P(x1, y0, z1), P(x1, y1, z1), P(x0, y1, z1)],
+    fy: [P(x0, y1, z0), P(x1, y1, z0), P(x1, y1, z1), P(x0, y1, z1)],
+    fx: [P(x1, y0, z0), P(x1, y1, z0), P(x1, y1, z1), P(x1, y0, z1)],
+  };
+}
+const TONO = {
+  conc: { sup: '#363533', fy: '#282826', fx: '#2f2e2c', pat: 'hormigon', patA: .6, corte: '#2b2b29', patCorte: 'corte' },
+  osb: { sup: '#6a5538', fy: '#56452e', fx: '#5f4c33', pat: 'osb', patA: 1, corte: '#6a5538', patCorte: 'osb' },
+  eps: { sup: '#5d5d5a', fy: '#4f4f4c', fx: '#565653', pat: 'eps', patA: 1, corte: '#62625f', patCorte: 'eps' },
+  madera: { sup: '#7a5f3d', fy: '#624c31', fx: '#6d5537', pat: 'madera', patA: 1, corte: '#7a5f3d', patCorte: null },
+  metal: { sup: '#8d8c88', fy: '#6d6c69', fx: '#7c7b77', pat: null },
+};
+function mezcla(c1, c2, t) {
+  const a = parseInt(c1.slice(1), 16), b = parseInt(c2.slice(1), 16);
+  const ch = s => Math.round(lerp((a >> s) & 255, (b >> s) & 255, t));
+  return `rgb(${ch(16)},${ch(8)},${ch(0)})`;
+}
+function linea(a, b, col, lw) { g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.strokeStyle = col; g.lineWidth = lw; g.lineCap = 'round'; g.stroke(); }
+function dibujaCaja(it, b, h) {
+  if (it.tipo === 'sello') { // cordón de espuma: pieza naranja sin achurado
+    const c = caras(b), k = K();
+    for (const f of ['sup', 'fy', 'fx']) poli(c[f], f === 'sup' ? '#ff7a3d' : OR, null, 0);
+    return;
+  }
+  const c = caras(b), k = K(), tn = TONO[it.tipo];
+  const trazo = it.destacar ? OR : h > 0 ? mezcla('#F2F0EB', OR, h) : cr(it.tipo === 'eps' ? .6 : .85);
+  const lw = 1.25 * k;
+  const tinte = f => h > 0 ? mezcla(f, '#6e2a0c', .5 * h) : f;
+  const pat = tn.pat && PAT[tn.pat];
+  poli(c.sup, tinte(tn.sup), trazo, lw, pat, tn.patA);
+  if (it.cutY) {
+    poli(c.fy, tinte(tn.corte), it.destacar ? OR : h > 0 ? trazo : CR, 1.8 * k, tn.patCorte && PAT[tn.patCorte]);
+    if (it.tipo === 'madera') { linea(c.fy[0], c.fy[2], cr(.8), 1 * k); linea(c.fy[1], c.fy[3], cr(.8), 1 * k); }
+  } else poli(c.fy, tinte(tn.fy), trazo, lw, pat, tn.patA);
+  if (it.cutX) {
+    poli(c.fx, tinte(tn.corte), h > 0 ? trazo : CR, 1.8 * k, tn.patCorte && PAT[tn.patCorte]);
+    if (it.tipo === 'madera') { // madera en corte: cruz (convención de plano)
+      linea(c.fx[0], c.fx[2], cr(.8), 1 * k); linea(c.fx[1], c.fx[3], cr(.8), 1 * k);
+    }
+  } else poli(c.fx, tinte(tn.fx), trazo, lw, pat, tn.patA);
+}
+
+// avance de cada elemento
+function progreso(it, t) {
+  const e = ET[it.et];
+  if (it.et === 1) return ease((t - e.t0 - 0.1) / 0.8);
+  if (it.tipo === 'metal') return easeOut((t - e.t0 - 1.7 - it.i * 0.18) / 0.4);
+  if (it.crece === 'x') return ease((t - e.t0 - 0.2) / (it.tipo === 'sello' ? 1.3 : 1.4));
+  if (it.mov) return easeOut((t - e.t0 - (it.tr ?? 0.3)) / 1.3);
+  return ease((t - e.t0) / 1);
+}
+
+// radier: trazado del espesor del panel (se apaga antes de que llegue el panel)
+function trazado(t) {
+  const a = clamp((t - ET[1].t0 - 0.6) / 0.5) * (1 - clamp((t - ET[4].t0) / 0.5));
+  if (a <= 0) return;
+  const k = K(), fin = lerp(-20, 264, ease((t - ET[1].t0 - 0.6) / 1.2));
+  g.save(); g.globalAlpha = a; g.setLineDash([9 * k, 5 * k]);
+  for (const y of [0, T]) linea(P(-20, y, 0), P(fin, y, 0), OR, 1.6 * k);
+  g.setLineDash([]);
+  for (const x of PERNOS) if (x < fin) { const [px, py] = P(x, 7, 0); linea([px - 5 * k, py], [px + 5 * k, py], OR, 1.4 * k); linea([px, py - 5 * k], [px, py + 5 * k], OR, 1.4 * k); }
+  g.restore();
+}
+// tornillos: puntos sobre la cara interior (fila inferior a la solera, superior a la solera, y columnas en la clave)
+const TORN = [];
+for (let x = 7.5; x < CUT.int; x += 15) { TORN.push([x, 2]); TORN.push([x, HP - 2]); }
+for (let z = 12; z < HP - 8; z += 15) { TORN.push([120, z]); TORN.push([124, z]); }
+TORN.sort((a, b) => (a[0] + a[1] * 0.4) - (b[0] + b[1] * 0.4));
+function tornillos(t) {
+  const e = ET[7], k = K();
+  TORN.forEach(([x, z], i) => {
+    const a = clamp((t - e.t0 - 0.3 - (i / TORN.length) * 1.8) / 0.2);
+    if (a <= 0) return;
+    const [px, py] = P(x, T, z), act = t < e.t1 + 0.6;
+    g.save(); g.globalAlpha = a;
+    g.beginPath(); g.arc(px, py, 2.1 * k, 0, 7); g.fillStyle = act ? OR : CR; g.fill();
+    g.restore();
+  });
+}
+
+// cotas y niveles
+function nivel(z, txt, a) {
+  if (!ROT) return;
+  if (a <= 0) return;
+  const k = K(); const [x, y] = P(0, T, z); const x2 = x - 26 * k;
+  g.save(); g.globalAlpha = a;
+  linea([x - 4 * k, y], [x2 - 80 * k, y], cr(.7), 1 * k);
+  g.beginPath(); g.moveTo(x2 + 4 * k, y - 11 * k); g.lineTo(x2 + 16 * k, y - 11 * k); g.lineTo(x2 + 10 * k, y); g.closePath();
+  g.fillStyle = CR; g.fill();
+  g.font = `500 ${15 * k}px "IBM Plex Mono"`; g.fillStyle = CR; g.textBaseline = 'bottom'; g.textAlign = 'right';
+  g.fillText(txt, x2, y - 1 * k); g.textAlign = 'left';
+  g.restore();
+}
+function cota(p1, p2, txt, a, off = [0, 18]) {
+  if (!ROT) return;
+  if (a <= 0) return;
+  const k = K(), [ox, oy] = [off[0] * k, off[1] * k];
+  const A = [p1[0] + ox, p1[1] + oy], B = [p2[0] + ox, p2[1] + oy];
+  g.save(); g.globalAlpha = a;
+  linea(p1, A, cr(.35), .8 * k); linea(p2, B, cr(.35), .8 * k);
+  linea(A, B, cr(.8), 1 * k);
+  for (const Q of [A, B]) linea([Q[0] - 4 * k, Q[1] + 4 * k], [Q[0] + 4 * k, Q[1] - 4 * k], CR, 1.6 * k);
+  g.font = `500 ${14 * k}px "IBM Plex Mono"`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const m = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2];
+  g.fillStyle = BG; const w = g.measureText(txt).width + 8 * k; g.fillRect(m[0] - w / 2, m[1] - 9 * k, w, 18 * k);
+  g.fillStyle = CR; g.fillText(txt, m[0], m[1] + 1);
+  g.textAlign = 'left'; g.restore();
+}
+const ETQ = [
+  { e: 1, p: [40, 45, 0], d: [-40, 56] },
+  { e: 2, p: [XMAX, 7, 2], d: [80, 44] },
+  { e: 3, p: [236, SOL.y1 - 0.5, SOL.h + 0.6], d: [84, 6] },
+  { e: 4, p: [122, 7, 150], p2: [218, EPS1, 150], t2: 15.2, d: [78, -24] },
+  { e: 5, p: [122, T, 190], d: [-58, -40] },
+  { e: 6, p: [XMAX, 7, HP + 2], d: [80, 26] },
+  { e: 7, p: [67.5, T, 2], d: [30, 74] },
+];
+function etiquetas(t) {
+  if (!ROT) return;
+  const k = K();
+  for (const q of ETQ) {
+    const a = clamp((t - ET[q.e].t0 - 0.6) / 0.5);
+    if (a <= 0) continue;
+    const act = t >= ET[q.e].t0 && t < ET[q.e].t1 + 0.6;
+    const u = q.p2 ? ease((t - q.t2) / 0.8) : 0, pa = P(...q.p), pb = q.p2 ? P(...q.p2) : pa;
+    const x = lerp(pa[0], pb[0], u), y = lerp(pa[1], pb[1], u), X = x + q.d[0] * k, Y = y + q.d[1] * k;
+    g.save(); g.globalAlpha = a;
+    g.beginPath(); g.arc(x, y, 3.2 * k, 0, 7); g.fillStyle = act ? OR : CR; g.fill();
+    linea([x, y], [X, Y], act ? OR : cr(.8), 1.2 * k);
+    const r = 15 * k;
+    g.beginPath(); g.arc(X, Y, r, 0, 7); g.fillStyle = act ? OR : BG; g.fill();
+    g.strokeStyle = act ? OR : CR; g.lineWidth = 1.4 * k; g.stroke();
+    g.fillStyle = act ? '#fff' : CR; g.font = `700 ${17 * k}px "Barlow Condensed"`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(String(q.e), X, Y + 1); g.textAlign = 'left';
+    g.restore();
+  }
+}
+
+// ------------------------------------------------------------------ escena 2: lámina de espesores
+const ESPESORES = [
+  { e: 90, eps: 68, sol: '2×3"', solW: 6.5, uso: 'TABIQUES' },
+  { e: 114, eps: 92, sol: '2×4"', solW: 9.0, uso: 'MURO EXTERIOR' },
+  { e: 140, eps: 118, sol: '2×5"', solW: 11.5, uso: 'MÁS AISLACIÓN', este: true },
+  { e: 162, eps: 140, sol: '2×6"', solW: 13.8, uso: 'ZONAS FRÍAS' },
+];
+// cada muestra: capas a lo largo de x (OSB | EPS | OSB), largo en y, corte de frente en y = L
+const MUESTRA = { l: 22, h: 40, gap: 34 };
+const items2 = [];
+let xm = 0;
+ESPESORES.forEach((q, i) => {
+  const t_ = q.e / 10, x0 = xm, L = MUESTRA.l, Hm = MUESTRA.h, xc = x0 + t_ / 2;
+  q.x0 = x0; q.t = t_; xm += t_ + MUESTRA.gap;
+  const base = { et: 8, i, cutY: true, destacar: !!q.este };
+  items2.push({ b: [x0, x0 + OSB, 0, L, 0, Hm], tipo: 'osb', prio: 3, ...base });
+  items2.push({ b: [x0 + OSB, x0 + t_ - OSB, 0, L, SOL.h, Hm], tipo: 'eps', prio: 3, ...base });
+  items2.push({ b: [x0 + t_ - OSB, x0 + t_, 0, L, 0, Hm], tipo: 'osb', prio: 3, ...base });
+  items2.push({ b: [xc - q.solW / 2, xc + q.solW / 2, 0, L, 0, SOL.h], tipo: 'madera', prio: 3, ...base });
+});
+const ORDEN2 = ordenar(items2);
+function escenaEspesores(t) {
+  const a = clamp((t - T_ESC2 - 0.2) / 0.6);
+  if (a <= 0) return;
+  for (const p of ['s', 'fx', 'fy', 'cx', 'cy']) cam[p] = VISTA_ESP[p];
+  cam.cy += DY; cam.s *= SR;
+  anclarPatrones();
+  const k = K();
+  g.save(); g.globalAlpha = a;
+  linea(P(-14, MUESTRA.l + 10, 0), P(xm - MUESTRA.gap + 14, MUESTRA.l + 10, 0), cr(.2), 1.2);
+  for (const it of ORDEN2) {
+    const p = easeOut((t - T_ESC2 - 0.5 - it.i * 0.45) / 0.8);
+    if (p <= 0) continue;
+    const b = it.b.slice(), dz = (1 - p) * 30; b[4] += dz; b[5] += dz;
+    g.save(); g.globalAlpha *= clamp(p * 2); dibujaCaja(it, b, 0); g.restore();
+  }
+  // rótulos en una fila, con referencia a cada muestra
+  ESPESORES.forEach((q, i) => {
+    const v = easeOut((t - T_ESC2 - 0.9 - i * 0.45) / 0.6);
+    if (v <= 0) return;
+    const [px, py] = P(q.x0 + q.t / 2, MUESTRA.l * 0.3, MUESTRA.h), yT = TOP + 78;
+    const col = q.este ? OR : CR;
+    g.save(); g.globalAlpha *= v;
+    linea([px, yT + 70], [px, py - 8], q.este ? OR : cr(.45), 1.2);
+    g.beginPath(); g.arc(px, py - 4, 3.5, 0, 7); g.fillStyle = col; g.fill();
+    g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+    g.font = '700 52px "Barlow Condensed"'; g.fillStyle = col; g.fillText(String(q.e), px - 12, yT);
+    const wN = g.measureText(String(q.e)).width;
+    g.font = '600 20px "Barlow Condensed"'; g.textAlign = 'left'; g.fillText('MM', px - 12 + wN / 2 + 4, yT);
+    g.textAlign = 'center'; g.font = '500 15px "IBM Plex Mono"'; g.fillStyle = cr(.85);
+    g.fillText(`EPS ${q.eps} · ${q.sol}`, px, yT + 26);
+    g.fillStyle = q.este ? OR : cr(.6); g.fillText(q.uso, px, yT + 48);
+    g.restore();
+  });
+  const nota = clamp((t - T_ESC2 - 3.0) / 0.6);
+  texto('SOLERA DEL ANCHO DEL NÚCLEO · OSB 11,1 mm EN AMBAS CARAS · USOS REFERENCIALES', W / 2, CAJ - 26, '400 14px "IBM Plex Mono"', cr(.55), 'center', nota * a);
+  g.restore();
+}
+
+// ------------------------------------------------------------------ interfaz de plano
+const ISO = new Path2D('M 57.574219 52.507812 L 46.25 52.507812 L 51.9375 38.394531 L 53.53125 42.492188 L 56.828125 42.492188 L 53.164062 33.398438 L 50.796875 33.398438 L 41.816406 55.308594 L 45.125 55.304688 L 58.695312 55.304688 L 59.8125 58.101562 L 63.183594 58.101562 L 60.898438 52.464844 Z');
+const LOGOTIPO = new Image(); LOGOTIPO.src = 'img/logotipo-averarq-blanco.png';
+function isotipo(x, y, h, col) { const s = h / 25.4; g.save(); g.translate(x - 41.6 * s, y - 33 * s); g.scale(s, s); g.fillStyle = col; g.fill(ISO); g.restore(); }
+function texto(s, x, y, font, col, al = 'left', a = 1) { g.save(); g.globalAlpha *= a; g.font = font; g.fillStyle = col; g.textAlign = al; g.textBaseline = 'alphabetic'; g.fillText(s, x, y); g.restore(); }
+function envolver(s, x, y, ancho, font, col, alto, a = 1) {
+  g.font = font; const pal = s.split(' '); let l = '', yy = y;
+  for (const p of pal) { const prueba = l ? l + ' ' + p : p; if (g.measureText(prueba).width > ancho && l) { texto(l, x, yy, font, col, 'left', a); l = p; yy += alto; } else l = prueba; }
+  if (l) texto(l, x, yy, font, col, 'left', a);
+}
+const M = 36, TOP = 214 + HD, CAJ = REEL ? H - M - 26 - 202 : 1086, CAJ1 = H - M - 26;
+function retícula() {
+  g.save(); g.strokeStyle = 'rgba(242,240,235,0.045)'; g.lineWidth = 1;
+  for (let x = M + 30; x < W - M; x += 30) { g.beginPath(); g.moveTo(x, TOP); g.lineTo(x, CAJ); g.stroke(); }
+  for (let y = TOP + 30; y < CAJ; y += 30) { g.beginPath(); g.moveTo(M, y); g.lineTo(W - M, y); g.stroke(); }
+  g.restore();
+}
+function marco(t) {
+  g.strokeStyle = cr(.5); g.lineWidth = 1.2; g.strokeRect(M, M, W - 2 * M, H - 2 * M - 26);
+  linea([M, TOP], [W - M, TOP], cr(.5), 1.2);
+  linea([M, CAJ], [W - M, CAJ], cr(.5), 1.2);
+  if (REEL) linea([M, CAJ1], [W - M, CAJ1], cr(.5), 1.2);
+  isotipo(M + 30, 62 + HD, 34, OR);
+  const hL = 28, wL = hL * LOGOTIPO.naturalWidth / LOGOTIPO.naturalHeight;
+  g.drawImage(LOGOTIPO, M + 76, 64 + HD, wL, hL);
+  texto('ARQUITECTURA, DISEÑO Y CONSTRUCCIÓN', W - M - 28, 88 + HD, '400 17px "IBM Plex Mono"', cr(.6), 'right');
+  texto('PANELES SIP', M + 28, 168 + HD, '700 70px "Barlow Condensed"', CR);
+  texto('DET. 02 · ISOMÉTRICA · S/E', W - M - 28, 166 + HD, '500 17px "IBM Plex Mono"', OR, 'right');
+  texto('SOLERA · PANEL · UNIONES · AMARRE · ESPESORES', M + 30, 198 + HD, '400 16px "IBM Plex Mono"', cr(.55));
+  texto('Detalle referencial. Espesores y fijaciones según fabricante y proyecto de cada obra.', W / 2, H - 22, '400 15px "IBM Plex Mono"', cr(.5), 'center');
+}
+function cajetin(t) {
+  const y0 = CAJ, y1 = CAJ1, xN = M + 196;
+  linea([xN, y0], [xN, y1], cr(.5), 1.2);
+  for (let i = 1; i <= 8; i++) {
+    const w = (W - 2 * M - 196 - 48) / 8, x = xN + 24 + (i - 1) * w, p = clamp((t - ET[i].t0) / (ET[i].t1 - ET[i].t0));
+    g.fillStyle = cr(.15); g.fillRect(x, y0 + 22, w - 8, 4);
+    g.fillStyle = OR; g.fillRect(x, y0 + 22, (w - 8) * p, 4);
+  }
+  if (t < ET[1].t0) {
+    const a = clamp((t - 0.3) / 0.6);
+    texto('00', M + 98, y0 + 150, '700 118px "Barlow Condensed"', OR, 'center', a);
+    texto('DEL RADIER AL MURO', xN + 24, y0 + 80, '700 46px "Barlow Condensed"', CR, 'left', a);
+    envolver('Cómo se arma un muro de paneles SIP, paso a paso.', xN + 24, y0 + 118, 760, '400 27px "Barlow"', cr(.85), 34, a);
+    return;
+  }
+  if (t >= T_RES && t < ET[8].t0) {
+    const a = clamp((t - T_RES) / 0.5);
+    isotipo(M + 70, y0 + 64, 70, OR);
+    texto('MURO SIP', xN + 24, y0 + 80, '700 46px "Barlow Condensed"', CR, 'left', a);
+    envolver('Estructura y aislación en una sola pieza: menos puentes térmicos y un montaje rápido y limpio.', xN + 24, y0 + 118, 780, '400 26px "Barlow"', cr(.85), 33, a);
+    return;
+  }
+  let e = 0; for (let i = 1; i <= 8; i++) if (t >= ET[i].t0) e = i;
+  const cambio = clamp((t - ET[e].t0) / 0.35), E = ET[e];
+  texto(E.n, M + 98, y0 + 150, '700 118px "Barlow Condensed"', OR, 'center', cambio);
+  texto(E.tit.toUpperCase(), xN + 24, y0 + 80, '700 46px "Barlow Condensed"', CR, 'left', cambio);
+  envolver(E.txt, xN + 24, y0 + 118, 780, '400 26px "Barlow"', cr(.85), 32, cambio);
+  texto(E.spec, xN + 24, y0 + 178, '500 19px "IBM Plex Mono"', OR, 'left', cambio);
+}
+
+// ------------------------------------------------------------------ contraportada
+const T_CP = 31.4;
+function contraportada(t) {
+  const a = ease((t - T_CP) / 0.8);
+  if (a <= 0) return;
+  g.fillStyle = `rgba(17,17,16,${0.86 * a})`; g.fillRect(0, 0, W, H);
+  g.fillStyle = `rgba(17,17,16,${0.75 * a})`; g.fillRect(0, CAJ, W, H - CAJ);
+  g.strokeStyle = cr(.5 * a); g.lineWidth = 1.2; g.strokeRect(M, M, W - 2 * M, H - 2 * M - 26);
+  const e = (d) => { const v = easeOut((t - T_CP - d) / 0.6); return [v, (1 - v) * 18]; };
+  let [v, dy] = e(0.2);
+  g.save(); g.globalAlpha = v; isotipo(W / 2 - 42, 300 + CPY + dy, 96, OR); g.restore();
+  [v, dy] = e(0.4);
+  texto('¿VAS A CONSTRUIR', W / 2, 560 + CPY + dy, '700 112px "Barlow Condensed"', CR, 'center', v);
+  texto('EN EL VALLE?', W / 2, 670 + CPY + dy, '700 112px "Barlow Condensed"', CR, 'center', v);
+  [v, dy] = e(0.7);
+  texto('HÁBLANOS.', W / 2, 810 + CPY + dy, '700 132px "Barlow Condensed"', OR, 'center', v);
+  [v, dy] = e(0.95);
+  g.save(); g.globalAlpha = v; g.fillStyle = OR; g.fillRect(W / 2 - 60, 870 + CPY + dy, 120, 6); g.restore();
+  texto('AVERARQ.CL  ·  @AVERARQ  ·  +56 9 5431 7945', W / 2, 960 + CPY + dy, '500 22px "IBM Plex Mono"', CR, 'center', v);
+  [v, dy] = e(1.2);
+  const hL = 34, wL = hL * LOGOTIPO.naturalWidth / LOGOTIPO.naturalHeight;
+  g.save(); g.globalAlpha = v; g.drawImage(LOGOTIPO, W / 2 - wL / 2, 1150 + CPY + dy, wL, hL); g.restore();
+  texto('ARQUITECTURA, DISEÑO Y CONSTRUCCIÓN', W / 2, 1222 + CPY + dy, '400 17px "IBM Plex Mono"', cr(.6), 'center', v);
+}
+
+// ------------------------------------------------------------------ cuadro
+function escenaMuro(t, alfa) {
+  if (alfa <= 0) return;
+  camara(t); anclarPatrones();
+  g.save(); g.globalAlpha = alfa;
+  for (const it of ORDEN) {
+    if (it.tipo === 'madera' && it.et === 2) trazado(t); // el trazado va sobre el radier y bajo la solera
+    const p = progreso(it, t);
+    if (p <= 0) continue;
+    const h = hl(it.et)(t), b = it.b.slice();
+    if (it.crece === 'x' && it.total) { const fin = lerp(it.total[0], it.total[1], p); if (fin <= b[0]) continue; b[1] = Math.min(b[1], fin); }
+    else if (it.crece === 'x') b[1] = lerp(b[0], b[1], p);
+    if (it.mov === 'z' || it.tipo === 'metal') { const d = (1 - p) * (it.d ?? 20); b[4] += d; b[5] += d; }
+    if (it.mov === 'x') { const d = (1 - p) * it.d; b[0] += d; b[1] += d; }
+    g.save(); g.globalAlpha *= clamp(p * 3); dibujaCaja(it, b, h); g.restore();
+  }
+  tornillos(t);
+  const nv = (e, d = 0.8) => clamp((t - ET[e].t0 - d) / 0.6);
+  nivel(0, '±0,00 NPT', nv(1, 1.0));
+  nivel(HP + 4.1, '+2,48', nv(6, 1.8));
+  cota(P(0, 0, HP + 4.1), P(122, 0, HP + 4.1), '1220', nv(4, 2.4), [-16, -22]);
+  cota(P(XMAX, 0, HP + 4.1), P(XMAX, T, HP + 4.1), '140', nv(6, 2.0), [26, -22]);
+  etiquetas(t);
+  g.restore();
+}
+function render(t) {
+  g.setTransform(SS, 0, 0, SS, 0, 0);
+  g.fillStyle = BG; g.fillRect(0, 0, W, H);
+  retícula();
+  g.save(); g.beginPath(); g.rect(M, TOP, W - 2 * M, CAJ - TOP); g.clip();
+  escenaMuro(t, 1 - clamp((t - T_ESC2) / 0.5));
+  escenaEspesores(t);
+  g.restore();
+  marco(t);
+  cajetin(t);
+  contraportada(t);
+  const f = 1 - clamp(t / 0.5);
+  if (f > 0) { g.fillStyle = `rgba(17,17,16,${f})`; g.fillRect(0, 0, W, H); }
+}
+// ------------------------------------------------------------------ portada del post (imagen fija)
+function renderPortada() {
+  const R = H > 1500, dy = R ? 90 : 0; // reel 9:16: titular arriba, dibujo grande y centrado
+  const t = 23.4;
+  g.setTransform(SS, 0, 0, SS, 0, 0);
+  CAM_FIJA = R ? { s: 2.5, fx: 92, fy: -38, cx: 540, cy: 1195 } : { s: 1.62, fx: 92, fy: -38, cx: 650, cy: 880 }; ROT = false;
+  g.fillStyle = BG; g.fillRect(0, 0, W, H);
+  g.save(); g.strokeStyle = 'rgba(242,240,235,0.045)'; g.lineWidth = 1;
+  for (let x = M + 30; x < W - M; x += 30) { g.beginPath(); g.moveTo(x, M); g.lineTo(x, H - M - 26); g.stroke(); }
+  for (let y = M + 30; y < H - M - 26; y += 30) { g.beginPath(); g.moveTo(M, y); g.lineTo(W - M, y); g.stroke(); }
+  g.restore();
+  g.save(); g.beginPath(); g.rect(M, M, W - 2 * M, H - 2 * M - 96); g.clip();
+  escenaMuro(t, 1);
+  g.restore();
+  CAM_FIJA = null; ROT = true;
+  g.strokeStyle = cr(.5); g.lineWidth = 1.2; g.strokeRect(M, M, W - 2 * M, H - 2 * M - 26);
+  isotipo(M + 30, 62 + dy, 34, OR);
+  const hL = 28, wL = hL * LOGOTIPO.naturalWidth / LOGOTIPO.naturalHeight;
+  g.drawImage(LOGOTIPO, M + 76, 64 + dy, wL, hL);
+  texto('DETALLES CONSTRUCTIVOS · 02', W - M - 28, 88 + dy, '500 17px "IBM Plex Mono"', OR, 'right');
+  texto('ASÍ CONSTRUIMOS', M + 28, 208 + dy, '700 84px "Barlow Condensed"', CR);
+  texto('EN AVERARQ:', M + 28, 290 + dy, '700 84px "Barlow Condensed"', CR);
+  texto('PANELES SIP', M + 24, 420 + dy, '700 132px "Barlow Condensed"', OR);
+  g.fillStyle = OR; g.fillRect(M + 30, 452 + dy, 110, 6);
+  texto('Del radier al muro,', M + 30, 506 + dy, '400 28px "Barlow"', cr(.85));
+  texto('paso a paso.', M + 30, 542 + dy, '400 28px "Barlow"', cr(.85));
+  linea([M, H - M - 96], [W - M, H - M - 96], cr(.5), 1.2);
+  texto('SOLERA · PANEL 140 mm · CLAVES · AMARRE · FIJACIÓN', M + 30, H - M - 52, '400 17px "IBM Plex Mono"', cr(.65));
+  texto('AVERARQ.CL', W - M - 28, H - M - 50, '600 26px "Barlow Condensed"', OR, 'right');
+  texto('Detalle referencial.', W / 2, H - 22, '400 15px "IBM Plex Mono"', cr(.5), 'center');
+}
+window.renderPortada = renderPortada;
+window.DUR = DUR;
+window.PORTADA = 23.4; // muro terminado
+window.render = render;
+window.ready = (async () => {
+  for (const f of ['400 20px Barlow', '700 20px "Barlow Condensed"', '600 20px "Barlow Condensed"', '400 20px "IBM Plex Mono"', '500 20px "IBM Plex Mono"'])
+    await document.fonts.load(f, 'ÁÑáñ±−Ø×');
+  await LOGOTIPO.decode();
+  render(0); return true;
+})();
+</script>
+</body>
+</html>

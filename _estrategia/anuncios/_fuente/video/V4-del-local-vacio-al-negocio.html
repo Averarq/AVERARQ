@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<title>V4 · Del local vacío al negocio funcionando</title>
+<link rel="stylesheet" href="../fonts/fonts.css">
+<link rel="stylesheet" href="motor.css">
+<style>
+  #s1,#s2{background:var(--oscuro)}
+  .banda{position:absolute;left:0;width:1080px;height:608px}
+  .banda .etiqueta{position:absolute;left:60px;top:40px}
+  .titular{position:absolute;left:0;right:0;top:560px;height:800px;display:flex;flex-direction:column;justify-content:center;padding-left:80px;
+    background:linear-gradient(180deg,rgba(17,17,16,0),rgba(17,17,16,.88) 22%,rgba(17,17,16,.88) 78%,rgba(17,17,16,0))}
+</style>
+</head><body>
+
+<!-- 1 y 2 · Tríptico -->
+<div class="escena" id="s1">
+  <div class="banda marco" id="b1" style="top:0"><img id="i1" src="../img/v-esmeralda-1.jpg"><div class="etiqueta" id="e1">Diseño interior</div></div>
+  <div class="banda marco" id="b2" style="top:656px"><img id="i2" src="../img/v-esmeralda-3.jpg"><img id="i2b" src="../img/v-esmeralda-6.jpg" style="opacity:0"><div class="etiqueta" id="e2">Remodelación</div></div>
+  <div class="banda marco" id="b3" style="top:1312px"><img id="i3" src="../img/v-esmeralda-5.jpg"><div class="etiqueta" id="e3">Permisos y patente</div></div>
+  <div class="titular" id="tit">
+    <div class="h1" style="font-size:150px">
+      <div id="t1">Del local vacío</div>
+      <div id="t2">al negocio</div>
+      <div id="t3" class="o">funcionando.</div>
+    </div>
+  </div>
+</div>
+
+<!-- 3 · Cierre -->
+<div class="escena" id="s3" style="background:var(--oscuro)">
+  <div class="marco" style="inset:0"><img id="s3img" src="../img/v-esmeralda-6.jpg"></div>
+  <div class="abs" style="inset:0;background:rgba(17,17,16,.8)"></div>
+  <div class="abs brand" id="s3b" style="left:80px;top:280px">
+    <svg viewBox="41.6 33.0 21.9 25.4"><path fill="currentColor" d="M 57.574219 52.507812 L 46.25 52.507812 L 51.9375 38.394531 L 53.53125 42.492188 L 56.828125 42.492188 L 53.164062 33.398438 L 50.796875 33.398438 L 41.816406 55.308594 L 45.125 55.304688 L 58.695312 55.304688 L 59.8125 58.101562 L 63.183594 58.101562 L 60.898438 52.464844 Z"/></svg>
+    <img src="../img/wordmark-blanco.png" alt="AVERARQ">
+  </div>
+  <div class="abs" id="s3c" style="left:80px;top:440px"><span class="chip">Comercial</span></div>
+  <div class="abs h1" id="s3h" style="left:80px;top:540px;font-size:116px">¿Tienes un local?<br><span class="o">Lo dejamos listo<br>para abrir en regla.</span></div>
+  <div class="abs p" id="s3p" style="left:80px;top:960px;width:900px">Diseño interior, remodelación, cambio de destino y recepción final en un solo equipo.</div>
+  <div class="abs" id="s3w" style="left:80px;top:1160px"><span class="wsp naranjo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/></svg>
+    Revisión gratuita de tu local</span></div>
+  <div class="abs small" id="s3n" style="left:80px;top:1310px;opacity:.7">Restobar Esmeralda · Los Andes · 110 m² · render del proyecto</div>
+</div>
+
+<script src="motor.js"></script>
+<script>
+DURACION = 13;
+PORTADA = 3.0;
+var T3 = 8.6;
+
+frame = function (t) {
+  if (escena('#s1', t, 0, T3)) {
+    [['#b1', -1], ['#b2', 1], ['#b3', -1]].forEach(function (b, i) {
+      var a = 0.05 + i * 0.22, k = ease.out(p(t, a, a + 0.6));
+      $(b[0]).style.transform = 'translateX(' + ((1 - k) * 1080 * b[1]) + 'px)';
+    });
+    kb('#i1', t, 0, T3, 1.12, 1.0, -40, 20);
+    kb('#i2', t, 0, T3, 1.0, 1.12, 30, -30);
+    kb('#i2b', t, 0, T3, 1.12, 1.0);
+    kb('#i3', t, 0, T3, 1.12, 1.0, 40, -20);
+    $('#i2b').style.opacity = ease.inOut(p(t, 5.2, 5.9));
+
+    // titular en tres golpes, luego se retira para mostrar los servicios
+    ['#t1', '#t2', '#t3'].forEach(function (id, i) {
+      var a = 0.9 + i * 0.5, k = ease.out(p(t, a, a + 0.35));
+      $(id).style.opacity = k;
+      $(id).style.transform = 'translateY(' + ((1 - k) * 50) + 'px)';
+    });
+    var kt = 1 - ease.inOut(p(t, 4.2, 4.7));
+    $('#tit').style.opacity = kt;
+
+    ['#e1', '#e2', '#e3'].forEach(function (id, i) {
+      var a = 4.7 + i * 0.45, k = ease.out(p(t, a, a + 0.35));
+      $(id).style.opacity = k;
+      $(id).style.transform = 'translateX(' + ((1 - k) * -60) + 'px)';
+    });
+  }
+
+  if (escena('#s3', t, T3, 99)) {
+    kb('#s3img', t, T3, DURACION, 1.1, 1.0);
+    sube('#s3b', t, T3 + 0.05, 0.4, 30);
+    sube('#s3c', t, T3 + 0.12, 0.4, 30);
+    sube('#s3h', t, T3 + 0.2, 0.5);
+    sube('#s3p', t, T3 + 0.5, 0.4, 30);
+    sube('#s3w', t, T3 + 0.7, 0.4, 30);
+    if (t > T3 + 1.3) {
+      $('#s3w').style.transform = 'scale(' + (1 + 0.035 * Math.max(0, Math.sin((t - T3 - 1.3) * 5))) + ')';
+      $('#s3w').style.transformOrigin = 'left center';
+    }
+    sube('#s3n', t, T3 + 0.9, 0.4, 20);
+  }
+};
+</script>
+</body></html>

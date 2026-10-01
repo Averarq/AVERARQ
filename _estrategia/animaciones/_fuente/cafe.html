@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>AVERARQ · Café</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>html,body{margin:0;background:#111110}canvas{display:block}</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1350"></canvas>
+<script>
+/*
+  Animación isométrica: DET. 00 · Café (Día Internacional del Café, 1 de octubre).
+  Misma línea gráfica y motor que los detalles constructivos. Unidades: milímetros. Taza con un cuarto cortado.
+*/
+const Q = new URLSearchParams(location.search);
+const cv = document.getElementById('c'), g = cv.getContext('2d');
+const SS = Math.max(1, +(Q.get('escala') || 1));
+const W = 1080, H = Q.get('formato') === 'reel' ? 1920 : 1350, DUR = 14.5;
+const REEL = H > 1500, CPY = REEL ? 285 : 0;
+cv.width = W * SS; cv.height = H * SS;
+const OR = '#FC4C02', CR = '#F2F0EB', BG = '#111110';
+const cr = a => `rgba(242,240,235,${a})`, orA = a => `rgba(252,76,2,${a})`;
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const ease = t => { t = clamp(t); return t * t * (3 - 2 * t); };
+const easeOut = t => { t = clamp(t); return 1 - Math.pow(1 - t, 3); };
+const lerp = (a, b, t) => a + (b - a) * t;
+
+// ------------------------------------------------------------------ cámara isométrica
+const cam = { s: 1.5, fx: 0, fy: 0, cx: 540, cy: 680 };
+const C30 = Math.cos(Math.PI / 6);
+const iso = (x, y, z) => [(x - y) * C30, (x + y) * 0.5 - z];
+function P(x, y, z) { const [X, Y] = iso(x, y, z); return [cam.cx + (X - cam.fx) * cam.s, cam.cy + (Y - cam.fy) * cam.s]; }
+const K = () => cam.s / 1.45;
+const M = 36, TOP = 214, CAJ = REEL ? H - M - 26 - 202 : 1086, CAJ1 = H - M - 26;
+// encuadre: la caja bb queda centrada en el rectángulo r = [x0, y0, x1, y1] de la pantalla
+function encuadre(bb, r, pad = [0, 0]) {
+  const pts = [];
+  for (const x of bb.slice(0, 2)) for (const y of bb.slice(2, 4)) for (const z of bb.slice(4, 6)) pts.push(iso(x, y, z));
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  return { s: Math.min((r[2] - r[0] - 2 * pad[0]) / (x1 - x0), (r[3] - r[1] - 2 * pad[1]) / (y1 - y0)),
+    fx: (x0 + x1) / 2, fy: (y0 + y1) / 2, cx: (r[0] + r[2]) / 2, cy: (r[1] + r[3]) / 2 };
+}
+// ------------------------------------------------------------------ texturas
+function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+function patron(w, h, dibujar) {
+  const c = document.createElement('canvas'); c.width = w * SS; c.height = h * SS;
+  const x = c.getContext('2d'); x.scale(SS, SS); dibujar(x, w, h); return g.createPattern(c, 'repeat');
+}
+const PAT = {
+  hormigon: patron(90, 90, (c, w, h) => {
+    const r = rng(7); c.fillStyle = cr(.35);
+    for (let i = 0; i < 26; i++) { c.beginPath(); c.arc(r() * w, r() * h, .9, 0, 7); c.fill(); }
+    c.strokeStyle = cr(.28); c.lineWidth = .9;
+    for (let i = 0; i < 5; i++) { const x = r() * w, y = r() * h, s = 3 + r() * 2.5, a = r() * 6;
+      c.beginPath(); for (let k = 0; k < 3; k++) c.lineTo(x + s * Math.cos(a + k * 2.1), y + s * Math.sin(a + k * 2.1)); c.closePath(); c.stroke(); }
+  }),
+  corte: patron(70, 70, (c, w, h) => {
+    const r = rng(11); c.fillStyle = cr(.55);
+    for (let i = 0; i < 34; i++) { c.beginPath(); c.arc(r() * w, r() * h, 1, 0, 7); c.fill(); }
+    c.strokeStyle = cr(.5); c.lineWidth = 1;
+    for (let i = 0; i < 9; i++) { const x = r() * w, y = r() * h, s = 3.5 + r() * 3, a = r() * 6;
+      c.beginPath(); for (let k = 0; k < 3; k++) c.lineTo(x + s * Math.cos(a + k * 2.1), y + s * Math.sin(a + k * 2.1)); c.closePath(); c.stroke(); }
+  }),
+  tierra: patron(40, 40, (c, w, h) => {
+    c.strokeStyle = cr(.22); c.lineWidth = 1;
+    for (let i = -h; i < w; i += 13) { c.beginPath(); c.moveTo(i, h); c.lineTo(i + h, 0); c.stroke(); }
+    const r = rng(3); c.fillStyle = cr(.25);
+    for (let i = 0; i < 6; i++) { c.beginPath(); c.arc(r() * w, r() * h, .8, 0, 7); c.fill(); }
+  }),
+  ripio: patron(50, 50, (c, w, h) => { // piedras redondeadas
+    const r = rng(29); c.strokeStyle = cr(.42); c.lineWidth = 1;
+    for (let i = 0; i < 22; i++) { const x = r() * w, y = r() * h, a = 2 + r() * 3, b = 1.5 + r() * 2;
+      c.beginPath(); c.ellipse(x, y, a, b, r() * 3, 0, 7); c.stroke(); }
+  }),
+  eps: patron(30, 30, (c, w, h) => {
+    const r = rng(23); c.strokeStyle = cr(.26); c.lineWidth = .8;
+    for (let i = 0; i < 9; i++) { c.beginPath(); c.arc(r() * w, r() * h, 1.8 + r() * 1.6, 0, 7); c.stroke(); }
+  }),
+  lana: patron(40, 24, (c, w, h) => {
+    c.strokeStyle = 'rgba(242,235,210,0.30)'; c.lineWidth = 1;
+    for (let y = 6; y < h + 12; y += 12) { c.beginPath();
+      for (let x = -10; x <= w + 10; x += 10) { c.moveTo(x, y); c.bezierCurveTo(x + 2, y - 7, x + 8, y - 7, x + 10, y); }
+      c.stroke(); }
+  }),
+  film: patron(16, 16, (c, w, h) => { c.strokeStyle = 'rgba(210,230,245,0.2)'; c.lineWidth = .8;
+    for (let i = -h; i < w; i += 8) { c.beginPath(); c.moveTo(i, h); c.lineTo(i + h, 0); c.stroke(); } }),
+  madera: patron(60, 12, (c, w, h) => {
+    c.strokeStyle = 'rgba(242,220,180,0.22)'; c.lineWidth = .9;
+    for (let y = 2; y < h; y += 4) { c.beginPath(); c.moveTo(0, y); c.bezierCurveTo(w * .3, y - 1.2, w * .6, y + 1.2, w, y); c.stroke(); }
+  }),
+};
+function anclarPatrones() {
+  const [ox, oy] = P(0, 0, 0), k = cam.s / 1.45;
+  for (const p of Object.values(PAT)) p.setTransform(new DOMMatrix([k / SS, 0, 0, k / SS, ox, oy]));
+}
+
+// ------------------------------------------------------------------ primitivas de dibujo
+function poli(pts, fill, stroke, lw, pat, patAlpha = 1, dash) {
+  g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath();
+  if (fill) { g.fillStyle = fill; g.fill(); }
+  if (pat) { g.save(); g.globalAlpha *= patAlpha; g.fillStyle = pat; g.fill(); g.restore(); }
+  if (stroke) { g.setLineDash(dash || []); g.strokeStyle = stroke; g.lineWidth = lw; g.lineJoin = 'round'; g.stroke(); g.setLineDash([]); }
+}
+function linea(a, b, col, lw, dash) { g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.strokeStyle = col; g.lineWidth = lw; g.lineCap = 'round'; g.setLineDash(dash || []); g.stroke(); g.setLineDash([]); }
+function mezcla(c1, c2, t) {
+  const a = parseInt(c1.slice(1), 16), b = parseInt(c2.slice(1), 16);
+  const ch = s => Math.round(lerp((a >> s) & 255, (b >> s) & 255, t));
+  return `rgb(${ch(16)},${ch(8)},${ch(0)})`;
+}
+const TONO = {
+  conc: { sup: '#363533', fy: '#282826', fx: '#2f2e2c', pat: 'hormigon', patA: .6, corte: '#2b2b29', patCorte: 'corte' },
+  tierra: { sup: '#3a3129', fy: '#2e2720', fx: '#342c24', pat: 'tierra', patA: 1, corte: '#2e2720', patCorte: 'tierra' },
+  ripio: { sup: '#4a4843', fy: '#3c3a36', fx: '#43413c', pat: 'ripio', patA: 1, corte: '#3c3a36', patCorte: 'ripio' },
+  eps: { sup: '#9a9993', fy: '#84837e', fx: '#8e8d88', pat: 'eps', patA: 1, corte: '#84837e', patCorte: 'eps' },
+  madera: { sup: '#8a6c45', fy: '#6e5536', fx: '#7b603e', pat: 'madera', patA: 1 },
+  lana: { sup: '#8a7a4c', fy: '#766840', fx: '#807146', pat: 'lana', patA: 1, corte: '#766840', patCorte: 'lana' },
+  yeso: { sup: '#9a9994', fy: '#83827d', fx: '#8e8d88', pat: null },
+  zinc: { sup: '#7f8386', fy: '#65686b', fx: '#717477', pat: null },
+  fieltro: { sup: '#2a2927', fy: '#222120', fx: '#262523', pat: null },
+  pvc: { sup: '#a3a19b', fy: '#86847f', fx: '#96948e', pat: null },
+  tapa: { sup: '#55534f', fy: '#403f3c', fx: '#4a4845', pat: 'hormigon', patA: .5 },
+};
+// caja con sus tres caras visibles; o.h = resaltado (0–1), o.corte = caras que son corte ('fx', 'fy'), o.a = opacidad
+function caja(b, tipo, o = {}) {
+  const [x0, x1, y0, y1, z0, z1] = b, k = K(), h = o.h || 0, tn = TONO[tipo];
+  const c = {
+    sup: [P(x0, y0, z1), P(x1, y0, z1), P(x1, y1, z1), P(x0, y1, z1)],
+    fy: [P(x0, y1, z0), P(x1, y1, z0), P(x1, y1, z1), P(x0, y1, z1)],
+    fx: [P(x1, y0, z0), P(x1, y1, z0), P(x1, y1, z1), P(x1, y0, z1)],
+  };
+  g.save(); if (o.a != null) g.globalAlpha *= o.a;
+  if (tipo === 'film') {
+    const trazo = h > 0 ? mezcla('#F2F0EB', OR, h) : cr(.75);
+    for (const f of ['sup', 'fy', 'fx']) poli(c[f], `rgba(190,215,235,${0.16 + 0.12 * h})`, trazo, 1 * k, PAT.film, 1, f === 'sup' ? null : [6 * k, 4 * k]);
+    g.restore(); return;
+  }
+  const trazo = h > 0 ? mezcla('#F2F0EB', OR, h) : cr(o.tenue ? .5 : .85);
+  const tinte = f => h > 0 ? mezcla(f, '#6e2a0c', .45 * h) : f;
+  const pat = tn.pat && PAT[tn.pat], corte = o.corte || [];
+  for (const f of ['sup', 'fy', 'fx']) {
+    if (o.sin && o.sin.includes(f)) continue;
+    if (corte.includes(f)) poli(c[f], tinte(tn.corte || tn[f]), h > 0 ? trazo : CR, 1.6 * k, PAT[tn.patCorte || tn.pat]);
+    else poli(c[f], tinte(tn[f]), trazo, 1.25 * k, pat, tn.patA);
+  }
+  g.restore();
+}
+// pieza prismática: polígono en el plano xz extruido entre y0 e y1 (cerchas, piezas inclinadas)
+function prisma(pts, y0, y1, tipo, o = {}) {
+  const k = K(), h = o.h || 0, tn = TONO[tipo];
+  const trazo = h > 0 ? mezcla('#F2F0EB', OR, h) : cr(.85), tinte = f => h > 0 ? mezcla(f, '#6e2a0c', .45 * h) : f;
+  const cx = pts.reduce((s, p) => s + p[0], 0) / pts.length, cz = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+  pts.forEach((a, i) => {
+    const b = pts[(i + 1) % pts.length];
+    let nx = b[1] - a[1], nz = -(b[0] - a[0]);
+    const mx = (a[0] + b[0]) / 2 - cx, mz = (a[1] + b[1]) / 2 - cz;
+    if (nx * mx + nz * mz < 0) { nx = -nx; nz = -nz; }
+    if (nx + nz <= 0) return;
+    poli([P(a[0], y0, a[1]), P(b[0], y0, b[1]), P(b[0], y1, b[1]), P(a[0], y1, a[1])], tinte(nz > Math.abs(nx) ? tn.sup : tn.fx), trazo, 1.25 * k, PAT[tn.pat], tn.patA);
+  });
+  poli(pts.map(p => P(p[0], y1, p[1])), tinte(tn.fy), trazo, 1.25 * k, PAT[tn.pat], tn.patA);
+}
+const barra = (a, b, w) => { // rectángulo de ancho w a lo largo del segmento a-b (plano xz)
+  const dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz), nx = -dz / l * w / 2, nz = dx / l * w / 2;
+  return [[a[0] + nx, a[1] + nz], [b[0] + nx, b[1] + nz], [b[0] - nx, b[1] - nz], [a[0] - nx, a[1] - nz]];
+};
+// capa delgada que sigue un faldón: z = zf(x) entre xa y xb, espesor e
+function faldon(xa, xb, y0, y1, zf, e, tipo, o = {}) {
+  const k = K(), h = o.h || 0, tn = TONO[tipo];
+  const trazo = h > 0 ? mezcla('#F2F0EB', OR, h) : cr(.85), tinte = f => h > 0 ? mezcla(f, '#6e2a0c', .45 * h) : f;
+  const A = zf(xa), B = zf(xb);
+  poli([P(xa, y1, A), P(xb, y1, B), P(xb, y1, B + e), P(xa, y1, A + e)], tinte(tn.fy), trazo, 1.1 * k);
+  if (B < A) poli([P(xb, y0, B), P(xb, y1, B), P(xb, y1, B + e), P(xb, y0, B + e)], tinte(tn.fx), trazo, 1.1 * k);
+  poli([P(xa, y0, A + e), P(xb, y0, B + e), P(xb, y1, B + e), P(xa, y1, A + e)], tinte(tn.sup), trazo, 1.25 * k, tn.pat && PAT[tn.pat], tn.patA);
+  if (o.onda) { // ondas del zinc, en el sentido de la pendiente
+    for (let y = y0 + o.onda; y < y1 - 1; y += o.onda) linea(P(xa, y, A + e), P(xb, y, B + e), h > 0 ? orA(.5) : cr(.3), 1 * k);
+  }
+}
+function flecha(pts3, col, lw, dash) { // polilínea 3D con punta
+  const k = K(), pp = pts3.map(p => P(...p));
+  g.save(); g.beginPath(); pp.forEach((p, i) => i ? g.lineTo(...p) : g.moveTo(...p));
+  g.strokeStyle = col; g.lineWidth = lw * k; g.setLineDash(dash ? dash.map(d => d * k) : []); g.lineCap = 'round'; g.stroke(); g.setLineDash([]);
+  const [a, b] = pp.slice(-2), ang = Math.atan2(b[1] - a[1], b[0] - a[0]), L = 12 * k;
+  g.beginPath(); g.moveTo(...b); g.lineTo(b[0] - L * Math.cos(ang - .45), b[1] - L * Math.sin(ang - .45));
+  g.lineTo(b[0] - L * Math.cos(ang + .45), b[1] - L * Math.sin(ang + .45)); g.closePath(); g.fillStyle = col; g.fill();
+  g.restore();
+}
+
+// ------------------------------------------------------------------ rótulos
+function nivel(p, txt, largo = 80) {
+  const k = Math.max(.85, K()); const [x, y] = P(...p); const x2 = x - 26 * k;
+  linea([x - 4 * k, y], [x2 - largo * k, y], cr(.7), 1 * k);
+  g.beginPath(); g.moveTo(x2 + 4 * k, y - 11 * k); g.lineTo(x2 + 16 * k, y - 11 * k); g.lineTo(x2 + 10 * k, y); g.closePath();
+  g.fillStyle = CR; g.fill();
+  g.font = `500 ${15 * k}px "IBM Plex Mono"`; g.fillStyle = CR; g.textBaseline = 'bottom'; g.textAlign = 'right';
+  g.fillText(txt, x2, y - 1 * k); g.textAlign = 'left';
+}
+function cota(p1, p2, txt, off = [0, 18]) {
+  const k = Math.max(.85, K()), [ox, oy] = [off[0] * k, off[1] * k];
+  const A = [p1[0] + ox, p1[1] + oy], B = [p2[0] + ox, p2[1] + oy];
+  linea(p1, A, cr(.35), .8 * k); linea(p2, B, cr(.35), .8 * k);
+  linea(A, B, cr(.8), 1 * k);
+  for (const Q of [A, B]) linea([Q[0] - 4 * k, Q[1] + 4 * k], [Q[0] + 4 * k, Q[1] - 4 * k], CR, 1.6 * k);
+  g.font = `500 ${14 * k}px "IBM Plex Mono"`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const m = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2];
+  g.fillStyle = BG; const w = g.measureText(txt).width + 8 * k; g.fillRect(m[0] - w / 2, m[1] - 9 * k, w, 18 * k);
+  g.fillStyle = CR; g.fillText(txt, m[0], m[1] + 1);
+  g.textAlign = 'left';
+}
+function etiqueta(n, p, d, act) {
+  const k = Math.max(.8, K()), [x, y] = P(...p), X = x + d[0] * k, Y = y + d[1] * k;
+  g.beginPath(); g.arc(x, y, 3.2 * k, 0, 7); g.fillStyle = act ? OR : CR; g.fill();
+  linea([x, y], [X, Y], act ? OR : cr(.8), 1.2 * k);
+  const r = 15 * k;
+  g.beginPath(); g.arc(X, Y, r, 0, 7); g.fillStyle = act ? OR : BG; g.fill();
+  g.strokeStyle = act ? OR : CR; g.lineWidth = 1.4 * k; g.stroke();
+  g.fillStyle = act ? '#fff' : CR; g.font = `700 ${17 * k}px "Barlow Condensed"`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(String(n), X, Y + 1); g.textAlign = 'left';
+}
+function rotulo(txt, p, d, act) { // texto con recuadro y guía
+  const k = Math.max(.8, K()), [x, y] = P(...p), X = x + d[0] * k, Y = y + d[1] * k;
+  linea([x, y], [X, Y], act ? OR : cr(.7), 1 * k);
+  g.font = `500 ${13 * k}px "IBM Plex Mono"`; const w = g.measureText(txt).width + 14 * k;
+  g.fillStyle = BG; g.fillRect(X - w / 2, Y - 12 * k, w, 24 * k);
+  g.strokeStyle = act ? OR : cr(.7); g.lineWidth = 1 * k; g.strokeRect(X - w / 2, Y - 12 * k, w, 24 * k);
+  g.fillStyle = act ? OR : CR; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, X, Y + 1); g.textAlign = 'left';
+}
+
+// ------------------------------------------------------------------ guion
+const ET = [
+  null,
+  { n: '01', t0: 1.2, t1: 3.4, tit: 'Tazas de doble pared', txt: 'Vidrio con cámara de aire entre dos paredes: aislación térmica, como un buen muro.', spec: 'VIDRIO BOROSILICATO · DOBLE PARED' },
+  { n: '02', t0: 3.4, t1: 6.0, tit: 'Espresso', txt: 'Extracción corta e intensa, con crema: la base estructural de la jornada.', spec: 'ESPRESSO · 30 ml · 25 s' },
+  { n: '03', t0: 6.0, t1: 8.6, tit: 'Americano', txt: 'Espresso alargado con agua caliente: el que acompaña las horas de dibujo.', spec: 'AMERICANO · 240 ml' },
+];
+const N = ET.length - 1, T_RES = 9.0, T_CP = 11.8;
+const hl = e => t => t < ET[e].t0 ? 0 : t < ET[e].t1 ? 1 : 1 - clamp((t - ET[e].t1) / 0.9);
+
+// ------------------------------------------------------------------ geometría (mm): tazas de vidrio de doble pared (forma de barril)
+const AME = { ox: -62, oy: -62, R: 42, H: 84, liq: 70, crema: 2, et: 3, ml: '+240 ml AMERICANO' };
+const ESP = { ox: 96, oy: 96, R: 26, H: 50, liq: 37, crema: 5, et: 2, ml: '+30 ml ESPRESSO' };
+for (const T of [AME, ESP]) { T.zb = T.H * .2; T.Ri = T.R * .86; }
+const BB = [AME.ox - AME.R * 1.6, ESP.ox + ESP.R * 1.6, AME.oy - AME.R * 1.6, ESP.oy + ESP.R * 1.6, -4, AME.H + 75];
+const ro = (T, z) => T.R * (0.83 + 0.17 * Math.sin(Math.PI * (clamp(z / T.H) * .86 + .06)));            // pared exterior
+const ri = (T, z) => { const u = clamp((z - T.zb) / (T.H * .42)); return Math.min(T.Ri, ro(T, z) - 3.2) * Math.sqrt(1 - (1 - u) * (1 - u)); }; // pared interior (fondo redondeado)
+const A = r => 1.2247 * r * cam.s, Bv = r => 0.7071 * r * cam.s;                    // semiejes de la elipse isométrica de un círculo
+let OX = 0, OY = 0;
+const C = z => P(OX, OY, z);
+const hex = c => c.startsWith('#') ? c : '#' + c.match(/\d+/g).map(v => (+v).toString(16).padStart(2, '0')).join('');
+function elipse(z, r, a0 = 0, a1 = Math.PI * 2) { const [cx, cy] = C(z); const p = []; for (let i = 0; i <= 48; i++) { const a = a0 + (a1 - a0) * i / 48; p.push([cx + A(r) * Math.cos(a), cy + Bv(r) * Math.sin(a)]); } return p; }
+// silueta de un sólido de revolución r(z) entre z0 y z1 (lado derecho subiendo, tapa, lado izquierdo bajando, base delantera)
+function silueta(rf, z0, z1, n = 40) {
+  const der = [], izq = [];
+  for (let i = 0; i <= n; i++) { const z = z0 + (z1 - z0) * i / n, [cx, cy] = C(z), r = rf(z); der.push([cx + A(r), cy]); izq.push([cx - A(r), cy]); }
+  const tapa = elipse(z1, rf(z1), 0, -Math.PI), base = elipse(z0, rf(z0), Math.PI, 0);
+  return [...der, ...tapa, ...izq.reverse(), ...base];
+}
+let CAM_FIJA = null, ROT = true;
+function camara(t) {
+  if (CAM_FIJA) { Object.assign(cam, CAM_FIJA); return; }
+  Object.assign(cam, encuadre(BB, [M, TOP, W - M, CAJ], REEL ? [70, 30] : [110, 20]));
+  cam.s *= REEL ? 1.5 : 0.95; cam.cx += REEL ? 50 : 40; cam.cy += REEL ? 10 : -10;
+  const k = ease((t - 0.2) / 3.0); cam.s *= lerp(1.08, 1.0, k);
+}
+// ------------------------------------------------------------------ una taza de vidrio
+function taza(T, t) {
+  OX = T.ox; OY = T.oy;
+  const h = e => hl(e)(t), k = K(), hT = h(1);
+  const pa = easeOut((t - ET[1].t0 + 0.9 - (T === ESP ? 0.4 : 0)) / 1.2), dz = (1 - pa) * 40;
+  if (pa <= 0) return;
+  OY = T.oy; const z0 = dz, roZ = z => ro(T, z - z0), riZ = z => ri(T, z - z0), H1 = T.H + z0;
+  const trazo = hT > 0 ? mezcla('#F2F0EB', OR, hT) : CR;
+  g.save(); g.globalAlpha *= clamp(pa * 2);
+  // sombra suave y pared trasera del vidrio
+  poli(elipse(z0, roZ(z0) * 1.15), 'rgba(0,0,0,0.25)', null, 0);
+  const asa = []; const th = -30 * Math.PI / 180;
+  for (let i = 0; i <= 30; i++) { const s = i / 30, z = z0 + T.H * (.8 - .55 * s), d = roZ(z) - 3 + T.R * .62 * Math.sin(Math.PI * s); asa.push(P(OX + d * Math.cos(th), OY + d * Math.sin(th), z)); }
+  g.restore();
+  // líquido (sube durante su paso; la crema se forma al final)
+  const pe = T.et, pl = ease((t - ET[pe].t0 - 0.2) / 1.8), pc = ease((t - ET[pe].t0 - 1.7) / 0.8);
+  const nC = lerp(T.zb + 1, T.liq, pl), nK = nC + T.crema * pc;
+  if (pl > 0) {
+    const zL0 = z0 + T.zb, zL1 = z0 + nK;
+    poli(silueta(riZ, zL0 + .5, zL1), mezcla('#2e1c11', OR, .3 * h(pe)), null, 0);
+    if (pc > 0) { // franja de crema
+      const sc = silueta(riZ, z0 + nC, zL1); poli(sc, mezcla('#b27a42', OR, .4 * h(pe)), null, 0);
+    }
+    poli(elipse(zL1, riZ(zL1)), pc > 0 ? mezcla('#c48d55', OR, .4 * h(pe)) : mezcla('#4a2e1b', OR, .3 * h(pe)), cr(.35), .8 * k);
+  }
+  g.save(); g.globalAlpha *= clamp(pa * 2);
+  // vidrio: pared exterior translúcida, pared interior (doble pared) y reflejos
+  poli(silueta(roZ, z0, H1), 'rgba(205,220,230,0.10)', trazo, 1.4 * k);
+  const [cx0, cy0] = C(z0 + T.zb);
+  g.beginPath(); for (let i = 0; i <= 30; i++) { const z = z0 + T.zb + (H1 - 1.5 - z0 - T.zb) * i / 30, [cx, cy] = C(z); g.lineTo(cx + A(riZ(z)), cy); } g.strokeStyle = hT > 0 ? orA(.6) : cr(.45); g.lineWidth = 1 * k; g.stroke();
+  g.beginPath(); for (let i = 0; i <= 30; i++) { const z = z0 + T.zb + (H1 - 1.5 - z0 - T.zb) * i / 30, [cx, cy] = C(z); g.lineTo(cx - A(riZ(z)), cy); } g.stroke();
+  poli(elipse(H1, roZ(H1)), null, trazo, 1.3 * k); poli(elipse(H1 - 1.5, riZ(H1 - 1.5)), null, cr(.5), 1 * k);
+  poli(elipse(z0 + 3, roZ(z0) * .7, 0, Math.PI), null, cr(.3), .9 * k);              // fondo grueso
+  for (const [f, w, al] of [[-.62, 5, .28], [-.48, 2, .4], [.7, 2.5, .18]]) { // reflejos verticales
+    g.beginPath(); for (let i = 0; i <= 20; i++) { const z = z0 + T.H * (.18 + .62 * i / 20), [cx, cy] = C(z); g.lineTo(cx + A(roZ(z)) * f, cy); }
+    g.strokeStyle = `rgba(255,255,255,${al})`; g.lineWidth = w * k; g.lineCap = 'round'; g.stroke();
+  }
+  // asa de vidrio
+  for (const [w, c] of [[T.R / 6 + 2.4, trazo], [T.R / 6, 'rgba(40,46,50,0.9)'], [T.R / 14, 'rgba(255,255,255,0.35)']]) {
+    g.beginPath(); asa.forEach((p, i) => i ? g.lineTo(...p) : g.moveTo(...p)); g.lineWidth = w * cam.s * .9; g.strokeStyle = c; g.lineCap = 'round'; g.stroke();
+  }
+  g.restore();
+  T.z0 = z0; T.nK = nK; T.roZ = roZ;
+}
+function vapor(T, t, f0) {
+  const pv = clamp((t - ET[T.et].t1 + 0.4) / 1.2);
+  if (pv <= 0) return;
+  OX = T.ox; OY = T.oy;
+  const k = K(), alto = T === ESP ? T.R * 0.9 : T.R * 1.6, r = T.Ri;
+  g.save(); g.globalAlpha *= pv;
+  [[-r * .35, -r * .2, 0], [r * .05, -r * .5, 1.3], [-r * .6, r * .2, 2.4]].forEach(([x, y, f]) => {
+    g.beginPath();
+    for (let i = 0; i <= 30; i++) { const s = i / 30, [px, py] = P(OX + x, OY + y, T.z0 + T.H + 4 + alto * s); const ox = Math.sin(s * 7 + t * 2.2 + f + f0) * 6 * cam.s * (0.4 + s); i ? g.lineTo(px + ox, py) : g.moveTo(px + ox, py); }
+    g.strokeStyle = orA(.85 * (1 - 0.3 * Math.sin(t + f))); g.lineWidth = 2.2 * k; g.setLineDash([7 * k, 6 * k]); g.lineDashOffset = -t * 30 * k; g.lineCap = 'round'; g.stroke(); g.setLineDash([]);
+  });
+  g.restore();
+}
+
+// ------------------------------------------------------------------ escena
+function escena(t) {
+  camara(t); anclarPatrones();
+  taza(AME, t);
+  taza(ESP, t);
+  vapor(AME, t, 0); vapor(ESP, t, 1.7);
+  if (!ROT || !AME.roZ) return;
+  const nv = (d) => clamp((t - d) / 0.6), izq = (T, z, r) => [T.ox - .7071 * r, T.oy + .7071 * r, z];
+  g.save(); g.globalAlpha = nv(2.6); nivel(izq(AME, 0, AME.roZ(0)), '±0 ml', 40); g.restore();
+  g.save(); g.globalAlpha = nv(ET[3].t1 - 0.4); nivel(izq(AME, AME.z0 + AME.nK, ri(AME, AME.nK)), AME.ml, 60); g.restore();
+  if (ESP.roZ) { // nivel del espresso hacia la derecha
+    g.save(); g.globalAlpha = nv(ET[2].t1 - 0.4);
+    const r = ri(ESP, ESP.nK), kk = Math.max(.85, K()), [x, y] = P(ESP.ox + .7071 * r, ESP.oy - .7071 * r, ESP.z0 + ESP.nK), x2 = x + 26 * kk;
+    linea([x + 4 * kk, y], [x2 + 120 * kk, y], cr(.7), 1 * kk);
+    g.beginPath(); g.moveTo(x2 - 4 * kk, y - 11 * kk); g.lineTo(x2 - 16 * kk, y - 11 * kk); g.lineTo(x2 - 10 * kk, y); g.closePath(); g.fillStyle = CR; g.fill();
+    g.font = `500 ${15 * kk}px "IBM Plex Mono"`; g.fillStyle = CR; g.textBaseline = 'bottom'; g.textAlign = 'left'; g.fillText(ESP.ml, x2, y - 1 * kk);
+    g.restore();
+  }
+  for (const T of [AME, ESP]) {
+    if (!T.roZ) continue;
+    const r = T.roZ(T.z0 + T.H);
+    g.save(); g.globalAlpha = nv(3.0); cota(P(T.ox - r * .707, T.oy + r * .707, T.z0 + T.H), P(T.ox + r * .707, T.oy - r * .707, T.z0 + T.H), 'Ø ' + Math.round(r * 2), [-10, -36]); g.restore();
+  }
+  const der = (T, z) => { const r = ro(T, z); return [T.ox + .7071 * r, T.oy - .7071 * r, z]; };
+  const E = [
+    { e: 1, p: der(AME, AME.H * .35), d: [70, 30] },
+    { e: 2, p: [ESP.ox, ESP.oy, ESP.liq * .6], d: [-80, 50] },
+    { e: 3, p: [AME.ox, AME.oy, AME.liq * .55], d: [-30, 95] },
+  ];
+  for (const q of E) {
+    const a = clamp((t - ET[q.e].t0 - 0.6) / 0.5);
+    if (a <= 0) continue;
+    g.save(); g.globalAlpha = a; etiqueta(q.e, q.p, q.d, t >= ET[q.e].t0 && t < ET[q.e].t1 + 0.6); g.restore();
+  }
+  const pv = clamp((t - ET[3].t1) / 1.0);
+  if (pv > 0) { g.save(); g.globalAlpha = pv; rotulo('VAPOR · OBRA EN MARCHA', [AME.ox - 20, AME.oy + 8, AME.H + 60], [-40, -30], false); g.restore(); }
+}
+
+// ------------------------------------------------------------------ interfaz de plano
+const ISO = new Path2D('M 57.574219 52.507812 L 46.25 52.507812 L 51.9375 38.394531 L 53.53125 42.492188 L 56.828125 42.492188 L 53.164062 33.398438 L 50.796875 33.398438 L 41.816406 55.308594 L 45.125 55.304688 L 58.695312 55.304688 L 59.8125 58.101562 L 63.183594 58.101562 L 60.898438 52.464844 Z');
+const LOGOTIPO = new Image(); LOGOTIPO.src = 'img/logotipo-averarq-blanco.png';
+function isotipo(x, y, h, col) { const s = h / 25.4; g.save(); g.translate(x - 41.6 * s, y - 33 * s); g.scale(s, s); g.fillStyle = col; g.fill(ISO); g.restore(); }
+function texto(s, x, y, font, col, al = 'left', a = 1) { g.save(); g.globalAlpha *= a; g.font = font; g.fillStyle = col; g.textAlign = al; g.textBaseline = 'alphabetic'; g.fillText(s, x, y); g.restore(); }
+function envolver(s, x, y, ancho, font, col, alto, a = 1) {
+  g.font = font; const pal = s.split(' '); let l = '', yy = y;
+  for (const p of pal) { const prueba = l ? l + ' ' + p : p; if (g.measureText(prueba).width > ancho && l) { texto(l, x, yy, font, col, 'left', a); l = p; yy += alto; } else l = prueba; }
+  if (l) texto(l, x, yy, font, col, 'left', a);
+}
+function retícula(y0 = TOP, y1 = CAJ) {
+  g.save(); g.strokeStyle = 'rgba(242,240,235,0.045)'; g.lineWidth = 1;
+  for (let x = M + 30; x < W - M; x += 30) { g.beginPath(); g.moveTo(x, y0); g.lineTo(x, y1); g.stroke(); }
+  for (let y = y0 + 30; y < y1; y += 30) { g.beginPath(); g.moveTo(M, y); g.lineTo(W - M, y); g.stroke(); }
+  g.restore();
+}
+function marco() {
+  g.strokeStyle = cr(.5); g.lineWidth = 1.2; g.strokeRect(M, M, W - 2 * M, H - 2 * M - 26);
+  linea([M, TOP], [W - M, TOP], cr(.5), 1.2);
+  linea([M, CAJ], [W - M, CAJ], cr(.5), 1.2);
+  if (REEL) linea([M, CAJ1], [W - M, CAJ1], cr(.5), 1.2);
+  isotipo(M + 30, 62, 34, OR);
+  const hL = 28, wL = hL * LOGOTIPO.naturalWidth / LOGOTIPO.naturalHeight;
+  g.drawImage(LOGOTIPO, M + 76, 64, wL, hL);
+  texto('ARQUITECTURA, DISEÑO Y CONSTRUCCIÓN', W - M - 28, 88, '400 17px "IBM Plex Mono"', cr(.6), 'right');
+  texto('CAFÉ', M + 28, 168, '700 70px "Barlow Condensed"', CR);
+  texto('DET. 00 · ISOMÉTRICA · S/E', W - M - 28, 166, '500 17px "IBM Plex Mono"', OR, 'right');
+  texto('TAZAS · ESPRESSO · AMERICANO · VAPOR', M + 30, 198, '400 16px "IBM Plex Mono"', cr(.55));
+  texto('Detalle referencial. Dosis según la carga de cada proyecto.', W / 2, H - 22, '400 15px "IBM Plex Mono"', cr(.5), 'center');
+}
+function cajetin(t) {
+  const y0 = CAJ, y1 = CAJ1, xN = M + 196;
+  linea([xN, y0], [xN, y1], cr(.5), 1.2);
+  for (let i = 1; i <= N; i++) {
+    const w = (W - 2 * M - 196 - 48) / N, x = xN + 24 + (i - 1) * w, p = clamp((t - ET[i].t0) / (ET[i].t1 - ET[i].t0));
+    g.fillStyle = cr(.15); g.fillRect(x, y0 + 22, w - 8, 4);
+    g.fillStyle = OR; g.fillRect(x, y0 + 22, (w - 8) * p, 4);
+  }
+  if (t < ET[1].t0) {
+    const a = clamp((t - 0.3) / 0.6);
+    texto('00', M + 98, y0 + 150, '700 118px "Barlow Condensed"', OR, 'center', a);
+    texto('EL PRIMER DETALLE DEL DÍA', xN + 24, y0 + 80, '700 46px "Barlow Condensed"', CR, 'left', a);
+    envolver('Día Internacional del Café: así partimos cada proyecto.', xN + 24, y0 + 118, 760, '400 27px "Barlow"', cr(.85), 34, a);
+    return;
+  }
+  if (t >= T_RES) {
+    const a = clamp((t - T_RES) / 0.5);
+    isotipo(M + 70, y0 + 64, 70, OR);
+    texto('EL INSUMO MÁS IMPORTANTE', xN + 24, y0 + 80, '700 46px "Barlow Condensed"', CR, 'left', a);
+    envolver('Ningún proyecto se diseña sin él. Feliz Día Internacional del Café.', xN + 24, y0 + 118, 780, '400 26px "Barlow"', cr(.85), 33, a);
+    return;
+  }
+  let e = 0; for (let i = 1; i <= N; i++) if (t >= ET[i].t0) e = i;
+  const cambio = clamp((t - ET[e].t0) / 0.35), E = ET[e];
+  texto(E.n, M + 98, y0 + 150, '700 118px "Barlow Condensed"', OR, 'center', cambio);
+  texto(E.tit.toUpperCase(), xN + 24, y0 + 80, '700 46px "Barlow Condensed"', CR, 'left', cambio);
+  envolver(E.txt, xN + 24, y0 + 118, 780, '400 26px "Barlow"', cr(.85), 32, cambio);
+  texto(E.spec, xN + 24, y0 + 178, '500 19px "IBM Plex Mono"', OR, 'left', cambio);
+}
+
+// ------------------------------------------------------------------ contraportada
+function contraportada(t) {
+  const a = ease((t - T_CP) / 0.8);
+  if (a <= 0) return;
+  g.fillStyle = `rgba(17,17,16,${0.86 * a})`; g.fillRect(0, 0, W, H);
+  g.fillStyle = `rgba(17,17,16,${0.75 * a})`; g.fillRect(0, CAJ, W, H - CAJ);
+  g.strokeStyle = cr(.5 * a); g.lineWidth = 1.2; g.strokeRect(M, M, W - 2 * M, H - 2 * M - 26);
+  const e = (d) => { const v = easeOut((t - T_CP - d) / 0.6); return [v, (1 - v) * 18]; };
+  let [v, dy] = e(0.2);
+  g.save(); g.globalAlpha = v; isotipo(W / 2 - 42, 300 + CPY + dy, 96, OR); g.restore();
+  [v, dy] = e(0.4);
+  texto('FELIZ DÍA', W / 2, 560 + CPY + dy, '700 112px "Barlow Condensed"', CR, 'center', v);
+  texto('DEL CAFÉ', W / 2, 670 + CPY + dy, '700 112px "Barlow Condensed"', CR, 'center', v);
+  [v, dy] = e(0.7);
+  texto('¡SALUD!', W / 2, 810 + CPY + dy, '700 132px "Barlow Condensed"', OR, 'center', v);
+  [v, dy] = e(0.95);
+  g.save(); g.globalAlpha = v; g.fillStyle = OR; g.fillRect(W / 2 - 60, 870 + CPY + dy, 120, 6); g.restore();
+  texto('AVERARQ.CL  ·  @AVERARQ  ·  +56 9 5431 7945', W / 2, 960 + CPY + dy, '500 22px "IBM Plex Mono"', CR, 'center', v);
+  [v, dy] = e(1.2);
+  const hL = 34, wL = hL * LOGOTIPO.naturalWidth / LOGOTIPO.naturalHeight;
+  g.save(); g.globalAlpha = v; g.drawImage(LOGOTIPO, W / 2 - wL / 2, 1150 + CPY + dy, wL, hL); g.restore();
+  texto('ARQUITECTURA, DISEÑO Y CONSTRUCCIÓN', W / 2, 1222 + CPY + dy, '400 17px "IBM Plex Mono"', cr(.6), 'center', v);
+}
+
+// ------------------------------------------------------------------ cuadro
+function render(t) {
+  g.setTransform(SS, 0, 0, SS, 0, 0);
+  g.fillStyle = BG; g.fillRect(0, 0, W, H);
+  retícula();
+  g.save(); g.beginPath(); g.rect(M, TOP, W - 2 * M, CAJ - TOP); g.clip();
+  escena(t);
+  g.restore();
+  marco();
+  cajetin(t);
+  contraportada(t);
+  const f = 1 - clamp(t / 0.5);
+  if (f > 0) { g.fillStyle = `rgba(17,17,16,${f})`; g.fillRect(0, 0, W, H); }
+}
+// ------------------------------------------------------------------ portada del post (imagen fija)
+function renderPortada() {
+  const R = H > 1500, dy = R ? 90 : 0; // reel 9:16: titular arriba, dibujo grande abajo
+  const t = 10.4;
+  g.setTransform(SS, 0, 0, SS, 0, 0);
+  CAM_FIJA = encuadre(BB, R ? [60, 480, W - M + 60, H - M - 70] : [330, 330, W - M + 10, H - M - 110], [0, 0]); ROT = false;
+  g.fillStyle = BG; g.fillRect(0, 0, W, H);
+  retícula(M, H - M - 26);
+  g.save(); g.beginPath(); g.rect(M, M, W - 2 * M, H - 2 * M - 96); g.clip();
+  escena(t);
+  g.restore();
+  CAM_FIJA = null; ROT = true;
+  g.strokeStyle = cr(.5); g.lineWidth = 1.2; g.strokeRect(M, M, W - 2 * M, H - 2 * M - 26);
+  isotipo(M + 30, 62 + dy, 34, OR);
+  const hL = 28, wL = hL * LOGOTIPO.naturalWidth / LOGOTIPO.naturalHeight;
+  g.drawImage(LOGOTIPO, M + 76, 64 + dy, wL, hL);
+  texto('1 DE OCTUBRE · DÍA DEL CAFÉ', W - M - 28, 88 + dy, '500 17px "IBM Plex Mono"', OR, 'right');
+  texto('ASÍ PROYECTAMOS', M + 28, 208 + dy, '700 84px "Barlow Condensed"', CR);
+  texto('EN AVERARQ:', M + 28, 290 + dy, '700 84px "Barlow Condensed"', CR);
+  texto('CON CAFÉ.', M + 24, 420 + dy, '700 132px "Barlow Condensed"', OR);
+  g.fillStyle = OR; g.fillRect(M + 30, 452 + dy, 110, 6);
+  texto('El primer detalle', M + 30, 506 + dy, '400 28px "Barlow"', cr(.85));
+  texto('de cada proyecto.', M + 30, 542 + dy, '400 28px "Barlow"', cr(.85));
+  // sello "¡Feliz Día del Café!"
+  g.font = '700 44px "Barlow Condensed"'; const wS = g.measureText('¡FELIZ DÍA DEL CAFÉ!').width + 40;
+  g.fillStyle = OR; g.fillRect(M + 30, 580 + dy, wS, 62);
+  texto('¡FELIZ DÍA DEL CAFÉ!', M + 50, 626 + dy, '700 44px "Barlow Condensed"', '#fff');
+  linea([M, H - M - 96], [W - M, H - M - 96], cr(.5), 1.2);
+  texto('TAZAS · ESPRESSO · AMERICANO · VAPOR', M + 30, H - M - 52, '400 17px "IBM Plex Mono"', cr(.65));
+  texto('AVERARQ.CL', W - M - 28, H - M - 50, '600 26px "Barlow Condensed"', OR, 'right');
+  texto('Detalle referencial.', W / 2, H - 22, '400 15px "IBM Plex Mono"', cr(.5), 'center');
+}
+window.renderPortada = renderPortada;
+window.DUR = DUR;
+window.PORTADA = 10.4; // taza servida
+window.render = render;
+window.ready = (async () => {
+  for (const f of ['400 20px Barlow', '700 20px "Barlow Condensed"', '600 20px "Barlow Condensed"', '400 20px "IBM Plex Mono"', '500 20px "IBM Plex Mono"'])
+    await document.fonts.load(f, 'ÁÑáñ±−Ø×≈');
+  await LOGOTIPO.decode();
+  render(0); return true;
+})();
+</script>
+</body>
+</html>

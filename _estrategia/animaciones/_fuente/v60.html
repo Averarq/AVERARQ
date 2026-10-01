@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>AVERARQ · V60</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>html,body{margin:0;background:#111110}canvas{display:block}</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1350"></canvas>
+<script>
+/*
+  Animación isométrica: método V60 (dripper, filtro, bloom, vertido y extracción), Día Internacional del Café.
+  Misma línea gráfica y motor que los detalles constructivos. Unidades: milímetros. Taza con un cuarto cortado.
+*/
+const Q = new URLSearchParams(location.search);
+const cv = document.getElementById('c'), g = cv.getContext('2d');
+const SS = Math.max(1, +(Q.get('escala') || 1));
+const W = 1080, H = Q.get('formato') === 'reel' ? 1920 : 1350, DUR = 23.5;
+const REEL = H > 1500, CPY = REEL ? 285 : 0;
+cv.width = W * SS; cv.height = H * SS;
+const OR = '#FC4C02', CR = '#F2F0EB', BG = '#111110';
+const cr = a => `rgba(242,240,235,${a})`, orA = a => `rgba(252,76,2,${a})`;
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const ease = t => { t = clamp(t); return t * t * (3 - 2 * t); };
+const easeOut = t => { t = clamp(t); return 1 - Math.pow(1 - t, 3); };
+const lerp = (a, b, t) => a + (b - a) * t;
+
+// ------------------------------------------------------------------ cámara isométrica
+const cam = { s: 1.5, fx: 0, fy: 0, cx: 540, cy: 680 };
+const C30 = Math.cos(Math.PI / 6);
+const iso = (x, y, z) => [(x - y) * C30, (x + y) * 0.5 - z];
+function P(x, y, z) { const [X, Y] = iso(x, y, z); return [cam.cx + (X - cam.fx) * cam.s, cam.cy + (Y - cam.fy) * cam.s]; }
+const K = () => cam.s / 1.45;
+const M = 36, TOP = 214, CAJ = REEL ? H - M - 26 - 202 : 1086, CAJ1 = H - M - 26;
+// encuadre: la caja bb queda centrada en el rectángulo r = [x0, y0, x1, y1] de la pantalla
+function encuadre(bb, r, pad = [0, 0]) {
+  const pts = [];
+  for (const x of bb.slice(0, 2)) for (const y of bb.slice(2, 4)) for (const z of bb.slice(4, 6)) pts.push(iso(x, y, z));
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  return { s: Math.min((r[2] - r[0] - 2 * pad[0]) / (x1 - x0), (r[3] - r[1] - 2 * pad[1]) / (y1 - y0)),
+    fx: (x0 + x1) / 2, fy: (y0 + y1) / 2, cx: (r[0] + r[2]) / 2, cy: (r[1] + r[3]) / 2 };
+}
+// ------------------------------------------------------------------ texturas
+function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+function patron(w, h, dibujar) {
+  const c = document.createElement('canvas'); c.width = w * SS; c.height = h * SS;
+  const x = c.getContext('2d'); x.scale(SS, SS); dibujar(x, w, h); return g.createPattern(c, 'repeat');
+}
+const PAT = {
+  hormigon: patron(90, 90, (c, w, h) => {
+    const r = rng(7); c.fillStyle = cr(.35);
+    for (let i = 0; i < 26; i++) { c.beginPath(); c.arc(r() * w, r() * h, .9, 0, 7); c.fill(); }
+    c.strokeStyle = cr(.28); c.lineWidth = .9;
+    for (let i = 0; i < 5; i++) { const x = r() * w, y = r() * h, s = 3 + r() * 2.5, a = r() * 6;
+      c.beginPath(); for (let k = 0; k < 3; k++) c.lineTo(x + s * Math.cos(a + k * 2.1), y + s * Math.sin(a + k * 2.1)); c.closePath(); c.stroke(); }
+  }),
+  corte: patron(70, 70, (c, w, h) => {
+    const r = rng(11); c.fillStyle = cr(.55);
+    for (let i = 0; i < 34; i++) { c.beginPath(); c.arc(r() * w, r() * h, 1, 0, 7); c.fill(); }
+    c.strokeStyle = cr(.5); c.lineWidth = 1;
+    for (let i = 0; i < 9; i++) { const x = r() * w, y = r() * h, s = 3.5 + r() * 3, a = r() * 6;
+      c.beginPath(); for (let k = 0; k < 3; k++) c.lineTo(x + s * Math.cos(a + k * 2.1), y + s * Math.sin(a + k * 2.1)); c.closePath(); c.stroke(); }
+  }),
+  tierra: patron(40, 40, (c, w, h) => {
+    c.strokeStyle = cr(.22); c.lineWidth = 1;
+    for (let i = -h; i < w; i += 13) { c.beginPath(); c.moveTo(i, h); c.lineTo(i + h, 0); c.stroke(); }
+    const r = rng(3); c.fillStyle = cr(.25);
+    for (let i = 0; i < 6; i++) { c.beginPath(); c.arc(r() * w, r() * h, .8, 0, 7); c.fill(); }
+  }),
+  ripio: patron(50, 50, (c, w, h) => { // piedras redondeadas
+    const r = rng(29); c.strokeStyle = cr(.42); c.lineWidth = 1;
+    for (let i = 0; i < 22; i++) { const x = r() * w, y = r() * h, a = 2 + r() * 3, b = 1.5 + r() * 2;
+      c.beginPath(); c.ellipse(x, y, a, b, r() * 3, 0, 7); c.stroke(); }
+  }),
+  eps: patron(30, 30, (c, w, h) => {
+    const r = rng(23); c.strokeStyle = cr(.26); c.lineWidth = .8;
+    for (let i = 0; i < 9; i++) { c.beginPath(); c.arc(r() * w, r() * h, 1.8 + r() * 1.6, 0, 7); c.stroke(); }
+  }),
+  lana: patron(40, 24, (c, w, h) => {
+    c.strokeStyle = 'rgba(242,235,210,0.30)'; c.lineWidth = 1;
+    for (let y = 6; y < h + 12; y += 12) { c.beginPath();
+      for (let x = -10; x <= w + 10; x += 10) { c.moveTo(x, y); c.bezierCurveTo(x + 2, y - 7, x + 8, y - 7, x + 10, y); }
+      c.stroke(); }
+  }),
+  film: patron(16, 16, (c, w, h) => { c.strokeStyle = 'rgba(210,230,245,0.2)'; c.lineWidth = .8;
+    for (let i = -h; i < w; i += 8) { c.beginPath(); c.moveTo(i, h); c.lineTo(i + h, 0); c.stroke(); } }),
+  madera: patron(60, 12, (c, w, h) => {
+    c.strokeStyle = 'rgba(242,220,180,0.22)'; c.lineWidth = .9;
+    for (let y = 2; y < h; y += 4) { c.beginPath(); c.moveTo(0, y); c.bezierCurveTo(w * .3, y - 1.2, w * .6, y + 1.2, w, y); c.stroke(); }
+  }),
+};
+function anclarPatrones() {
+  const [ox, oy] = P(0, 0, 0), k = cam.s / 1.45;
+  for (const p of Object.values(PAT)) p.setTransform(new DOMMatrix([k / SS, 0, 0, k / SS, ox, oy]));
+}
+
+// ------------------------------------------------------------------ primitivas de dibujo
+function poli(pts, fill, stroke, lw, pat, patAlpha = 1, dash) {
+  g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath();
+  if (fill) { g.fillStyle = fill; g.fill(); }
+  if (pat) { g.save(); g.globalAlpha *= patAlpha; g.fillStyle = pat; g.fill(); g.restore(); }
+  if (stroke) { g.setLineDash(dash || []); g.strokeStyle = stroke; g.lineWidth = lw; g.lineJoin = 'round'; g.stroke(); g.setLineDash([]); }
+}
+function linea(a, b, col, lw, dash) { g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.strokeStyle = col; g.lineWidth = lw; g.lineCap = 'round'; g.setLineDash(dash || []); g.stroke(); g.setLineDash([]); }
+function mezcla(c1, c2, t) {
+  const a = parseInt(c1.slice(1), 16), b = parseInt(c2.slice(1), 16);
+  const ch = s => Math.round(lerp((a >> s) & 255, (b >> s) & 255, t));
+  return `rgb(${ch(16)},${ch(8)},${ch(0)})`;
+}
+const TONO = {
+  conc: { sup: '#363533', fy: '#282826', fx: '#2f2e2c', pat: 'hormigon', patA: .6, corte: '#2b2b29', patCorte: 'corte' },
+  tierra: { sup: '#3a3129', fy: '#2e2720', fx: '#342c24', pat: 'tierra', patA: 1, corte: '#2e2720', patCorte: 'tierra' },
+  ripio: { sup: '#4a4843', fy: '#3c3a36', fx: '#43413c', pat: 'ripio', patA: 1, corte: '#3c3a36', patCorte: 'ripio' },
+  eps: { sup: '#9a9993', fy: '#84837e', fx: '#8e8d88', pat: 'eps', patA: 1, corte: '#84837e', patCorte: 'eps' },
+  madera: { sup: '#8a6c45', fy: '#6e5536', fx: '#7b603e', pat: 'madera', patA: 1 },
+  lana: { sup: '#8a7a4c', fy: '#766840', fx: '#807146', pat: 'lana', patA: 1, corte: '#766840', patCorte: 'lana' },
+  yeso: { sup: '#9a9994', fy: '#83827d', fx: '#8e8d88', pat: null },
+  zinc: { sup: '#7f8386', fy: '#65686b', fx: '#717477', pat: null },
+  fieltro: { sup: '#2a2927', fy: '#222120', fx: '#262523', pat: null },
+  pvc: { sup: '#a3a19b', fy: '#86847f', fx: '#96948e', pat: null },
+  tapa: { sup: '#55534f', fy: '#403f3c', fx: '#4a4845', pat: 'hormigon', patA: .5 },
+};
+// caja con sus tres caras visibles; o.h = resaltado (0–1), o.corte = caras que son corte ('fx', 'fy'), o.a = opacidad
+function caja(b, tipo, o = {}) {
+  const [x0, x1, y0, y1, z0, z1] = b, k = K(), h = o.h || 0, tn = TONO[tipo];
+  const c = {
+    sup: [P(x0, y0, z1), P(x1, y0, z1), P(x1, y1, z1), P(x0, y1, z1)],
+    fy: [P(x0, y1, z0), P(x1, y1, z0), P(x1, y1, z1), P(x0, y1, z1)],
+    fx: [P(x1, y0, z0), P(x1, y1, z0), P(x1, y1, z1), P(x1, y0, z1)],
+  };
+  g.save(); if (o.a != null) g.globalAlpha *= o.a;
+  if (tipo === 'film') {
+    const trazo = h > 0 ? mezcla('#F2F0EB', OR, h) : cr(.75);
+    for (const f of ['sup', 'fy', 'fx']) poli(c[f], `rgba(190,215,235,${0.16 + 0.12 * h})`, trazo, 1 * k, PAT.film, 1, f === 'sup' ? null : [6 * k, 4 * k]);
+    g.restore(); return;
+  }
+  const trazo = h > 0 ? mezcla('#F2F0EB', OR, h) : cr(o.tenue ? .5 : .85);
+  const tinte = f => h > 0 ? mezcla(f, '#6e2a0c', .45 * h) : f;
+  const pat = tn.pat && PAT[tn.pat], corte = o.corte || [];
+  for (const f of ['sup', 'fy', 'fx']) {
+    if (o.sin && o.sin.includes(f)) continue;
+    if (corte.includes(f)) poli(c[f], tinte(tn.corte || tn[f]), h > 0 ? trazo : CR, 1.6 * k, PAT[tn.patCorte || tn.pat]);
+    else poli(c[f], tinte(tn[f]), trazo, 1.25 * k, pat, tn.patA);
+  }
+  g.restore();
+}
+// pieza prismática: polígono en el plano xz extruido entre y0 e y1 (cerchas, piezas inclinadas)
+function prisma(pts, y0, y1, tipo, o = {}) {
+  const k = K(), h = o.h || 0, tn = TONO[tipo];
+  const trazo = h > 0 ? mezcla('#F2F0EB', OR, h) : cr(.85), tinte = f => h > 0 ? mezcla(f, '#6e2a0c', .45 * h) : f;
+  const cx = pts.reduce((s, p) => s + p[0], 0) / pts.length, cz = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+  pts.forEach((a, i) => {
+    const b = pts[(i + 1) % pts.length];
+    let nx = b[1] - a[1], nz = -(b[0] - a[0]);
+    const mx = (a[0] + b[0]) / 2 - cx, mz = (a[1] + b[1]) / 2 - cz;
+    if (nx * mx + nz * mz < 0) { nx = -nx; nz = -nz; }
+    if (nx + nz <= 0) return;
+    poli([P(a[0], y0, a[1]), P(b[0], y0, b[1]), P(b[0], y1, b[1]), P(a[0], y1, a[1])], tinte(nz > Math.abs(nx) ? tn.sup : tn.fx), trazo, 1.25 * k, PAT[tn.pat], tn.patA);
+  });
+  poli(pts.map(p => P(p[0], y1, p[1])), tinte(tn.fy), trazo, 1.25 * k, PAT[tn.pat], tn.patA);
+}
+const barra = (a, b, w) => { // rectángulo de ancho w a lo largo del segmento a-b (plano xz)
+  const dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz), nx = -dz / l * w / 2, nz = dx / l * w / 2;
+  return [[a[0] + nx, a[1] + nz], [b[0] + nx, b[1] + nz], [b[0] - nx, b[1] - nz], [a[0] - nx, a[1] - nz]];
+};
+// capa delgada que sigue un faldón: z = zf(x) entre xa y xb, espesor e
+function faldon(xa, xb, y0, y1, zf, e, tipo, o = {}) {
+  const k = K(), h = o.h || 0, tn = TONO[tipo];
+  const trazo = h > 0 ? mezcla('#F2F0EB', OR, h) : cr(.85), tinte = f => h > 0 ? mezcla(f, '#6e2a0c', .45 * h) : f;
+  const A = zf(xa), B = zf(xb);
+  poli([P(xa, y1, A), P(xb, y1, B), P(xb, y1, B + e), P(xa, y1, A + e)], tinte(tn.fy), trazo, 1.1 * k);
+  if (B < A) poli([P(xb, y0, B), P(xb, y1, B), P(xb, y1, B + e), P(xb, y0, B + e)], tinte(tn.fx), trazo, 1.1 * k);
+  poli([P(xa, y0, A + e), P(xb, y0, B + e), P(xb, y1, B + e), P(xa, y1, A + e)], tinte(tn.sup), trazo, 1.25 * k, tn.pat && PAT[tn.pat], tn.patA);
+  if (o.onda) { // ondas del zinc, en el sentido de la pendiente
+    for (let y = y0 + o.onda; y < y1 - 1; y += o.onda) linea(P(xa, y, A + e), P(xb, y, B + e), h > 0 ? orA(.5) : cr(.3), 1 * k);
+  }
+}
+function flecha(pts3, col, lw, dash) { // polilínea 3D con punta
+  const k = K(), pp = pts3.map(p => P(...p));
+  g.save(); g.beginPath(); pp.forEach((p, i) => i ? g.lineTo(...p) : g.moveTo(...p));
+  g.strokeStyle = col; g.lineWidth = lw * k; g.setLineDash(dash ? dash.map(d => d * k) : []); g.lineCap = 'round'; g.stroke(); g.setLineDash([]);
+  const [a, b] = pp.slice(-2), ang = Math.atan2(b[1] - a[1], b[0] - a[0]), L = 12 * k;
+  g.beginPath(); g.moveTo(...b); g.lineTo(b[0] - L * Math.cos(ang - .45), b[1] - L * Math.sin(ang - .45));
+  g.lineTo(b[0] - L * Math.cos(ang + .45), b[1] - L * Math.sin(ang + .45)); g.closePath(); g.fillStyle = col; g.fill();
+  g.restore();
+}
+
+// ------------------------------------------------------------------ rótulos
+function nivel(p, txt, largo = 80) {
+  const k = Math.max(.85, K()); const [x, y] = P(...p); const x2 = x - 26 * k;
+  linea([x - 4 * k, y], [x2 - largo * k, y], cr(.7), 1 * k);
+  g.beginPath(); g.moveTo(x2 + 4 * k, y - 11 * k); g.lineTo(x2 + 16 * k, y - 11 * k); g.lineTo(x2 + 10 * k, y); g.closePath();
+  g.fillStyle = CR; g.fill();
+  g.font = `500 ${15 * k}px "IBM Plex Mono"`; g.fillStyle = CR; g.textBaseline = 'bottom'; g.textAlign = 'right';
+  g.fillText(txt, x2, y - 1 * k); g.textAlign = 'left';
+}
+function cota(p1, p2, txt, off = [0, 18]) {
+  const k = Math.max(.85, K()), [ox, oy] = [off[0] * k, off[1] * k];
+  const A = [p1[0] + ox, p1[1] + oy], B = [p2[0] + ox, p2[1] + oy];
+  linea(p1, A, cr(.35), .8 * k); linea(p2, B, cr(.35), .8 * k);
+  linea(A, B, cr(.8), 1 * k);
+  for (const Q of [A, B]) linea([Q[0] - 4 * k, Q[1] + 4 * k], [Q[0] + 4 * k, Q[1] - 4 * k], CR, 1.6 * k);
+  g.font = `500 ${14 * k}px "IBM Plex Mono"`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const m = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2];
+  g.fillStyle = BG; const w = g.measureText(txt).width + 8 * k; g.fillRect(m[0] - w / 2, m[1] - 9 * k, w, 18 * k);
+  g.fillStyle = CR; g.fillText(txt, m[0], m[1] + 1);
+  g.textAlign = 'left';
+}
+function etiqueta(n, p, d, act) {
+  const k = Math.max(.8, K()), [x, y] = P(...p), X = x + d[0] * k, Y = y + d[1] * k;
+  g.beginPath(); g.arc(x, y, 3.2 * k, 0, 7); g.fillStyle = act ? OR : CR; g.fill();
+  linea([x, y], [X, Y], act ? OR : cr(.8), 1.2 * k);
+  const r = 15 * k;
+  g.beginPath(); g.arc(X, Y, r, 0, 7); g.fillStyle = act ? OR : BG; g.fill();
+  g.strokeStyle = act ? OR : CR; g.lineWidth = 1.4 * k; g.stroke();
+  g.fillStyle = act ? '#fff' : CR; g.font = `700 ${17 * k}px "Barlow Condensed"`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(String(n), X, Y + 1); g.textAlign = 'left';
+}
+function rotulo(txt, p, d, act) { // texto con recuadro y guía
+  const k = Math.max(.8, K()), [x, y] = P(...p), X = x + d[0] * k, Y = y + d[1] * k;
+  linea([x, y], [X, Y], act ? OR : cr(.7), 1 * k);
+  g.font = `500 ${13 * k}px "IBM Plex Mono"`; const w = g.measureText(txt).width + 14 * k;
+  g.fillStyle = BG; g.fillRect(X - w / 2, Y - 12 * k, w, 24 * k);
+  g.strokeStyle = act ? OR : cr(.7); g.lineWidth = 1 * k; g.strokeRect(X - w / 2, Y - 12 * k, w, 24 * k);
+  g.fillStyle = act ? OR : CR; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, X, Y + 1); g.textAlign = 'left';
+}
+
+// ------------------------------------------------------------------ guion
+const ET = [
+  null,
+  { n: '01', t0: 0.9, t1: 3.2, tit: 'Dripper V60', txt: 'Cono a 60° con nervaduras en espiral y un solo orificio: el agua fluye sin restricciones.', spec: 'CONO 60° · NERVADURAS EN ESPIRAL' },
+  { n: '02', t0: 3.2, t1: 5.4, tit: 'Filtro de papel', txt: 'Se enjuaga con agua caliente: quita el sabor a papel y temperiza el dripper.', spec: 'FILTRO CÓNICO · ENJUAGADO' },
+  { n: '03', t0: 5.4, t1: 7.6, tit: 'Café molido', txt: 'Molienda media-fina, nivelada en el filtro: la base de todo.', spec: '15 g · MOLIENDA MEDIA-FINA' },
+  { n: '04', t0: 7.6, t1: 10.4, tit: 'Bloom', txt: 'Primer vertido: el café libera CO₂ y se hincha. Se espera.', spec: '30 g DE AGUA · 30 s' },
+  { n: '05', t0: 10.4, t1: 14.6, tit: 'Vertido en espiral', txt: 'Vertido lento, del centro hacia afuera, con tetera de cuello de cisne.', spec: '250 g DE AGUA · 92 °C' },
+  { n: '06', t0: 14.6, t1: 17.8, tit: 'Extracción', txt: 'El café gotea al server: tiempo total entre 2:30 y 3:00.', spec: 'PROPORCIÓN 1:16 · 250 ml' },
+];
+const N = ET.length - 1, T_RES = 18.2, T_CP = 20.8;
+const hl = e => t => t < ET[e].t0 ? 0 : t < ET[e].t1 ? 1 : 1 - clamp((t - ET[e].t1) / 0.9);
+
+// ------------------------------------------------------------------ geometría (mm): dripper V60 sobre su server, ambos de vidrio
+const ZR = 84, ZF = 96;                                                              // borde del cono, borde del filtro
+const rc = z => 9 + 0.5774 * (z - 4);                                                // cono de 60° (semiángulo 30°)
+const rf = z => rc(z) - 1.6;                                                         // filtro
+const rs = z => 50 - 7 * Math.pow((z + 62) / 56, 2);                                 // server
+const ZS0 = -118, ZS1 = -8;
+const BB = [-150, 70, -70, 70, ZS0, 200];
+const A = r => 1.2247 * r * cam.s, Bv = r => 0.7071 * r * cam.s;
+const C = z => P(0, 0, z);
+const hex = c => c.startsWith('#') ? c : '#' + c.match(/\d+/g).map(v => (+v).toString(16).padStart(2, '0')).join('');
+function elipse(z, r, a0 = 0, a1 = Math.PI * 2) { const [cx, cy] = C(z); const p = []; for (let i = 0; i <= 48; i++) { const a = a0 + (a1 - a0) * i / 48; p.push([cx + A(r) * Math.cos(a), cy + Bv(r) * Math.sin(a)]); } return p; }
+function silueta(rfun, z0, z1, n = 40) {
+  const der = [], izq = [];
+  for (let i = 0; i <= n; i++) { const z = z0 + (z1 - z0) * i / n, [cx, cy] = C(z), r = rfun(z); der.push([cx + A(r), cy]); izq.push([cx - A(r), cy]); }
+  return [...der, ...elipse(z1, rfun(z1), 0, -Math.PI), ...izq.reverse(), ...elipse(z0, rfun(z0), Math.PI, 0)];
+}
+function lado(rfun, z0, z1, s, col, lw) { g.beginPath(); for (let i = 0; i <= 30; i++) { const z = z0 + (z1 - z0) * i / 30, [cx, cy] = C(z); g.lineTo(cx + s * A(rfun(z)), cy); } g.strokeStyle = col; g.lineWidth = lw; g.stroke(); }
+function reflejos(rfun, z0, z1, k) {
+  for (const [f, w, al] of [[-.62, 5, .22], [-.48, 2, .35], [.7, 2.5, .15]]) {
+    g.beginPath(); for (let i = 0; i <= 20; i++) { const z = z0 + (z1 - z0) * (.12 + .76 * i / 20), [cx, cy] = C(z); g.lineTo(cx + A(rfun(z)) * f, cy); }
+    g.strokeStyle = `rgba(255,255,255,${al})`; g.lineWidth = w * k; g.lineCap = 'round'; g.stroke();
+  }
+}
+function asa(rfun, za, zb, sale, k, trazo) {
+  const th = -30 * Math.PI / 180, pts = [];
+  for (let i = 0; i <= 30; i++) { const s = i / 30, z = za + (zb - za) * s, d = rfun(z) - 2 + sale * Math.sin(Math.PI * s); pts.push(P(d * Math.cos(th), d * Math.sin(th), z)); }
+  for (const [w, c] of [[9.5, trazo], [7, 'rgba(40,46,50,0.9)'], [2.5, 'rgba(255,255,255,0.35)']]) {
+    g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(...p) : g.moveTo(...p)); g.lineWidth = w * cam.s; g.strokeStyle = c; g.lineCap = 'round'; g.stroke();
+  }
+}
+let CAM_FIJA = null, ROT = true;
+function camara(t) {
+  if (CAM_FIJA) { Object.assign(cam, CAM_FIJA); return; }
+  Object.assign(cam, encuadre(BB, [M, TOP, W - M, CAJ], REEL ? [40, 30] : [90, 20]));
+  cam.s *= REEL ? 0.98 : 0.88; cam.cx += REEL ? -50 : 30; cam.cy += REEL ? -60 : 10;
+}
+
+// ------------------------------------------------------------------ escena
+function escena(t) {
+  camara(t); anclarPatrones();
+  const h = e => hl(e)(t), k = K(), tr = e => h(e) > 0 ? mezcla('#F2F0EB', OR, h(e)) : CR;
+  const pa = easeOut((t - ET[1].t0 + 0.6) / 1.2);
+  if (pa <= 0) return;
+  // estados
+  const pf = easeOut((t - ET[2].t0 - 0.1) / 1.0);                                  // filtro
+  const pg = ease((t - ET[3].t0 - 0.2) / 1.6);                                      // café molido
+  const pb = ease((t - ET[4].t0 - 0.2) / 2.2);                                      // bloom
+  const pp = ease((t - ET[5].t0) / 3.8);                                            // vertido
+  const px = ease((t - ET[6].t0 - 0.2) / 3.0);                                      // extracción
+  const zCama = 16 + 22 * pg + 5 * pb * (1 - px * .6);                              // superficie del café
+  const zAgua = zCama + (pp > 0 ? 26 * Math.sin(Math.PI * Math.min(pp, 1) * .55 + .15) * (1 - px) : 0);
+  const goteo = t > ET[4].t0 + .8 && t < ET[6].t1 + .4;
+  const lvl = ZS0 + 4 + 46 * ease((t - ET[4].t0 - 1.5) / (ET[6].t1 - ET[4].t0 - 1.0));   // nivel en el server
+  g.save(); g.globalAlpha *= clamp(pa * 2);
+  // server: café, gotas y vidrio
+  poli(elipse(ZS0, 46 * 1.15), 'rgba(0,0,0,0.25)', null, 0);
+  if (lvl > ZS0 + 5) {
+    poli(silueta(z => rs(z) - 3.5, ZS0 + 4, lvl), mezcla('#2e1c11', OR, .3 * h(6)), null, 0);
+    poli(elipse(lvl, rs(lvl) - 3.5), mezcla('#4a2e1b', OR, .3 * h(6)), cr(.35), .8 * k);
+  }
+  if (goteo) for (let i = 0; i < 3; i++) { const f = ((t * 1.6 + i / 3) % 1), z = -6 - f * (-6 - lvl); const [x, y] = C(z); g.beginPath(); g.ellipse(x, y, 2.2 * k, 3.2 * k, 0, 0, 7); g.fillStyle = '#5a3a22'; g.fill(); }
+  poli(silueta(rs, ZS0, ZS1), 'rgba(205,220,230,0.08)', tr(6), 1.4 * k);
+  poli(elipse(ZS1, rs(ZS1)), null, tr(6), 1.2 * k);
+  reflejos(rs, ZS0, ZS1, k);
+  asa(rs, ZS1 - 18, ZS0 + 25, 34, k, tr(6));
+  // base del dripper
+  poli([...elipse(0, 58, 0, Math.PI), ...elipse(5, 58, Math.PI, 0)], 'rgba(205,220,230,0.18)', tr(1), 1.2 * k);
+  poli(elipse(5, 58), 'rgba(205,220,230,0.14)', tr(1), 1.3 * k);
+  g.restore();
+  // filtro de papel (opaco) y su interior visto desde arriba
+  if (pf > 0) {
+    g.save(); g.globalAlpha *= clamp(pf * 2);
+    const dz = (1 - pf) * 40, pap = mezcla('#e8e1d2', OR, .4 * h(2));
+    poli(silueta(z => rf(z - dz), 6 + dz, ZF + dz), pap, tr(2), 1.2 * k);
+    poli(elipse(ZF + dz, rf(ZF)), mezcla('#cfc6b4', OR, .3 * h(2)), tr(2), 1.1 * k);
+    for (let i = 0; i < 9; i++) { const a = -Math.PI * (i + .5) / 9, [cx, cy] = C(ZF + dz); linea([cx + A(rf(ZF)) * Math.cos(a) * .98, cy + Bv(rf(ZF)) * Math.sin(a) * .98], [cx + A(rf(ZF) * .3) * Math.cos(a), cy + Bv(rf(ZF) * .3) * Math.sin(a) + 30 * k], 'rgba(120,105,80,0.25)', .8 * k); }
+    g.restore();
+    // café molido, bloom y agua
+    if (pg > 0) {
+      poli(elipse(zCama, rf(zCama)), mezcla('#3b2a1c', OR, .35 * (h(3) + h(4))), cr(.4), .9 * k);
+      const r0 = rng(5); g.fillStyle = 'rgba(200,170,130,0.35)';
+      for (let i = 0; i < 70; i++) { const a = r0() * 7, rr = Math.sqrt(r0()) * rf(zCama) * .92, [cx, cy] = C(zCama); g.beginPath(); g.arc(cx + A(rr) * Math.cos(a), cy + Bv(rr) * Math.sin(a), .9 * k, 0, 7); g.fill(); }
+      if (pb > 0 && px < 1) { // burbujas del bloom
+        const r1 = rng(9); g.strokeStyle = `rgba(230,200,160,${.6 * (1 - px)})`; g.lineWidth = .9 * k;
+        for (let i = 0; i < 26; i++) { const a = r1() * 7, rr = Math.sqrt(r1()) * rf(zCama) * .8, [cx, cy] = C(zCama + .5), s = (1.5 + r1() * 2.5) * (.6 + .4 * Math.sin(t * 3 + i)); g.beginPath(); g.ellipse(cx + A(rr) * Math.cos(a), cy + Bv(rr) * Math.sin(a), s * k * 1.2, s * k * .8, 0, 0, 7); g.stroke(); }
+      }
+      if (zAgua > zCama + 1) poli(elipse(zAgua, rf(zAgua)), mezcla('#6b4428', OR, .35 * h(5)), 'rgba(242,240,235,0.35)', .9 * k);
+    }
+  }
+  // dripper de vidrio: cono, nervaduras en espiral y asa
+  g.save(); g.globalAlpha *= clamp(pa * 2);
+  const dz = (1 - pa) * 40;
+  poli(silueta(z => rc(z - dz), 4 + dz, ZR + dz), 'rgba(205,220,230,0.10)', tr(1), 1.4 * k);
+  poli(elipse(ZR + dz, rc(ZR) + 2), null, tr(1), 1.6 * k);
+  for (let n = 0; n < 7; n++) { // nervaduras en espiral (solo la cara visible)
+    g.beginPath(); let on = false;
+    for (let i = 0; i <= 40; i++) { const z = 10 + (ZR - 16) * i / 40, th = n * 2 * Math.PI / 7 + (z - 10) * 0.028, vis = Math.cos(th) + Math.sin(th) > 0.15;
+      const p = P(rc(z) * .985 * Math.cos(th), rc(z) * .985 * Math.sin(th), z + dz); if (vis) { on ? g.lineTo(...p) : g.moveTo(...p); on = true; } else on = false; }
+    g.strokeStyle = h(1) > 0 ? orA(.7) : 'rgba(242,240,235,0.32)'; g.lineWidth = 1.3 * k; g.stroke();
+  }
+  reflejos(z => rc(z - dz), 4 + dz, ZR + dz, k);
+  asa(z => rc(z - dz), ZR - 18 + dz, 28 + dz, 26, k, tr(1));
+  g.restore();
+  // tetera de cuello de cisne y chorro (bloom y vertido en espiral)
+  const vierte = (t > ET[4].t0 + .1 && t < ET[4].t0 + 1.6) || (t > ET[5].t0 && t < ET[5].t1 - .2);
+  const pk = clamp(Math.min((t - ET[4].t0 + .4) / .6, (ET[6].t0 + .6 - t) / .6));
+  if (pk > 0) {
+    g.save(); g.globalAlpha *= pk;
+    const cuello = [[-190, -40, 200], [-150, -30, 178], [-118, -22, 168], [-95, -16, 160], [-84, -13, 152]].map(p => P(...p));
+    for (const [w, c] of [[11, tr(5)], [8.5, '#55585b'], [2.5, 'rgba(255,255,255,0.35)']]) {
+      g.beginPath(); cuello.forEach((p, i) => i ? g.lineTo(...p) : g.moveTo(...p)); g.lineWidth = w * cam.s; g.strokeStyle = c; g.lineCap = 'round'; g.stroke();
+    }
+    if (vierte) {
+      const ang = t * 5, rr = t < ET[5].t0 ? 4 : 4 + 22 * Math.abs(Math.sin((t - ET[5].t0) * .9)), [ax, ay] = cuello[cuello.length - 1];
+      const [bx, by] = P(rr * Math.cos(ang), rr * Math.sin(ang), zAgua + 1);
+      g.beginPath(); g.moveTo(ax, ay); g.quadraticCurveTo(ax + 8 * k, (ay + by) / 2, bx, by);
+      g.strokeStyle = 'rgba(205,225,240,0.85)'; g.lineWidth = 2.2 * k; g.lineCap = 'round'; g.stroke();
+    }
+    g.restore();
+  }
+  // vapor
+  const pv = clamp((t - ET[5].t0) / 1.0);
+  if (pv > 0) {
+    g.save(); g.globalAlpha *= pv * .9;
+    [[-14, -8, 0], [8, -18, 1.3], [-24, 10, 2.4]].forEach(([x, y, f]) => {
+      g.beginPath();
+      for (let i = 0; i <= 30; i++) { const s = i / 30, [px2, py2] = P(x, y, ZF + 6 + 60 * s); const ox = Math.sin(s * 7 + t * 2.2 + f) * 6 * cam.s * (0.4 + s); i ? g.lineTo(px2 + ox, py2) : g.moveTo(px2 + ox, py2); }
+      g.strokeStyle = orA(.8); g.lineWidth = 2.2 * k; g.setLineDash([7 * k, 6 * k]); g.lineDashOffset = -t * 30 * k; g.lineCap = 'round'; g.stroke(); g.setLineDash([]);
+    });
+    g.restore();
+  }
+  if (!ROT) return;
+  const nv = d => clamp((t - d) / 0.6);
+  const izq = (z, r) => [-.7071 * r, .7071 * r, z], der = (z, r) => [.7071 * r, -.7071 * r, z];
+  g.save(); g.globalAlpha = nv(ET[6].t1 - .4); nivel(izq(lvl, rs(lvl)), '+250 ml', 60); g.restore();
+  g.save(); g.globalAlpha = nv(2.2); rotulo('CONO 60°', der(60, rc(60)), [90, -30], h(1) > 0); g.restore();
+  g.save(); g.globalAlpha = nv(ET[5].t0 + .8) * Math.max(0, pk); rotulo('TETERA CUELLO DE CISNE', [-150, -30, 178], [0, -60], h(5) > 0); g.restore();
+  const E = [
+    { e: 1, p: der(40, rc(40)), d: [80, 40] },
+    { e: 2, p: izq(ZF - 4, rf(ZF - 4)), d: [-80, -30] },
+    { e: 3, p: [0, rf(zCama) * .5, zCama], d: [-90, 40] },
+    { e: 4, p: [rf(zCama) * .3, 0, zCama + 1], d: [90, -60] },
+    { e: 5, p: [0, 0, zAgua + 1], d: [80, 30] },
+    { e: 6, p: der(lvl - 15, rs(lvl - 15) - 3), d: [70, 40] },
+  ];
+  for (const q of E) {
+    const a = clamp((t - ET[q.e].t0 - 0.6) / 0.5) * (q.e === 4 ? 1 - clamp((t - ET[5].t0) / .5) : 1) * (q.e === 5 ? 1 - clamp((t - ET[6].t0) / .5) : 1);
+    if (a <= 0) continue;
+    g.save(); g.globalAlpha = a; etiqueta(q.e, q.p, q.d, t >= ET[q.e].t0 && t < ET[q.e].t1 + 0.6); g.restore();
+  }
+}
+
+// ------------------------------------------------------------------ interfaz de plano
+const ISO = new Path2D('M 57.574219 52.507812 L 46.25 52.507812 L 51.9375 38.394531 L 53.53125 42.492188 L 56.828125 42.492188 L 53.164062 33.398438 L 50.796875 33.398438 L 41.816406 55.308594 L 45.125 55.304688 L 58.695312 55.304688 L 59.8125 58.101562 L 63.183594 58.101562 L 60.898438 52.464844 Z');
+const LOGOTIPO = new Image(); LOGOTIPO.src = 'img/logotipo-averarq-blanco.png';
+function isotipo(x, y, h, col) { const s = h / 25.4; g.save(); g.translate(x - 41.6 * s, y - 33 * s); g.scale(s, s); g.fillStyle = col; g.fill(ISO); g.restore(); }
+function texto(s, x, y, font, col, al = 'left', a = 1) { g.save(); g.globalAlpha *= a; g.font = font; g.fillStyle = col; g.textAlign = al; g.textBaseline = 'alphabetic'; g.fillText(s, x, y); g.restore(); }
+function envolver(s, x, y, ancho, font, col, alto, a = 1) {
+  g.font = font; const pal = s.split(' '); let l = '', yy = y;
+  for (const p of pal) { const prueba = l ? l + ' ' + p : p; if (g.measureText(prueba).width > ancho && l) { texto(l, x, yy, font, col, 'left', a); l = p; yy += alto; } else l = prueba; }
+  if (l) texto(l, x, yy, font, col, 'left', a);
+}
+function retícula(y0 = TOP, y1 = CAJ) {
+  g.save(); g.strokeStyle = 'rgba(242,240,235,0.045)'; g.lineWidth = 1;
+  for (let x = M + 30; x < W - M; x += 30) { g.beginPath(); g.moveTo(x, y0); g.lineTo(x, y1); g.stroke(); }
+  for (let y = y0 + 30; y < y1; y += 30) { g.beginPath(); g.moveTo(M, y); g.lineTo(W - M, y); g.stroke(); }
+  g.restore();
+}
+function marco() {
+  g.strokeStyle = cr(.5); g.lineWidth = 1.2; g.strokeRect(M, M, W - 2 * M, H - 2 * M - 26);
+  linea([M, TOP], [W - M, TOP], cr(.5), 1.2);
+  linea([M, CAJ], [W - M, CAJ], cr(.5), 1.2);
+  if (REEL) linea([M, CAJ1], [W - M, CAJ1], cr(.5), 1.2);
+  isotipo(M + 30, 62, 34, OR);
+  const hL = 28, wL = hL * LOGOTIPO.naturalWidth / LOGOTIPO.naturalHeight;
+  g.drawImage(LOGOTIPO, M + 76, 64, wL, hL);
+  texto('ARQUITECTURA, DISEÑO Y CONSTRUCCIÓN', W - M - 28, 88, '400 17px "IBM Plex Mono"', cr(.6), 'right');
+  texto('MÉTODO V60', M + 28, 168, '700 70px "Barlow Condensed"', CR);
+  texto('DET. 00 · ISOMÉTRICA · S/E', W - M - 28, 166, '500 17px "IBM Plex Mono"', OR, 'right');
+  texto('DRIPPER · FILTRO · CAFÉ · BLOOM · VERTIDO · EXTRACCIÓN', M + 30, 198, '400 16px "IBM Plex Mono"', cr(.55));
+  texto('Detalle referencial. Proporciones según el café y la carga de cada proyecto.', W / 2, H - 22, '400 15px "IBM Plex Mono"', cr(.5), 'center');
+}
+function cajetin(t) {
+  const y0 = CAJ, y1 = CAJ1, xN = M + 196;
+  linea([xN, y0], [xN, y1], cr(.5), 1.2);
+  for (let i = 1; i <= N; i++) {
+    const w = (W - 2 * M - 196 - 48) / N, x = xN + 24 + (i - 1) * w, p = clamp((t - ET[i].t0) / (ET[i].t1 - ET[i].t0));
+    g.fillStyle = cr(.15); g.fillRect(x, y0 + 22, w - 8, 4);
+    g.fillStyle = OR; g.fillRect(x, y0 + 22, (w - 8) * p, 4);
+  }
+  if (t < ET[1].t0) {
+    const a = clamp((t - 0.3) / 0.6);
+    texto('00', M + 98, y0 + 150, '700 118px "Barlow Condensed"', OR, 'center', a);
+    texto('CAFÉ DE FILTRO, PASO A PASO', xN + 24, y0 + 80, '700 46px "Barlow Condensed"', CR, 'left', a);
+    envolver('El método V60 explicado como un detalle constructivo.', xN + 24, y0 + 118, 760, '400 27px "Barlow"', cr(.85), 34, a);
+    return;
+  }
+  if (t >= T_RES) {
+    const a = clamp((t - T_RES) / 0.5);
+    isotipo(M + 70, y0 + 64, 70, OR);
+    texto('MÉTODO, TIEMPOS Y PACIENCIA', xN + 24, y0 + 80, '700 46px "Barlow Condensed"', CR, 'left', a);
+    envolver('Como en obra: buena base, proporciones justas y sin apuro. Feliz Día del Café.', xN + 24, y0 + 118, 780, '400 26px "Barlow"', cr(.85), 33, a);
+    return;
+  }
+  let e = 0; for (let i = 1; i <= N; i++) if (t >= ET[i].t0) e = i;
+  const cambio = clamp((t - ET[e].t0) / 0.35), E = ET[e];
+  texto(E.n, M + 98, y0 + 150, '700 118px "Barlow Condensed"', OR, 'center', cambio);
+  texto(E.tit.toUpperCase(), xN + 24, y0 + 80, '700 46px "Barlow Condensed"', CR, 'left', cambio);
+  envolver(E.txt, xN + 24, y0 + 118, 780, '400 26px "Barlow"', cr(.85), 32, cambio);
+  texto(E.spec, xN + 24, y0 + 178, '500 19px "IBM Plex Mono"', OR, 'left', cambio);
+}
+
+// ------------------------------------------------------------------ contraportada
+function contraportada(t) {
+  const a = ease((t - T_CP) / 0.8);
+  if (a <= 0) return;
+  g.fillStyle = `rgba(17,17,16,${0.86 * a})`; g.fillRect(0, 0, W, H);
+  g.fillStyle = `rgba(17,17,16,${0.75 * a})`; g.fillRect(0, CAJ, W, H - CAJ);
+  g.strokeStyle = cr(.5 * a); g.lineWidth = 1.2; g.strokeRect(M, M, W - 2 * M, H - 2 * M - 26);
+  const e = (d) => { const v = easeOut((t - T_CP - d) / 0.6); return [v, (1 - v) * 18]; };
+  let [v, dy] = e(0.2);
+  g.save(); g.globalAlpha = v; isotipo(W / 2 - 42, 300 + CPY + dy, 96, OR); g.restore();
+  [v, dy] = e(0.4);
+  texto('FELIZ DÍA', W / 2, 560 + CPY + dy, '700 112px "Barlow Condensed"', CR, 'center', v);
+  texto('DEL CAFÉ', W / 2, 670 + CPY + dy, '700 112px "Barlow Condensed"', CR, 'center', v);
+  [v, dy] = e(0.7);
+  texto('¡SALUD!', W / 2, 810 + CPY + dy, '700 132px "Barlow Condensed"', OR, 'center', v);
+  [v, dy] = e(0.95);
+  g.save(); g.globalAlpha = v; g.fillStyle = OR; g.fillRect(W / 2 - 60, 870 + CPY + dy, 120, 6); g.restore();
+  texto('AVERARQ.CL  ·  @AVERARQ  ·  +56 9 5431 7945', W / 2, 960 + CPY + dy, '500 22px "IBM Plex Mono"', CR, 'center', v);
+  [v, dy] = e(1.2);
+  const hL = 34, wL = hL * LOGOTIPO.naturalWidth / LOGOTIPO.naturalHeight;
+  g.save(); g.globalAlpha = v; g.drawImage(LOGOTIPO, W / 2 - wL / 2, 1150 + CPY + dy, wL, hL); g.restore();
+  texto('ARQUITECTURA, DISEÑO Y CONSTRUCCIÓN', W / 2, 1222 + CPY + dy, '400 17px "IBM Plex Mono"', cr(.6), 'center', v);
+}
+
+// ------------------------------------------------------------------ cuadro
+function render(t) {
+  g.setTransform(SS, 0, 0, SS, 0, 0);
+  g.fillStyle = BG; g.fillRect(0, 0, W, H);
+  retícula();
+  g.save(); g.beginPath(); g.rect(M, TOP, W - 2 * M, CAJ - TOP); g.clip();
+  escena(t);
+  g.restore();
+  marco();
+  cajetin(t);
+  contraportada(t);
+  const f = 1 - clamp(t / 0.5);
+  if (f > 0) { g.fillStyle = `rgba(17,17,16,${f})`; g.fillRect(0, 0, W, H); }
+}
+// ------------------------------------------------------------------ portada del post (imagen fija)
+function renderPortada() {
+  const R = H > 1500, dy = R ? 90 : 0; // reel 9:16: titular arriba, dibujo grande abajo
+  const t = 18.6;
+  g.setTransform(SS, 0, 0, SS, 0, 0);
+  CAM_FIJA = encuadre(BB, R ? [M, 620, W - M + 40, H - M - 110] : [330, 300, W - M + 20, H - M - 110], [0, 0]); ROT = false;
+  g.fillStyle = BG; g.fillRect(0, 0, W, H);
+  retícula(M, H - M - 26);
+  g.save(); g.beginPath(); g.rect(M, M, W - 2 * M, H - 2 * M - 96); g.clip();
+  escena(t);
+  g.restore();
+  CAM_FIJA = null; ROT = true;
+  g.strokeStyle = cr(.5); g.lineWidth = 1.2; g.strokeRect(M, M, W - 2 * M, H - 2 * M - 26);
+  isotipo(M + 30, 62 + dy, 34, OR);
+  const hL = 28, wL = hL * LOGOTIPO.naturalWidth / LOGOTIPO.naturalHeight;
+  g.drawImage(LOGOTIPO, M + 76, 64 + dy, wL, hL);
+  texto('1 DE OCTUBRE · DÍA DEL CAFÉ', W - M - 28, 88 + dy, '500 17px "IBM Plex Mono"', OR, 'right');
+  texto('ASÍ PROYECTAMOS', M + 28, 208 + dy, '700 84px "Barlow Condensed"', CR);
+  texto('EN AVERARQ:', M + 28, 290 + dy, '700 84px "Barlow Condensed"', CR);
+  texto('CON V60.', M + 24, 420 + dy, '700 132px "Barlow Condensed"', OR);
+  g.fillStyle = OR; g.fillRect(M + 30, 452 + dy, 110, 6);
+  texto('Café de filtro,', M + 30, 506 + dy, '400 28px "Barlow"', cr(.85));
+  texto('paso a paso.', M + 30, 542 + dy, '400 28px "Barlow"', cr(.85));
+  // sello "¡Feliz Día del Café!"
+  g.font = '700 44px "Barlow Condensed"'; const wS = g.measureText('¡FELIZ DÍA DEL CAFÉ!').width + 40;
+  g.fillStyle = OR; g.fillRect(M + 30, 580 + dy, wS, 62);
+  texto('¡FELIZ DÍA DEL CAFÉ!', M + 50, 626 + dy, '700 44px "Barlow Condensed"', '#fff');
+  linea([M, H - M - 96], [W - M, H - M - 96], cr(.5), 1.2);
+  texto('DRIPPER · FILTRO · BLOOM · VERTIDO · EXTRACCIÓN', M + 30, H - M - 52, '400 17px "IBM Plex Mono"', cr(.65));
+  texto('AVERARQ.CL', W - M - 28, H - M - 50, '600 26px "Barlow Condensed"', OR, 'right');
+  texto('Detalle referencial.', W / 2, H - 22, '400 15px "IBM Plex Mono"', cr(.5), 'center');
+}
+window.renderPortada = renderPortada;
+window.DUR = DUR;
+window.PORTADA = 18.6; // café servido
+window.render = render;
+window.ready = (async () => {
+  for (const f of ['400 20px Barlow', '700 20px "Barlow Condensed"', '600 20px "Barlow Condensed"', '400 20px "IBM Plex Mono"', '500 20px "IBM Plex Mono"'])
+    await document.fonts.load(f, 'ÁÑáñ±−Ø×≈');
+  await LOGOTIPO.decode();
+  render(0); return true;
+})();
+</script>
+</body>
+</html>

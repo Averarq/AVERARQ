@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<title>V1 · Del render a la obra</title>
+<link rel="stylesheet" href="../fonts/fonts.css">
+<link rel="stylesheet" href="motor.css">
+<style>
+  #s1{background:var(--oscuro)}
+  #s4{background:var(--naranjo)}
+  .obra .marco{inset:0}
+  .barra{position:absolute;left:0;right:0;height:14px;background:var(--naranjo)}
+  .mitad{position:absolute;left:0;width:1080px;height:940px}
+  .mitad .etiqueta{position:absolute;left:60px}
+</style>
+</head><body>
+
+<!-- 1 · Render -->
+<div class="escena" id="s1">
+  <div class="abs" style="left:80px;top:280px"><span class="chip" id="s1chip">Casa La Colonia · Catemu</span></div>
+  <div class="abs h1" id="s1h" style="left:80px;top:400px;font-size:150px">Así la<br><span class="o">dibujamos.</span></div>
+  <div class="marco" id="s1m" style="left:0;top:760px;width:1080px;height:640px"><img id="s1img" src="../img/v-lc-render-exterior.jpg"></div>
+  <div class="abs small" id="s1c" style="left:80px;top:1430px;opacity:.75">Render del proyecto · 138 m²</div>
+</div>
+
+<!-- 2 · Obra -->
+<div class="escena obra" id="s2">
+  <div class="marco" id="f1"><img src="../img/v-lc-obra-1-muros.jpg"></div>
+  <div class="marco" id="f2"><img src="../img/v-lc-obra-2-cadenas.jpg"></div>
+  <div class="marco" id="f3"><img src="../img/v-lc-obra-3-cerchas.jpg"></div>
+  <div class="marco" id="f4"><img src="../img/v-lc-obra-4-cubierta.jpg" style="object-position:center 70%"></div>
+  <div class="barra" id="s2barra"></div>
+  <div class="sombra-arriba"></div>
+  <div class="abs h1" id="s2h" style="left:80px;top:270px;font-size:124px">Así la estamos<br><span class="o">construyendo.</span></div>
+  <div class="abs" id="s2e" style="left:80px;top:1290px"><span class="etiqueta" id="s2et"></span></div>
+</div>
+
+<!-- 3 · Render vs obra -->
+<div class="escena" id="s3">
+  <div class="mitad marco" id="s3a" style="top:0"><img src="../img/v-lc-render-interior.jpg" style="object-position:40% center"></div>
+  <div class="mitad marco" id="s3b" style="top:980px"><img src="../img/v-lc-obra-4-cubierta.jpg" style="object-position:center 58%"></div>
+  <div class="abs" id="s3la" style="left:60px;top:300px"><span class="etiqueta">Render</span></div>
+  <div class="abs" id="s3lb" style="left:60px;top:1030px"><span class="etiqueta"><b>Obra</b> · nov 2025</span></div>
+  <div class="abs" id="s3band" style="left:0;top:880px;width:1080px;height:200px;background:var(--naranjo);display:flex;align-items:center;padding-left:80px">
+    <div class="h1" style="font-size:96px">Del render a la obra.</div>
+  </div>
+</div>
+
+<!-- 4 · Cierre -->
+<div class="escena" id="s4">
+  <div class="abs brand blanco" id="s4b" style="left:80px;top:280px">
+    <svg viewBox="41.6 33.0 21.9 25.4"><path fill="currentColor" d="M 57.574219 52.507812 L 46.25 52.507812 L 51.9375 38.394531 L 53.53125 42.492188 L 56.828125 42.492188 L 53.164062 33.398438 L 50.796875 33.398438 L 41.816406 55.308594 L 45.125 55.304688 L 58.695312 55.304688 L 59.8125 58.101562 L 63.183594 58.101562 L 60.898438 52.464844 Z"/></svg>
+    <img src="../img/wordmark-blanco.png" alt="AVERARQ">
+  </div>
+  <div class="abs h1" id="s4h" style="left:80px;top:470px;font-size:150px">¿Tienes<br>la parcela?<br>Conversemos.</div>
+  <div class="abs p" id="s4p" style="left:80px;top:990px;width:900px">Diseño, permiso e inspección de obra hasta la recepción final.</div>
+  <div class="abs" id="s4w" style="left:80px;top:1190px"><span class="wsp">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#111110" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/></svg>
+    +56 9 5431 7945</span></div>
+  <div class="abs h2" id="s4u" style="left:80px;top:1360px;font-size:44px;letter-spacing:.06em">averarq.cl</div>
+</div>
+
+<script src="motor.js"></script>
+<script>
+DURACION = 16.5;
+PORTADA = 5.2;
+
+var FOTOS = [
+  ['#f1', 'Oct 2025 · <b>Muros de albañilería</b>'],
+  ['#f2', 'Oct 2025 · <b>Cadenas y moldajes</b>'],
+  ['#f3', 'Nov 2025 · <b>Cerchas de techumbre</b>'],
+  ['#f4', 'Nov 2025 · <b>Techumbre</b>']
+];
+var T2 = 3.4, PASO = 1.9, T3 = T2 + FOTOS.length * PASO, T4 = T3 + 2.8;
+
+frame = function (t) {
+  // 1 · render
+  if (escena('#s1', t, 0, T2)) {
+    sube('#s1chip', t, 0.05, 0.4, 30);
+    sube('#s1h', t, 0.2, 0.6);
+    var k = ease.inOut(p(t, 0.35, 1.2));
+    $('#s1m').style.clipPath = 'inset(0 ' + (100 - k * 100) + '% 0 0)';
+    kb('#s1img', t, 0, T2, 1.0, 1.12, 0, -40);
+    sube('#s1c', t, 1.0, 0.4, 20);
+  }
+
+  // 2 · obra: cada foto entra desde abajo con una barra naranja al frente
+  if (escena('#s2', t, T2, T3)) {
+    var barraY = 2000;
+    FOTOS.forEach(function (f, i) {
+      var a = T2 + i * PASO;
+      var el = $(f[0]);
+      el.style.display = t >= a ? '' : 'none';
+      var k = i === 0 ? 1 : ease.inOut(p(t, a, a + 0.45));
+      el.style.clipPath = 'inset(' + ((1 - k) * 100) + '% 0 0 0)';
+      if (k > 0 && k < 1) barraY = (1 - k) * 1920 - 7;
+      kb(el.querySelector('img'), t, a, a + PASO + 0.45, 1.14, 1.0, 0, 0, 30, 0);
+      if (t >= a) $('#s2et').innerHTML = f[1];
+    });
+    $('#s2barra').style.top = barraY + 'px';
+    sube('#s2h', t, T2 + 0.1, 0.5);
+    var ke = ease.out(p((t - T2) % PASO, 0.15, 0.55));
+    $('#s2e').style.opacity = ke;
+    $('#s2e').style.transform = 'translateX(' + ((1 - ke) * -40) + 'px)';
+  }
+
+  // 3 · render vs obra
+  if (escena('#s3', t, T3, T4)) {
+    var ka = ease.out(p(t, T3, T3 + 0.5)), kb2 = ease.out(p(t, T3 + 0.15, T3 + 0.65));
+    $('#s3a').style.transform = 'translateX(' + ((1 - ka) * -1080) + 'px)';
+    $('#s3b').style.transform = 'translateX(' + ((1 - kb2) * 1080) + 'px)';
+    kb($('#s3a img'), t, T3, T4, 1.06, 1.0);
+    kb($('#s3b img'), t, T3, T4, 1.06, 1.0);
+    sube('#s3la', t, T3 + 0.5, 0.3, 20);
+    sube('#s3lb', t, T3 + 0.6, 0.3, 20);
+    var kband = ease.out(p(t, T3 + 0.75, T3 + 1.15));
+    $('#s3band').style.clipPath = 'inset(0 ' + (100 - kband * 100) + '% 0 0)';
+  }
+
+  // 4 · cierre
+  if (escena('#s4', t, T4, 99)) {
+    sube('#s4b', t, T4 + 0.05, 0.4, 30);
+    sube('#s4h', t, T4 + 0.15, 0.5);
+    sube('#s4p', t, T4 + 0.45, 0.4, 30);
+    sube('#s4w', t, T4 + 0.65, 0.4, 30);
+    var pulso = 1 + 0.035 * Math.max(0, Math.sin((t - T4 - 1.2) * 5));
+    $('#s4w').style.transform += ' scale(' + (t > T4 + 1.2 ? pulso : 1) + ')';
+    $('#s4w').style.transformOrigin = 'left center';
+    sube('#s4u', t, T4 + 0.8, 0.4, 20);
+  }
+};
+</script>
+</body></html>

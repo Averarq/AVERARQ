@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<title>V6 · Tu negocio en tu terreno</title>
+<link rel="stylesheet" href="../fonts/fonts.css">
+<link rel="stylesheet" href="motor.css">
+<style>
+  /* Tomas de dron de un centro de eventos, usadas solo como imagen: el video no nombra el recinto. */
+  .full{position:absolute;inset:0}
+  .full img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .difuso{position:absolute;inset:-80px;width:calc(100% + 160px);height:calc(100% + 160px);object-fit:cover;filter:blur(38px) brightness(.5) saturate(1.1)}
+  .franja{position:absolute;left:0;top:640px;width:1080px;height:720px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+  .franja img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .linea{display:block}
+  .pasos{display:flex;gap:14px}
+  .pasos span{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:50px;letter-spacing:.08em;text-transform:uppercase;
+    padding:16px 26px 14px;background:rgba(17,17,16,.88);color:#fff}
+  .pasos span b{color:var(--naranjo);font-weight:600}
+</style>
+</head><body>
+
+<!-- 1 · El valle: la pregunta -->
+<div class="escena" id="s1">
+  <div class="full"><img id="s1v" alt=""></div>
+  <div class="grano"></div><div class="vineta"></div>
+  <div class="sombra-arriba" style="height:900px;background:linear-gradient(180deg,rgba(17,17,16,.88),rgba(17,17,16,.5) 55%,rgba(17,17,16,0))"></div>
+  <div class="abs h1" id="s1h" style="left:80px;top:300px;font-size:124px"><span class="linea">¿Tienes un terreno</span><span class="linea o">y una idea</span><span class="linea o">de negocio?</span></div>
+</div>
+
+<!-- 2 · Qué puede ser -->
+<div class="escena" id="s2">
+  <div class="full"><img id="s2v" alt=""></div>
+  <div class="grano"></div><div class="vineta"></div>
+  <div class="sombra-arriba" style="height:900px;background:linear-gradient(180deg,rgba(17,17,16,.88),rgba(17,17,16,.5) 55%,rgba(17,17,16,0))"></div>
+  <div class="abs h1" id="s2h" style="left:80px;top:250px;font-size:104px">
+    <span class="linea" id="w1">Un centro de eventos.</span>
+    <span class="linea" id="w2">Un restorán.</span>
+    <span class="linea o" id="w3">Una cafetería.</span>
+  </div>
+</div>
+
+<!-- 3 · Pensado para ti -->
+<div class="escena" id="s3">
+  <div class="full"><img id="s3v" alt=""></div>
+  <div class="grano"></div><div class="vineta"></div>
+  <div class="sombra-arriba" style="height:900px;background:linear-gradient(180deg,rgba(17,17,16,.88),rgba(17,17,16,.5) 55%,rgba(17,17,16,0))"></div>
+  <div class="abs h1" id="s3h" style="left:80px;top:300px;font-size:104px">Pensado para tu terreno<br><span class="o">y tu público.</span></div>
+</div>
+
+<!-- 4 · La experiencia -->
+<div class="escena" id="s4">
+  <div class="full"><img id="s4v" alt=""></div>
+  <div class="grano"></div><div class="vineta"></div>
+  <div class="sombra-arriba" style="height:900px;background:linear-gradient(180deg,rgba(17,17,16,.88),rgba(17,17,16,.5) 55%,rgba(17,17,16,0))"></div>
+  <div class="abs h1" id="s4h" style="left:80px;top:300px;font-size:104px">Espacios que la gente<br><span class="o">quiere vivir.</span></div>
+</div>
+
+<!-- 5 · El camino (la toma se aleja hasta mostrar el recinto completo) -->
+<div class="escena" id="s5">
+  <div class="sombra-abajo" style="height:700px"></div>
+  <div class="full"><img id="s5v" alt=""></div>
+  <div class="grano"></div><div class="vineta"></div>
+  <div class="sombra-arriba" style="height:900px;background:linear-gradient(180deg,rgba(17,17,16,.88),rgba(17,17,16,.5) 55%,rgba(17,17,16,0))"></div>
+  <div class="abs h1" id="s5h" style="left:80px;top:250px;font-size:104px">¿No sabes por<br><span class="o">dónde empezar?</span></div>
+  <div class="abs pasos" id="s5p" style="left:80px;top:1400px">
+    <span id="p1"><b>1</b> Diseño</span><span id="p2"><b>2</b> Permisos</span><span id="p3"><b>3</b> Obra</span>
+  </div>
+</div>
+
+<!-- 6 · Cierre -->
+<div class="escena" id="s6" style="background:var(--oscuro)">
+  <img id="s6f" class="difuso" alt="" style="filter:blur(30px) brightness(.35) saturate(1.1)">
+  <div class="grano"></div><div class="vineta"></div>
+  <div class="abs brand" id="s6b" style="left:80px;top:280px">
+    <svg viewBox="41.6 33.0 21.9 25.4"><path fill="currentColor" d="M 57.574219 52.507812 L 46.25 52.507812 L 51.9375 38.394531 L 53.53125 42.492188 L 56.828125 42.492188 L 53.164062 33.398438 L 50.796875 33.398438 L 41.816406 55.308594 L 45.125 55.304688 L 58.695312 55.304688 L 59.8125 58.101562 L 63.183594 58.101562 L 60.898438 52.464844 Z"/></svg>
+    <img src="../img/wordmark-blanco.png" alt="AVERARQ">
+  </div>
+  <div class="abs h1" id="s6h" style="left:80px;top:470px;font-size:128px">Tú pones<br>la idea.<br><span class="o">Nosotros la<br>materializamos.</span></div>
+  <div class="abs p" id="s6p" style="left:80px;top:1070px;width:900px">Diseño, permisos y construcción.</div>
+  <div class="abs" id="s6w" style="left:80px;top:1260px"><span class="wsp naranjo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/></svg>
+    +56 9 5431 7945</span></div>
+  <div class="abs h2" id="s6u" style="left:80px;top:1420px;font-size:44px;letter-spacing:.06em">averarq.cl</div>
+</div>
+
+<script src="motor.js"></script>
+<script>
+DURACION = 26;
+PORTADA = 2.6;
+AUDIO = '../musica/V5-musica.wav';
+// mismos cortes que V5 (compases de 2 s a 120 BPM): calza con cualquiera de sus tres músicas.
+// Todo en vertical a pantalla completa; el cenital termina de revelar el recinto cuando cae el 808 (21,0 s).
+var T2 = 4, T3 = 8, T4 = 12, T5 = 16, T6 = 22;
+
+function plano(pre, carpeta, n, t, a, espera) {
+  espera.push(secuencia(pre + 'v', carpeta, n, t, a));
+}
+
+frame = function (t) {
+  var espera = [];
+  grano(t);
+
+  if (escena('#s1', t, 0, T2)) {
+    espera.push(secuencia('#s1v', 'rb-valle', 120, t, 0));
+    $$('#s1h .linea').forEach(function (l, i) { sube(l, t, 0.2 + i * 0.35, 0.5); });
+  }
+
+  if (escena('#s2', t, T2, T3)) {
+    plano('#s2', 'rb-orbita', 120, t, T2, espera);
+    ['#w1', '#w2', '#w3'].forEach(function (id, i) { sube(id, t, T2 + 0.25 + i * 0.75, 0.4, 40); });
+  }
+
+  if (escena('#s3', t, T3, T4)) {
+    if (t < T3 + 2) plano('#s3', 'rb-piscina', 60, t, T3, espera); else plano('#s3', 'rb-terraza', 60, t, T3 + 2, espera);
+    sube('#s3h', t, T3 + 0.25, 0.5);
+  }
+
+  if (escena('#s4', t, T4, T5)) {
+    if (t < T4 + 2) plano('#s4', 'rb-vitral', 60, t, T4, espera); else plano('#s4', 'rb-salon', 60, t, T4 + 2, espera);
+    sube('#s4h', t, T4 + 0.25, 0.5);
+  }
+
+  if (escena('#s5', t, T5, T6)) {
+    plano('#s5', 'rb-cenital', 180, t, T5, espera);
+    sube('#s5h', t, T5 + 0.25, 0.5);
+    ['#p1', '#p2', '#p3'].forEach(function (id, i) { sube(id, t, T5 + 1.2 + i * 0.35, 0.35, 30); });   // quedan ~4 s en pantalla
+  }
+
+  if (escena('#s6', t, T6, 99)) {
+    espera.push(secuencia('#s6f', 'rb-cenital', 180, 99, 0));
+    sube('#s6b', t, T6 + 0.05, 0.4, 30);
+    sube('#s6h', t, T6 + 0.15, 0.5);
+    sube('#s6p', t, T6 + 0.45, 0.4, 30);
+    sube('#s6w', t, T6 + 0.65, 0.4, 30);
+    if (t > T6 + 1.2) {
+      $('#s6w').style.transform = 'scale(' + (1 + 0.035 * Math.max(0, Math.sin((t - T6 - 1.2) * 5))) + ')';
+      $('#s6w').style.transformOrigin = 'left center';
+    }
+    sube('#s6u', t, T6 + 0.8, 0.4, 20);
+  }
+
+  return Promise.all(espera);
+};
+</script>
+</body></html>
