@@ -238,8 +238,8 @@ const N = ET.length - 1, T_RES = 9.0, T_CP = 11.8;
 const hl = e => t => t < ET[e].t0 ? 0 : t < ET[e].t1 ? 1 : 1 - clamp((t - ET[e].t1) / 0.9);
 
 // ------------------------------------------------------------------ geometría (mm): tazas de vidrio de doble pared (forma de barril)
-const AME = { ox: -55, oy: -55, R: 46, H: 96, liq: 74, crema: 2, et: 3, ml: '+240 ml AMERICANO' };
-const ESP = { ox: 82, oy: 82, R: 32, H: 66, liq: 40, crema: 5, et: 2, ml: '+30 ml ESPRESSO' };
+const AME = { ox: -62, oy: -62, R: 46, H: 96, liq: 74, crema: 2, et: 3, ml: '+240 ml AMERICANO' };
+const ESP = { ox: 108, oy: 108, R: 32, H: 66, liq: 40, crema: 5, et: 2, ml: '+30 ml ESPRESSO' };
 for (const T of [AME, ESP]) { T.zb = T.H * .2; T.Ri = T.R * .86; }
 const BB = [AME.ox - AME.R * 1.6, ESP.ox + ESP.R * 1.6, AME.oy - AME.R * 1.6, ESP.oy + ESP.R * 1.6, -4, AME.H + 75];
 const ro = (T, z) => T.R * (0.83 + 0.17 * Math.sin(Math.PI * (clamp(z / T.H) * .86 + .06)));            // pared exterior
@@ -329,7 +329,7 @@ function escena(t) {
   vapor(AME, t, 0); vapor(ESP, t, 1.7);
   if (!ROT || !AME.roZ) return;
   const nv = (d) => clamp((t - d) / 0.6), izq = (T, z, r) => [T.ox - .7071 * r, T.oy + .7071 * r, z];
-  g.save(); g.globalAlpha = nv(2.6); nivel(izq(AME, 0, AME.roZ(0)), '±0 ml · LUNES 8:00', 40); g.restore();
+  g.save(); g.globalAlpha = nv(2.6); nivel(izq(AME, 0, AME.roZ(0)), '±0 ml', 40); g.restore();
   g.save(); g.globalAlpha = nv(ET[3].t1 - 0.4); nivel(izq(AME, AME.z0 + AME.nK, ri(AME, AME.nK)), AME.ml, 60); g.restore();
   if (ESP.roZ) { // nivel del espresso hacia la derecha
     g.save(); g.globalAlpha = nv(ET[2].t1 - 0.4);
