@@ -30,18 +30,16 @@ window.ready = (async () => {
   const dy = R ? 90 : 0;
   isotipo(M + 30, 62 + dy, 34, OR);
   const hL = 28; g.drawImage(logo, M + 76, 64 + dy, hL * logo.naturalWidth / logo.naturalHeight, hL);
-  texto('1 DE OCTUBRE · DÍA DEL CAFÉ', W - M - 28, 88 + dy, '500 17px "IBM Plex Mono"', OR, 'right');
-  texto('ASÍ PREPARAMOS', M + 28, 208 + dy, '700 84px "Barlow Condensed"', CR);
-  texto('EN AVERARQ:', M + 28, 290 + dy, '700 84px "Barlow Condensed"', CR);
-  texto('EL CAFÉ.', M + 24, 420 + dy, '700 132px "Barlow Condensed"', OR);
-  g.fillStyle = OR; g.fillRect(M + 30, 452 + dy, 110, 6);
-  texto('Cuatro métodos,', M + 30, 506 + dy, '400 28px "Barlow"', cr(.85));
-  texto('cuatro detalles constructivos.', M + 30, 542 + dy, '400 28px "Barlow"', cr(.85));
-  // sello
-  g.font = '700 44px "Barlow Condensed"'; const wS = g.measureText('¡FELIZ DÍA DEL CAFÉ!').width + 40;
-  if (R) { g.fillStyle = OR; g.fillRect(M + 30, 580 + dy, wS, 62); texto('¡FELIZ DÍA DEL CAFÉ!', M + 50, 626 + dy, '700 44px "Barlow Condensed"', '#fff'); }
+  texto('1 DE OCTUBRE', W - M - 28, 88 + dy, '500 17px "IBM Plex Mono"', OR, 'right');
+  // titular: Feliz Día del Café
+  const cx = W / 2, yT = R ? 380 : 230;
+  texto('FELIZ DÍA', cx, yT, `700 ${R ? 150 : 120}px "Barlow Condensed"`, CR, 'center');
+  texto('DEL CAFÉ', cx, yT + (R ? 150 : 118), `700 ${R ? 150 : 120}px "Barlow Condensed"`, OR, 'center');
+  g.fillStyle = OR; g.fillRect(cx - 55, yT + (R ? 185 : 148), 110, 6);
+  texto('Así lo preparamos en AVERARQ:', cx, yT + (R ? 245 : 196), `400 ${R ? 30 : 26}px "Barlow"`, cr(.85), 'center');
+  texto('cuatro métodos, cuatro detalles constructivos.', cx, yT + (R ? 285 : 230), `400 ${R ? 30 : 26}px "Barlow"`, cr(.85), 'center');
   // grilla 2 × 2 con los cuatro métodos
-  const y0 = R ? 790 : 590, y1 = H - M - 120, x0 = M + 20, x1 = W - M - 20, cw = (x1 - x0) / 2, ch = (y1 - y0) / 2;
+  const y0 = R ? 730 : 480, y1 = H - M - 120, x0 = M + 20, x1 = W - M - 20, cw = (x1 - x0) / 2, ch = (y1 - y0) / 2;
   const nom = ['01 · V60', '02 · ESPRESSO', '03 · PRENSA FRANCESA', '04 · TAZAS'];
   dib.forEach((im, i) => {
     const cx = x0 + (i % 2) * cw, cy = y0 + Math.floor(i / 2) * ch, bw = cw - 30, bh = ch - 60;
