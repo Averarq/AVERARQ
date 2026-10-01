@@ -269,7 +269,7 @@ let CAM_FIJA = null, ROT = true;
 function camara(t) {
   if (CAM_FIJA) { Object.assign(cam, CAM_FIJA); return; }
   Object.assign(cam, encuadre(BB, [M, TOP, W - M, CAJ], REEL ? [40, 30] : [90, 20]));
-  cam.s *= REEL ? 1.55 : 1.15; cam.cx += REEL ? -30 : -20; cam.cy += REEL ? 70 : 30;
+  cam.s *= REEL ? 1.38 : 1.15; cam.cx += REEL ? -120 : -20; cam.cy += REEL ? 120 : 30;
 }
 
 // ------------------------------------------------------------------ escena

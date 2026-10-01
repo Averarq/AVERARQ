@@ -31,6 +31,8 @@ const iEsc = args.indexOf('--escala');
 const iPz = args.indexOf('--pieza');
 const PIEZA = iPz >= 0 ? args[iPz + 1] : 'albanileria-confinada';
 const S = iEsc >= 0 ? +args[iEsc + 1] : (fotos ? 1 : 2);
+const arg = n => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : null; };
+const DESDE = +(arg('--desde') ?? 0), HASTA = arg('--hasta'), SALIDA = arg('--salida'); // tramo, para armar compilados
 
 const browser = await pw.chromium.launch();
 const page = await browser.newPage({ viewport: { width: W * S, height: H * S }, deviceScaleFactor: 1 });
@@ -50,8 +52,8 @@ if (fotos) {
 }
 
 const dur = await page.evaluate(() => window.DUR);
-const feed = join(aqui, '..', `${PIEZA}-${FMT}.mp4`);
-const maestro = join(aqui, '..', `${PIEZA}-${FMT}-${W * S}.mp4`);
+const feed = SALIDA ? SALIDA : join(aqui, '..', `${PIEZA}-${FMT}.mp4`);
+const maestro = SALIDA ? SALIDA.replace(/\.mp4$/, `-${W * S}.mp4`) : join(aqui, '..', `${PIEZA}-${FMT}-${W * S}.mp4`);
 const x264 = ['-c:v', 'libx264', '-preset', 'slow', '-tune', 'animation', '-pix_fmt', 'yuv420p', '-movflags', '+faststart'];
 const salidas = S > 1
   ? ['-filter_complex', `[0:v]split=2[a][b];[b]scale=${W}:${H}:flags=lanczos[f]`,
@@ -60,9 +62,9 @@ const salidas = S > 1
   : [...x264, '-crf', '14', feed];
 const ff = spawn(ffmpeg, ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-i', '-', ...salidas],
   { stdio: ['pipe', 'inherit', 'inherit'] });
-const total = Math.round(dur * FPS);
+const fin = HASTA != null ? +HASTA : dur, total = Math.round((fin - DESDE) * FPS);
 for (let f = 0; f < total; f++) {
-  await page.evaluate(t => window.render(t), f / FPS);
+  await page.evaluate(t => window.render(t), DESDE + f / FPS);
   const buf = await lienzo.screenshot({ type: 'png' });
   if (!ff.stdin.write(buf)) await new Promise(r => ff.stdin.once('drain', r));
   if (f % 90 === 0) console.log(`cuadro ${f}/${total}`);
@@ -70,7 +72,7 @@ for (let f = 0; f < total; f++) {
 ff.stdin.end();
 await new Promise(r => ff.on('close', r));
 // portada (cuadro final del detalle, antes de la contraportada) para usar como miniatura
-if (!REEL) { // la portada del reel se genera aparte con portada-post.mjs
+if (!REEL && !SALIDA) { // la portada del reel se genera aparte con portada-post.mjs
   await page.evaluate(() => window.render(window.PORTADA));
   await lienzo.screenshot({ path: join(aqui, '..', `${PIEZA}-portada.jpg`), type: 'jpeg', quality: 95 });
 }
