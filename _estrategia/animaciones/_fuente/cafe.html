@@ -230,95 +230,92 @@ function rotulo(txt, p, d, act) { // texto con recuadro y guía
 // ------------------------------------------------------------------ guion
 const ET = [
   null,
-  { n: '01', t0: 1.2, t1: 3.4, tit: 'Tazas', txt: 'Loza cerámica de pared gruesa: aislación térmica natural.', spec: 'ESPRESSO Ø 60 · AMERICANO Ø 90 mm' },
+  { n: '01', t0: 1.2, t1: 3.4, tit: 'Tazas de doble pared', txt: 'Vidrio con cámara de aire entre dos paredes: aislación térmica, como un buen muro.', spec: 'VIDRIO BOROSILICATO · DOBLE PARED' },
   { n: '02', t0: 3.4, t1: 6.0, tit: 'Espresso', txt: 'Extracción corta e intensa, con crema: la base estructural de la jornada.', spec: 'ESPRESSO · 30 ml · 25 s' },
   { n: '03', t0: 6.0, t1: 8.6, tit: 'Americano', txt: 'Espresso alargado con agua caliente: el que acompaña las horas de dibujo.', spec: 'AMERICANO · 240 ml' },
 ];
 const N = ET.length - 1, T_RES = 9.0, T_CP = 11.8;
 const hl = e => t => t < ET[e].t0 ? 0 : t < ET[e].t1 ? 1 : 1 - clamp((t - ET[e].t1) / 0.9);
 
-// ------------------------------------------------------------------ geometría (mm): dos tazas con un cuarto cortado para ver el interior
-const AME = { ox: -62, oy: -62, R: 45, r: 39, H: 100, F: 8, plato: 76, liq: 80, crema: 2, oreja: [28, 82, 56], et: 3, ml: '+240 ml AMERICANO' };
-const ESP = { ox: 72, oy: 72, R: 30, r: 25, H: 56, F: 7, plato: 54, liq: 34, crema: 6, oreja: [18, 46, 30], et: 2, ml: '+30 ml ESPRESSO' };
-const BB = [AME.ox - AME.plato, ESP.ox + ESP.plato, AME.oy - AME.plato, ESP.oy + ESP.plato, -8, AME.H + 75];
-const LOZA = { luz: '#ebe9e3', sombra: '#8f8d88' };
-let OX = 0, OY = 0;                                                                  // origen de la taza que se está dibujando
-const arco = (a, b, rad, z, n = 48) => { const p = []; for (let i = 0; i <= n; i++) { const th = (a + (b - a) * i / n) * Math.PI / 180; p.push(P(OX + rad * Math.cos(th), OY + rad * Math.sin(th), z)); } return p; };
+// ------------------------------------------------------------------ geometría (mm): tazas de vidrio de doble pared (forma de barril)
+const AME = { ox: -55, oy: -55, R: 46, H: 96, liq: 74, crema: 2, et: 3, ml: '+240 ml AMERICANO' };
+const ESP = { ox: 82, oy: 82, R: 32, H: 66, liq: 40, crema: 5, et: 2, ml: '+30 ml ESPRESSO' };
+for (const T of [AME, ESP]) { T.zb = T.H * .2; T.Ri = T.R * .86; }
+const BB = [AME.ox - AME.R * 1.6, ESP.ox + ESP.R * 1.6, AME.oy - AME.R * 1.6, ESP.oy + ESP.R * 1.6, -4, AME.H + 75];
+const ro = (T, z) => T.R * (0.83 + 0.17 * Math.sin(Math.PI * (clamp(z / T.H) * .86 + .06)));            // pared exterior
+const ri = (T, z) => { const u = clamp((z - T.zb) / (T.H * .42)); return Math.min(T.Ri, ro(T, z) - 3.2) * Math.sqrt(1 - (1 - u) * (1 - u)); }; // pared interior (fondo redondeado)
+const A = r => 1.2247 * r * cam.s, Bv = r => 0.7071 * r * cam.s;                    // semiejes de la elipse isométrica de un círculo
+let OX = 0, OY = 0;
+const C = z => P(OX, OY, z);
 const hex = c => c.startsWith('#') ? c : '#' + c.match(/\d+/g).map(v => (+v).toString(16).padStart(2, '0')).join('');
-const luzLoza = th => mezcla(LOZA.sombra, LOZA.luz, clamp(0.5 + 0.5 * Math.cos((th - 60) * Math.PI / 180)));
-function manto(a, b, rad, z0, z1, h = 0, interior = false) {
-  const k = K(), n = Math.max(2, Math.round(Math.abs(b - a) / 4));
-  for (let i = 0; i < n; i++) {
-    const t0 = a + (b - a) * i / n, t1 = a + (b - a) * (i + 1) / n, tm = (t0 + t1) / 2;
-    let c = hex(luzLoza(interior ? tm + 180 : tm));
-    if (interior) c = hex(mezcla(c, '#2a2826', .35));
-    if (h > 0) c = mezcla(c, OR, .45 * h);
-    poli([...arco(t0, t1, rad, z0, 1), ...arco(t1, t0, rad, z1, 1)], c, c, .6);
-  }
-  poli([...arco(a, b, rad, z0), ...arco(b, a, rad, z1)], null, h > 0 ? mezcla('#F2F0EB', OR, h) : cr(.85), 1.2 * k);
-}
-function corte(eje, u0, u1, z0, z1, fill, o = {}) {
-  const k = K(), Q = (u, z) => eje === 'y' ? P(OX, OY + u, z) : P(OX + u, OY, z);
-  poli([Q(u0, z0), Q(u1, z0), Q(u1, z1), Q(u0, z1)], fill, o.trazo ?? (o.h > 0 ? mezcla('#F2F0EB', OR, o.h) : CR), (o.lw ?? 1.4) * k, o.pat, o.patA ?? 1);
+function elipse(z, r, a0 = 0, a1 = Math.PI * 2) { const [cx, cy] = C(z); const p = []; for (let i = 0; i <= 48; i++) { const a = a0 + (a1 - a0) * i / 48; p.push([cx + A(r) * Math.cos(a), cy + Bv(r) * Math.sin(a)]); } return p; }
+// silueta de un sólido de revolución r(z) entre z0 y z1 (lado derecho subiendo, tapa, lado izquierdo bajando, base delantera)
+function silueta(rf, z0, z1, n = 40) {
+  const der = [], izq = [];
+  for (let i = 0; i <= n; i++) { const z = z0 + (z1 - z0) * i / n, [cx, cy] = C(z), r = rf(z); der.push([cx + A(r), cy]); izq.push([cx - A(r), cy]); }
+  const tapa = elipse(z1, rf(z1), 0, -Math.PI), base = elipse(z0, rf(z0), Math.PI, 0);
+  return [...der, ...tapa, ...izq.reverse(), ...base];
 }
 let CAM_FIJA = null, ROT = true;
 function camara(t) {
   if (CAM_FIJA) { Object.assign(cam, CAM_FIJA); return; }
   Object.assign(cam, encuadre(BB, [M, TOP, W - M, CAJ], REEL ? [70, 30] : [110, 20]));
-  cam.s *= REEL ? 1.6 : 1.12; cam.cx += REEL ? 90 : 50; cam.cy += REEL ? 30 : -15;
+  cam.s *= REEL ? 1.42 : 1.05; cam.cx += REEL ? 60 : 40; cam.cy += REEL ? 20 : -10;
   const k = ease((t - 0.2) / 3.0); cam.s *= lerp(1.08, 1.0, k);
 }
-// ------------------------------------------------------------------ una taza
+// ------------------------------------------------------------------ una taza de vidrio
 function taza(T, t) {
   OX = T.ox; OY = T.oy;
-  const h = e => hl(e)(t), k = K(), { R, r, H, F } = T;
+  const h = e => hl(e)(t), k = K(), hT = h(1);
   const pa = easeOut((t - ET[1].t0 + 0.9 - (T === ESP ? 0.4 : 0)) / 1.2), dz = (1 - pa) * 40;
   if (pa <= 0) return;
+  OY = T.oy; const z0 = dz, roZ = z => ro(T, z - z0), riZ = z => ri(T, z - z0), H1 = T.H + z0;
+  const trazo = hT > 0 ? mezcla('#F2F0EB', OR, hT) : CR;
   g.save(); g.globalAlpha *= clamp(pa * 2);
-  const zP = -6 + dz * 0.4;
-  poli([...arco(-45, 135, T.plato, zP - 4), ...arco(135, -45, T.plato, zP + 2)], hex(luzLoza(40)), cr(.8), 1.1 * k);
-  poli(arco(0, 360, T.plato, zP + 2, 96), '#d9d7d1', cr(.85), 1.2 * k);
-  poli(arco(0, 360, R + 6, zP + 2, 72), '#c9c7c1', cr(.35), 1 * k);
-  const z0 = dz, H1 = H + dz, hT = h(1);
-  manto(135, 315, r, z0 + F, H1, hT, true);
-  poli([P(OX, OY, z0 + F), ...arco(90, 360, r, z0 + F)], '#6d6b67', cr(.4), 1 * k);
+  // sombra suave y pared trasera del vidrio
+  poli(elipse(z0, roZ(z0) * 1.15), 'rgba(0,0,0,0.25)', null, 0);
+  const asa = []; const th = -30 * Math.PI / 180;
+  for (let i = 0; i <= 30; i++) { const s = i / 30, z = z0 + T.H * (.8 - .55 * s), d = roZ(z) - 3 + T.R * .62 * Math.sin(Math.PI * s); asa.push(P(OX + d * Math.cos(th), OY + d * Math.sin(th), z)); }
   g.restore();
-  // líquido: sube durante su paso; la crema se forma al final
+  // líquido (sube durante su paso; la crema se forma al final)
   const pe = T.et, pl = ease((t - ET[pe].t0 - 0.2) / 1.8), pc = ease((t - ET[pe].t0 - 1.7) / 0.8);
-  const nC = lerp(F, T.liq, pl), nK = nC + T.crema * pc, hay = pl > 0;
-  if (hay) poli([P(OX, OY, z0 + nK), ...arco(90, 360, r, z0 + nK)], pc > 0 ? mezcla('#b27a42', OR, .5 * h(pe)) : mezcla('#3a2416', OR, .35 * h(pe)), cr(.55), 1 * k);
-  g.save(); g.globalAlpha *= clamp(pa * 2);
-  manto(90, 135, R, z0, H1, hT);
-  manto(315, 360, R, z0, H1, hT);
-  const th = -32 * Math.PI / 180, [od, oz, oh] = T.oreja, oreja = [];
-  for (let i = 0; i <= 24; i++) { const s = i / 24, d = R - 2 + od * Math.sin(Math.PI * s), z = z0 + oz - oh * s; oreja.push(P(OX + d * Math.cos(th), OY + d * Math.sin(th), z)); }
-  for (const [w, c] of [[R / 3.5 + 2.5, hT > 0 ? OR : CR], [R / 3.5, hex(luzLoza(-20))]]) {
-    g.beginPath(); oreja.forEach((p, i) => i ? g.lineTo(...p) : g.moveTo(...p)); g.lineWidth = w * cam.s * .9; g.strokeStyle = c; g.lineCap = 'round'; g.stroke();
-  }
-  const loza = hex(mezcla(hex(luzLoza(20)), '#b8b6b0', .3));
-  for (const eje of ['y', 'x']) {
-    corte(eje, 0, R, z0, z0 + F, loza, { h: hT, pat: PAT.corte, patA: .35 });
-    corte(eje, r, R, z0 + F, H1, loza, { h: hT, pat: PAT.corte, patA: .35 });
-  }
-  g.restore();
-  for (const eje of ['y', 'x']) {
-    if (hay) corte(eje, 0, r, z0 + F, z0 + nC, mezcla('#2e1c11', OR, .35 * h(pe)), { h: h(pe), lw: 1.1, trazo: cr(.55) });
-    if (pc > 0) corte(eje, 0, r, z0 + nC, z0 + nK, mezcla('#c08a52', OR, .45 * h(pe)), { h: h(pe), lw: 1.1, trazo: cr(.7) });
+  const nC = lerp(T.zb + 1, T.liq, pl), nK = nC + T.crema * pc;
+  if (pl > 0) {
+    const zL0 = z0 + T.zb, zL1 = z0 + nK;
+    poli(silueta(riZ, zL0 + .5, zL1), mezcla('#2e1c11', OR, .3 * h(pe)), null, 0);
+    if (pc > 0) { // franja de crema
+      const sc = silueta(riZ, z0 + nC, zL1); poli(sc, mezcla('#b27a42', OR, .4 * h(pe)), null, 0);
+    }
+    poli(elipse(zL1, riZ(zL1)), pc > 0 ? mezcla('#c48d55', OR, .4 * h(pe)) : mezcla('#4a2e1b', OR, .3 * h(pe)), cr(.35), .8 * k);
   }
   g.save(); g.globalAlpha *= clamp(pa * 2);
-  poli([...arco(90, 360, R, H1), ...arco(360, 90, r, H1)], LOZA.luz, hT > 0 ? OR : CR, 1.3 * k);
+  // vidrio: pared exterior translúcida, pared interior (doble pared) y reflejos
+  poli(silueta(roZ, z0, H1), 'rgba(205,220,230,0.10)', trazo, 1.4 * k);
+  const [cx0, cy0] = C(z0 + T.zb);
+  g.beginPath(); for (let i = 0; i <= 30; i++) { const z = z0 + T.zb + (H1 - 1.5 - z0 - T.zb) * i / 30, [cx, cy] = C(z); g.lineTo(cx + A(riZ(z)), cy); } g.strokeStyle = hT > 0 ? orA(.6) : cr(.45); g.lineWidth = 1 * k; g.stroke();
+  g.beginPath(); for (let i = 0; i <= 30; i++) { const z = z0 + T.zb + (H1 - 1.5 - z0 - T.zb) * i / 30, [cx, cy] = C(z); g.lineTo(cx - A(riZ(z)), cy); } g.stroke();
+  poli(elipse(H1, roZ(H1)), null, trazo, 1.3 * k); poli(elipse(H1 - 1.5, riZ(H1 - 1.5)), null, cr(.5), 1 * k);
+  poli(elipse(z0 + 3, roZ(z0) * .7, 0, Math.PI), null, cr(.3), .9 * k);              // fondo grueso
+  for (const [f, w, al] of [[-.62, 5, .28], [-.48, 2, .4], [.7, 2.5, .18]]) { // reflejos verticales
+    g.beginPath(); for (let i = 0; i <= 20; i++) { const z = z0 + T.H * (.18 + .62 * i / 20), [cx, cy] = C(z); g.lineTo(cx + A(roZ(z)) * f, cy); }
+    g.strokeStyle = `rgba(255,255,255,${al})`; g.lineWidth = w * k; g.lineCap = 'round'; g.stroke();
+  }
+  // asa de vidrio
+  for (const [w, c] of [[T.R / 6 + 2.4, trazo], [T.R / 6, 'rgba(40,46,50,0.9)'], [T.R / 14, 'rgba(255,255,255,0.35)']]) {
+    g.beginPath(); asa.forEach((p, i) => i ? g.lineTo(...p) : g.moveTo(...p)); g.lineWidth = w * cam.s * .9; g.strokeStyle = c; g.lineCap = 'round'; g.stroke();
+  }
   g.restore();
-  T.z0 = z0; T.nK = nK;
+  T.z0 = z0; T.nK = nK; T.roZ = roZ;
 }
 function vapor(T, t, f0) {
   const pv = clamp((t - ET[T.et].t1 + 0.4) / 1.2);
   if (pv <= 0) return;
   OX = T.ox; OY = T.oy;
-  const k = K(), alto = T.R * 1.6;
+  const k = K(), alto = T === ESP ? T.R * 0.9 : T.R * 1.6, r = T.Ri;
   g.save(); g.globalAlpha *= pv;
-  [[-T.r * .35, -T.r * .2, 0], [T.r * .05, -T.r * .5, 1.3], [-T.r * .6, T.r * .2, 2.4]].forEach(([x, y, f]) => {
+  [[-r * .35, -r * .2, 0], [r * .05, -r * .5, 1.3], [-r * .6, r * .2, 2.4]].forEach(([x, y, f]) => {
     g.beginPath();
-    for (let i = 0; i <= 30; i++) { const s = i / 30, [px, py] = P(OX + x, OY + y, T.z0 + T.nK + 8 + alto * s); const ox = Math.sin(s * 7 + t * 2.2 + f + f0) * 6 * cam.s * (0.4 + s); i ? g.lineTo(px + ox, py) : g.moveTo(px + ox, py); }
+    for (let i = 0; i <= 30; i++) { const s = i / 30, [px, py] = P(OX + x, OY + y, T.z0 + T.H + 4 + alto * s); const ox = Math.sin(s * 7 + t * 2.2 + f + f0) * 6 * cam.s * (0.4 + s); i ? g.lineTo(px + ox, py) : g.moveTo(px + ox, py); }
     g.strokeStyle = orA(.85 * (1 - 0.3 * Math.sin(t + f))); g.lineWidth = 2.2 * k; g.setLineDash([7 * k, 6 * k]); g.lineDashOffset = -t * 30 * k; g.lineCap = 'round'; g.stroke(); g.setLineDash([]);
   });
   g.restore();
@@ -330,20 +327,28 @@ function escena(t) {
   taza(AME, t);
   taza(ESP, t);
   vapor(AME, t, 0); vapor(ESP, t, 1.7);
-  if (!ROT) return;
-  const nv = (d) => clamp((t - d) / 0.6);
-  // niveles en ml: el nivel de piso terminado, en versión café
-  OX = AME.ox; OY = AME.oy;
-  g.save(); g.globalAlpha = nv(2.6); nivel([AME.ox - AME.R, AME.oy, 0], '±0 ml · LUNES 8:00', 40); g.restore();
-  g.save(); g.globalAlpha = nv(ET[3].t1 - 0.4); nivel([AME.ox - AME.r, AME.oy, AME.z0 + AME.nK], AME.ml, 60); g.restore();
-  g.save(); g.globalAlpha = nv(ET[2].t1 - 0.4); nivel([ESP.ox - ESP.r, ESP.oy, ESP.z0 + ESP.nK], ESP.ml, 70); g.restore();
-  for (const T of [AME, ESP]) {
-    g.save(); g.globalAlpha = nv(3.0); cota(P(T.ox - T.R * .707, T.oy + T.R * .707, T.z0 + T.H), P(T.ox + T.R * .707, T.oy - T.R * .707, T.z0 + T.H), 'Ø ' + T.R * 2, [-10, -36]); g.restore();
+  if (!ROT || !AME.roZ) return;
+  const nv = (d) => clamp((t - d) / 0.6), izq = (T, z, r) => [T.ox - .7071 * r, T.oy + .7071 * r, z];
+  g.save(); g.globalAlpha = nv(2.6); nivel(izq(AME, 0, AME.roZ(0)), '±0 ml · LUNES 8:00', 40); g.restore();
+  g.save(); g.globalAlpha = nv(ET[3].t1 - 0.4); nivel(izq(AME, AME.z0 + AME.nK, ri(AME, AME.nK)), AME.ml, 60); g.restore();
+  if (ESP.roZ) { // nivel del espresso hacia la derecha
+    g.save(); g.globalAlpha = nv(ET[2].t1 - 0.4);
+    const r = ri(ESP, ESP.nK), kk = Math.max(.85, K()), [x, y] = P(ESP.ox + .7071 * r, ESP.oy - .7071 * r, ESP.z0 + ESP.nK), x2 = x + 26 * kk;
+    linea([x + 4 * kk, y], [x2 + 120 * kk, y], cr(.7), 1 * kk);
+    g.beginPath(); g.moveTo(x2 - 4 * kk, y - 11 * kk); g.lineTo(x2 - 16 * kk, y - 11 * kk); g.lineTo(x2 - 10 * kk, y); g.closePath(); g.fillStyle = CR; g.fill();
+    g.font = `500 ${15 * kk}px "IBM Plex Mono"`; g.fillStyle = CR; g.textBaseline = 'bottom'; g.textAlign = 'left'; g.fillText(ESP.ml, x2, y - 1 * kk);
+    g.restore();
   }
+  for (const T of [AME, ESP]) {
+    if (!T.roZ) continue;
+    const r = T.roZ(T.z0 + T.H);
+    g.save(); g.globalAlpha = nv(3.0); cota(P(T.ox - r * .707, T.oy + r * .707, T.z0 + T.H), P(T.ox + r * .707, T.oy - r * .707, T.z0 + T.H), 'Ø ' + Math.round(r * 2), [-10, -36]); g.restore();
+  }
+  const der = (T, z) => { const r = ro(T, z); return [T.ox + .7071 * r, T.oy - .7071 * r, z]; };
   const E = [
-    { e: 1, p: [AME.ox + AME.R * Math.cos(1.95), AME.oy + AME.R * Math.sin(1.95), 70], d: [-60, -30] },
-    { e: 2, p: [ESP.ox, ESP.oy + 12, 18], d: [-70, 60] },
-    { e: 3, p: [AME.ox, AME.oy + 20, 45], d: [-80, 50] },
+    { e: 1, p: der(AME, AME.H * .35), d: [70, 30] },
+    { e: 2, p: [ESP.ox, ESP.oy, ESP.liq * .6], d: [-80, 50] },
+    { e: 3, p: [AME.ox, AME.oy, AME.liq * .55], d: [-30, 95] },
   ];
   for (const q of E) {
     const a = clamp((t - ET[q.e].t0 - 0.6) / 0.5);
