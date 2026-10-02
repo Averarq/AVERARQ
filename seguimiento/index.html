@@ -339,6 +339,7 @@
         ${docsHtml}
       </div>
 
+      ${p.restringido ? '' : `
       <div class="seccion">
         <h2>💰 Estado de pagos</h2>
         <div class="pago-resumen">
@@ -348,7 +349,7 @@
         </div>
         ${pagosHtml}
         ${cuotasHtml ? '<h3 class="cf-titulo">📅 Próximas cuotas pactadas</h3>'+cuotasHtml : ''}
-      </div>
+      </div>`}
     `;
     window.scrollTo(0,0);
   }
