@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.18</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.19</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -233,7 +233,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.18</span></a>
+    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.19</span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <select id="selProyecto" title="Cambiar de proyecto"></select>
   <span id="nubeDot" class="nube-dot off" title="Sin nube"></span>
@@ -353,11 +353,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.18 =================
+/* ================= GESTOR AVERARQ v3.19 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.18";
+const GESTOR_VERSION="v3.19";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -2481,7 +2481,10 @@ function htmlControl(){
   }
   h+=`</div>`;
   if(t.contrato>0||t.gastoTotal>0){
-    h+=`<div class="row" style="margin-top:8px"><button class="btn grow" id="ctrlEmitir">🖨 Emitir informe de control</button></div>`;
+    h+=`<div class="row" style="margin-top:8px">
+      <button class="btn grow" id="ctrlEmitirCli">📄 Estado de cuenta (cliente)</button>
+      <button class="btn grow" id="ctrlEmitir" title="Incluye costos, márgenes y detalle de gastos">🔒 Informe interno</button></div>
+    <p class="small" style="color:var(--muted);margin-top:4px">El estado de cuenta solo muestra contrato, abonos y saldo. El informe interno abre tus costos y tu utilidad: no se entrega.</p>`;
   }
   return h;
 }
@@ -3075,6 +3078,7 @@ function bindTab(){
     state.control.meta[i.dataset.meta]=parseFloat(i.value)||0;renderTab();autosave();
   }));
   const ctrlEm=$("#ctrlEmitir");if(ctrlEm)ctrlEm.onclick=emitirControl;
+  const ctrlEmC=$("#ctrlEmitirCli");if(ctrlEmC)ctrlEmC.onclick=emitirEstadoCuenta;
   const cEm=$("#compEmitir");if(cEm)cEm.onclick=emitirComparativa;
   const medAdd=$("#medAdd");if(medAdd)medAdd.onclick=()=>{
     const sem=parseFloat($("#medSem").value), pct=parseFloat($("#medPct").value);
@@ -4252,6 +4256,40 @@ function emitirEETT(){
 }
 
 /* ---------- COMPARATIVA DE SISTEMAS (impresión) ---------- */
+/* ESTADO DE CUENTA — versión CLIENTE.
+   Solo contrato, abonos y saldo: nunca costos, gastos por partida ni utilidad. */
+function emitirEstadoCuenta(){
+  const t=controlTotales();
+  if(!(t.contrato>0)){hint("Primero ingresa el monto del contrato.");return;}
+  const o=(typeof obraData==="function")?obraData():{info:{}};
+  const fecha=new Date().toLocaleDateString("es-CL");
+  const nom=$("#nomProyecto").value;
+  const pagado=Math.min(100,Math.max(0,t.pctRecibido));
+  const barra=`<div style="display:flex;width:100%;height:26px;border:1px solid #ddd;border-radius:4px;overflow:hidden;margin:6px 0">
+    <div style="width:${pagado}%;background:#3a8a5a;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:600">${pagado>=12?"Abonado "+F(pagado,0)+"%":""}</div>
+    <div style="flex:1;background:#f2f1ee;display:flex;align-items:center;justify-content:center;color:#777;font-size:10px;font-weight:600">${(100-pagado)>=12?"Pendiente "+F(100-pagado,0)+"%":""}</div>
+  </div>`;
+  let avance=null;   // solo se informa si hay avance real registrado
+  try{ if(state.partidas.some(p=>partidaCalc(p).q>0)){ const a=obraTotales().avanceFisico; if(a>0)avance=a; } }catch(e){}
+  $("#printArea").innerHTML=`<div class="pr-page">`+prHead("ESTADO DE CUENTA",fecha)+`
+    <div style="display:flex;justify-content:space-between;color:#555;font-size:11px;margin-bottom:14px;gap:12px">
+      <span>${o.info&&o.info.cliente?"Mandante: <b>"+esc(o.info.cliente)+"</b>":""}${nom?((o.info&&o.info.cliente)?" · ":"")+"Obra: "+esc(nom):""}</span>
+      <span>${o.info&&o.info.inicio?"Inicio de obra: "+esc(o.info.inicio):""}</span></div>
+    <h2>RESUMEN DE PAGOS</h2>
+    <div class="pr-tot"><span>Valor del contrato</span><span>${CLP(t.contrato)}</span></div>
+    <div class="pr-tot"><span>Abonado a la fecha (${F(t.pctRecibido,1)}%)</span><span>${CLP(t.recibido)}</span></div>
+    <div class="pr-tot big"><span>${t.porCobrar<0?"SALDO A FAVOR DEL CLIENTE":"SALDO PENDIENTE"}</span><span>${CLP(Math.abs(t.porCobrar))}</span></div>
+    ${barra}
+    ${avance!==null?`<h2 style="margin-top:16px">AVANCE DE OBRA</h2>
+    <div class="pr-tot"><span>Avance físico a la fecha</span><span><b>${F(avance,1)}%</b></span></div>`:""}
+    <p style="margin-top:16px;font-size:10.5px;color:#555">Documento informativo del estado de pagos de la obra a la fecha indicada. Los montos corresponden al contrato acordado entre las partes; cualquier obra adicional no descrita en él se cotiza por separado.</p>
+    <div style="display:flex;justify-content:space-between;gap:40px;margin-top:56px;font-size:11px">
+      <div style="flex:1;text-align:center;border-top:1px solid #333;padding-top:6px"><b>ALEJANDRO VERA DONOSO</b><br>Arquitecto · Averarq</div>
+      <div style="flex:1;text-align:center;border-top:1px solid #333;padding-top:6px"><b>${o.info&&o.info.cliente?esc(o.info.cliente):"MANDANTE"}</b><br>Recibí conforme</div>
+    </div>
+    `+prFoot()+`</div>`;
+  window.print();
+}
 function emitirControl(){
   const c=state.control; const t=controlTotales();
   const fecha=new Date().toLocaleDateString("es-CL");
