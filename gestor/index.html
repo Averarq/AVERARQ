@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.19</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.20</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -233,7 +233,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.19</span></a>
+    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.20</span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <select id="selProyecto" title="Cambiar de proyecto"></select>
   <span id="nubeDot" class="nube-dot off" title="Sin nube"></span>
@@ -353,11 +353,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.19 =================
+/* ================= GESTOR AVERARQ v3.20 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.19";
+const GESTOR_VERSION="v3.20";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -2339,7 +2339,11 @@ function controlTotales(){
   const gg=g.filter(x=>x.cat==="gasto_general").reduce((s,x)=>s+(+x.monto||0),0);
   const otro=g.filter(x=>x.cat==="otro").reduce((s,x)=>s+(+x.monto||0),0);
   const gastoTotal=mat+mo+gg+otro;
-  const contrato=+c.contrato||0;
+  // Obras adicionales acordadas con el cliente (él las asume): suben el contrato
+  if(!Array.isArray(c.adicionales))c.adicionales=[];
+  const contratoBase=+c.contrato||0;
+  const adicTotal=c.adicionales.reduce((s,x)=>s+(+x.monto||0),0);
+  const contrato=contratoBase+adicTotal;
   const utilidad=contrato-gastoTotal;
   const pct=n=>contrato>0?(n/contrato*100):0;
   if(!state.planPago)state.planPago={};
@@ -2354,7 +2358,7 @@ function controlTotales(){
     if(monto>0)porPartida.push({id,nombre:PARTNOM(id),monto,pctGasto:gastoTotal>0?monto/gastoTotal*100:0});
   }
   porPartida.sort((a,b)=>b.monto-a.monto);
-  return {recibido,porCobrar,cajaReal,pctRecibido:pct(recibido),porPartida,mat,mo,gg,otro,gastoTotal,contrato,utilidad,pctMat:pct(mat),pctMo:pct(mo),pctGG:pct(gg),pctOtro:pct(otro),pctUtil:pct(utilidad)};
+  return {contratoBase,adicTotal,adicionales:c.adicionales,recibido,porCobrar,cajaReal,pctRecibido:pct(recibido),porPartida,mat,mo,gg,otro,gastoTotal,contrato,utilidad,pctMat:pct(mat),pctMo:pct(mo),pctGG:pct(gg),pctOtro:pct(otro),pctUtil:pct(utilidad)};
 }
 function htmlControl(){
   if(!state.control)state.control={contrato:"",gastos:[]};
@@ -2368,7 +2372,19 @@ function htmlControl(){
   let h=selectorProyectoHTML("control")+`<h3>CONTROL DE OBRA — GASTO REAL</h3>
   <p class="small" style="margin-bottom:8px">Registra los gastos reales del proyecto (boletas, compras, pago de maestros) a medida que ocurren. Compara contra el monto del contrato para ver tu utilidad real y en qué se fue.</p>
   <div class="card">
-    <div class="row"><label style="width:150px">Monto del contrato/venta $</label><input type="number" style="width:150px" value="${c.contrato}" data-ctrl="contrato" placeholder="lo que cobras por la obra"></div>
+    <div class="row"><label style="width:150px">Monto del contrato/venta $</label><input type="number" style="width:150px" value="${c.contrato}" data-ctrl="contrato" placeholder="lo que cobras por la obra">
+      <button class="btn mini" id="ctrlAdicNuevo" title="Agregar una obra adicional acordada con el cliente">＋ adicional</button></div>
+    ${(c.adicionales||[]).length?`<table style="width:100%;font-size:11px;margin:2px 0 6px">
+      <tr style="color:var(--muted)"><th style="text-align:left">Obra adicional</th><th style="text-align:left">Fecha</th><th class="money">Monto</th><th style="width:20px"></th></tr>
+      ${c.adicionales.map((a,i)=>`<tr>
+        <td><input type="text" value="${esc(a.motivo||"")}" data-adic="${i}" data-ak="motivo" style="width:100%;font-size:11px" placeholder="ej: cerámicas"></td>
+        <td><input type="date" value="${a.fecha||""}" data-adic="${i}" data-ak="fecha" style="width:120px;font-size:10px"></td>
+        <td><input type="number" value="${a.monto}" data-adic="${i}" data-ak="monto" style="width:90px;font-size:11px;text-align:right"></td>
+        <td class="tdel" data-adicdel="${i}">✕</td></tr>`).join("")}
+    </table>
+    <div class="tot"><span class="small">Contrato base</span><span class="small money">${CLP(t.contratoBase)}</span></div>
+    <div class="tot"><span class="small" style="color:var(--naranja2)">+ obras adicionales (${c.adicionales.length})</span><span class="small money" style="color:var(--naranja2)">${CLP(t.adicTotal)}</span></div>
+    <div class="tot"><span><b>Contrato total</b></span><span class="money"><b>${CLP(t.contrato)}</b></span></div>`:""}
     <div class="row"><label style="width:150px">Recibido a la fecha $</label><input type="number" style="width:150px" value="${t.recibido||""}" data-ctrl="recibido" placeholder="lo que el cliente ya pagó"></div>
     ${t.contrato>0?`<div class="tot" style="margin-top:4px"><span style="color:${t.porCobrar>0?'var(--naranja2)':'var(--ok,#7fb069)'}">${t.porCobrar<0?"Pagado de más (a favor del cliente)":(t.porCobrar===0?"Pagado completo":"Por cobrar")}</span><span class="money" style="color:${t.porCobrar>0?'var(--naranja2)':'var(--ok,#7fb069)'}">${CLP(Math.abs(t.porCobrar))}</span></div>`:""}
     <div class="row"><span class="small" style="color:var(--muted)">Es el mismo dato del estado de pago en OBRA: si lo cambias aquí, allá también.</span></div>
@@ -3023,6 +3039,20 @@ function bindTab(){
   $$("#tabContent [data-proygest]").forEach(b=>b.onclick=()=>$("#btnProyGest").click());
   // Control de obra
   const ctrlC=$('[data-ctrl="contrato"]');if(ctrlC)ctrlC.addEventListener("change",()=>{state.control.contrato=parseFloat(ctrlC.value)||"";renderTab();autosave();});
+  const adicNuevo=$("#ctrlAdicNuevo");if(adicNuevo)adicNuevo.onclick=()=>{
+    if(!Array.isArray(state.control.adicionales))state.control.adicionales=[];
+    state.control.adicionales.push({fecha:new Date().toISOString().slice(0,10),motivo:"",monto:0});
+    renderTab();autosave();hint("Obra adicional agregada: escribe el motivo y el monto.");
+  };
+  $$("#tabContent [data-adic]").forEach(i=>i.addEventListener("change",()=>{
+    const a=state.control.adicionales[+i.dataset.adic];if(!a)return;
+    const k=i.dataset.ak;
+    a[k]=(k==="monto")?(parseFloat(i.value)||0):i.value;
+    renderTab();autosave();
+  }));
+  $$("#tabContent [data-adicdel]").forEach(x=>x.onclick=()=>{
+    state.control.adicionales.splice(+x.dataset.adicdel,1);renderTab();autosave();
+  });
   const ctrlR=$('[data-ctrl="recibido"]');if(ctrlR)ctrlR.addEventListener("change",()=>{
     if(!state.planPago)state.planPago={};
     state.planPago.cobrado=Math.max(0,parseFloat(ctrlR.value)||0);   // mismo dato del estado de pago
@@ -3229,6 +3259,7 @@ function loadState(s){
   if(!state.recibo)state.recibo={nro:"",fecha:"",cliente:"",rut:"",monto:"",concepto:"",medio:"efectivo",proyecto:"",obs:"",saldoOn:false,saldo:""};
   if(!state.control)state.control={contrato:"", gastos:[]};
   if(!Array.isArray(state.control.gastos))state.control.gastos=[];
+  if(!Array.isArray(state.control.adicionales))state.control.adicionales=[];
   if(state.control.tarM1===undefined)state.control.tarM1=55000;
   if(state.control.tarM2===undefined)state.control.tarM2=40000;
   if(state.control.usaM2===undefined)state.control.usaM2=true;
@@ -4275,8 +4306,17 @@ function emitirEstadoCuenta(){
     <div style="display:flex;justify-content:space-between;color:#555;font-size:11px;margin-bottom:14px;gap:12px">
       <span>${o.info&&o.info.cliente?"Mandante: <b>"+esc(o.info.cliente)+"</b>":""}${nom?((o.info&&o.info.cliente)?" · ":"")+"Obra: "+esc(nom):""}</span>
       <span>${o.info&&o.info.inicio?"Inicio de obra: "+esc(o.info.inicio):""}</span></div>
+    ${t.adicionales.length?`<h2>OBRAS ADICIONALES ACORDADAS</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px">
+      <tr style="background:#f7f6f2;color:#555"><th style="padding:4px 8px;text-align:left">Concepto</th><th style="padding:4px 8px;text-align:left">Fecha</th><th style="padding:4px 8px;text-align:right">Monto</th></tr>
+      ${t.adicionales.map(a=>`<tr><td style="padding:3px 8px">${esc(a.motivo||"Obra adicional")}</td><td style="padding:3px 8px">${a.fecha?a.fecha.split("-").reverse().join("-"):"—"}</td><td style="padding:3px 8px;text-align:right">${CLP(a.monto)}</td></tr>`).join("")}
+      <tr style="border-top:1px solid #333"><td colspan="2" style="padding:4px 8px;font-weight:bold">Total adicionales</td><td style="padding:4px 8px;text-align:right;font-weight:bold">${CLP(t.adicTotal)}</td></tr>
+    </table>
+    <p style="font-size:10px;color:#777;margin:-6px 0 12px">Obras no incluidas en el contrato original, acordadas con el mandante durante la ejecución.</p>`:""}
     <h2>RESUMEN DE PAGOS</h2>
-    <div class="pr-tot"><span>Valor del contrato</span><span>${CLP(t.contrato)}</span></div>
+    ${t.adicionales.length?`<div class="pr-tot"><span>Contrato original</span><span>${CLP(t.contratoBase)}</span></div>
+    <div class="pr-tot"><span>Obras adicionales</span><span>${CLP(t.adicTotal)}</span></div>`:""}
+    <div class="pr-tot"><span>${t.adicionales.length?"Valor total del contrato":"Valor del contrato"}</span><span>${CLP(t.contrato)}</span></div>
     <div class="pr-tot"><span>Abonado a la fecha (${F(t.pctRecibido,1)}%)</span><span>${CLP(t.recibido)}</span></div>
     <div class="pr-tot big"><span>${t.porCobrar<0?"SALDO A FAVOR DEL CLIENTE":"SALDO PENDIENTE"}</span><span>${CLP(Math.abs(t.porCobrar))}</span></div>
     ${barra}
@@ -4312,6 +4352,7 @@ function emitirControl(){
     <div style="margin:10px 0 18px">
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>Contrato / venta</span><b>${CLP(t.contrato)}</b></div>
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>Gasto total ejecutado</span><b>${CLP(t.gastoTotal)}</b></div>
+      ${t.adicionales.length?`<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;color:#666"><span>(contrato original ${CLP(t.contratoBase)} + ${t.adicionales.length} adicional(es) ${CLP(t.adicTotal)})</span><span></span></div>`:""}
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>Recibido del cliente</span><b>${CLP(t.recibido)}</b></div>
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>${t.porCobrar<0?"Pagado de más":"Por cobrar"}</span><b style="color:${t.porCobrar>0?'#c1451b':'#3a8a5a'}">${CLP(Math.abs(t.porCobrar))}</b></div>
       <div style="display:flex;justify-content:space-between;font-size:14px;margin-top:6px;padding-top:6px;border-top:2px solid #fc4c02"><span><b>Utilidad real</b></span><b style="color:${t.utilidad>=0?'#3a8a5a':'#c0392b'}">${CLP(t.utilidad)} (${F(t.pctUtil,1)}%)</b></div>
