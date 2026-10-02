@@ -28,8 +28,6 @@
   .cloud-dot.ok{ background:#3fae6a; }
   .cloud-dot.err{ background:var(--rojo); }
   .cloud-dot.sync{ background:#e8a23c; animation:cloudPulse 1s infinite; }
-  #avisoResp{ border-color:var(--orange); color:var(--orange); font-weight:600; }
-  #avisoResp.urgente{ background:var(--orange); color:#fff; }
   @keyframes cloudPulse{ 0%,100%{opacity:1} 50%{opacity:.4} }
   .brand-text{ font-weight:800; font-size:20px; letter-spacing:0.5px; }
   .brand-sub{ font-size:12px; color:var(--neutro); letter-spacing:1.5px; margin-top:2px; }
@@ -203,6 +201,10 @@
   .cliente-cod-hint{ font-size:11px; color:var(--gris); margin-top:7px; line-height:1.4; }
   .cliente-orden-row{ display:flex; align-items:center; gap:10px; margin-top:12px; flex-wrap:wrap; }
   .cliente-orden-row select{ flex:1; min-width:180px; }
+  .cod2-wrap{ border-top:1px dashed #3a3c3b; margin-top:14px; padding-top:14px; }
+  .cod2-toggle{ display:flex; align-items:center; gap:9px; cursor:pointer; font-size:13px; color:var(--cream); user-select:none; }
+  .cod2-toggle input{ width:16px; height:16px; accent-color:var(--orange); cursor:pointer; flex-shrink:0; }
+  #p_codigoSecundario{ color:var(--verde) !important; }
   .pc-actions{ display:flex; gap:6px; flex-shrink:0; }
   .pc-btn{ background:var(--ink); border:1px solid #3a3c3b; border-radius:7px; width:34px; height:34px; font-size:14px; cursor:pointer; transition:all .12s; }
   .pc-edit:hover{ border-color:var(--orange); color:var(--orange); }
@@ -674,7 +676,6 @@
   <div class="stats" id="stats"></div>
   <div class="actions">
     <button class="btn-ghost" onclick="location.href='../av/'" title="Volver al panel">← Hub</button>
-    <button class="btn-ghost" id="avisoResp" style="display:none" onclick="respAbrirAviso()" title="Hace falta respaldar la nube"></button>
     <button class="btn-ghost" onclick="exportData()">Exportar</button>
     <button class="btn-ghost" onclick="document.getElementById('importFile').click()">Importar</button>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
@@ -977,6 +978,25 @@
             <option value="fecha-desc">Fecha (más reciente primero)</option>
             <option value="fecha-asc">Fecha (más antigua primero)</option>
           </select>
+        </div>
+
+        <div class="cod2-wrap">
+          <label class="cod2-toggle">
+            <input type="checkbox" id="p_cod2On" onchange="toggleCodSecundario()">
+            <span>👁 Acceso para terceros (solo lectura, sin pagos)</span>
+          </label>
+          <div id="cod2Body" style="display:none; margin-top:10px;">
+            <div class="cliente-cod-row">
+              <input id="p_codigoSecundario" placeholder="Escribe uno o presiona Generar" maxlength="24"
+                     oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'')"
+                     onchange="validarCod2Manual()">
+              <button type="button" class="btn-ghost" onclick="generarCodSecundario()">Generar</button>
+              <button type="button" class="btn-ghost" id="btnCopiarCod2" onclick="copiarAccesoSecundario()" style="display:none;">Copiar acceso</button>
+            </div>
+            <div class="cliente-cod-hint">
+              Un tercero (banco, familiar, revisor) que entre con este código ve el avance, el expediente y los descargables, <b>pero no verá los pagos, saldos ni comprobantes</b>.
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -2003,6 +2023,9 @@ function openProjModal(id){
     document.getElementById('p_fechaCompletada').checked = !!p.fechaCompletada;
     mostrarCodigoCliente(p.codigoCliente || '');
     document.getElementById('p_docOrden').value = p.docOrden || 'nombre-asc';
+    document.getElementById('p_cod2On').checked = !!p.codigoSecundarioOn;
+    document.getElementById('cod2Body').style.display = p.codigoSecundarioOn ? 'block' : 'none';
+    mostrarCodSecundario(p.codigoSecundario || '');
     renderProjNotes(p.notas||[]);
   } else {
     ['p_nombre','p_estado','p_total','p_pagoLabel','p_fecha','p_fechaLabel'].forEach(id=>document.getElementById(id).value='');
@@ -2010,6 +2033,9 @@ function openProjModal(id){
     document.getElementById('p_fechaCompletada').checked = false;
     mostrarCodigoCliente('');
     document.getElementById('p_docOrden').value = 'nombre-asc';
+    document.getElementById('p_cod2On').checked = false;
+    document.getElementById('cod2Body').style.display = 'none';
+    mostrarCodSecundario('');
     renderProjNotes([]);
     renderPagosList(null);
     renderCuotasList(null);
@@ -2921,6 +2947,8 @@ function saveProj(){
     fechaCompletada:document.getElementById('p_fechaCompletada').checked,
     codigoCliente,
     docOrden:document.getElementById('p_docOrden').value,
+    codigoSecundarioOn:document.getElementById('p_cod2On').checked,
+    codigoSecundario:document.getElementById('p_codigoSecundario').value.trim().toUpperCase(),
   };
   if(editingProjId){
     Object.assign(proyectos.find(x=>x.id===editingProjId), data);
@@ -2998,6 +3026,79 @@ function validarCodigoManual(){
   }
   return true;
 }
+
+/* ---------- Código secundario (acceso para terceros, solo lectura) ---------- */
+function toggleCodSecundario(){
+  const on = document.getElementById('p_cod2On').checked;
+  document.getElementById('cod2Body').style.display = on ? 'block' : 'none';
+  if(editingProjId){
+    const p = proyectos.find(x=>x.id===editingProjId);
+    p.codigoSecundarioOn = on;
+    saveProyectos();
+  }
+}
+function mostrarCodSecundario(cod){
+  document.getElementById('p_codigoSecundario').value = cod || '';
+  document.getElementById('btnCopiarCod2').style.display = cod ? 'inline-block' : 'none';
+}
+function generarCodSecundario(){
+  const actual = document.getElementById('p_codigoSecundario').value.trim();
+  if(actual && !confirm('Ya existe un código para terceros. Si generas uno nuevo, el anterior dejará de funcionar. ¿Continuar?')) return;
+  const alfabeto = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  // evitar choques con cualquier código (principal o secundario) ya usado
+  let existentes = new Set();
+  proyectos.forEach(p=>{
+    if(p.codigoCliente) existentes.add(p.codigoCliente.toUpperCase());
+    if(p.codigoSecundario) existentes.add(p.codigoSecundario.toUpperCase());
+  });
+  let cod;
+  do {
+    let s = '';
+    for(let i=0;i<4;i++) s += alfabeto[Math.floor(Math.random()*alfabeto.length)];
+    cod = 'AVQ-V' + s;   // la "V" lo distingue como código de visita
+  } while(existentes.has(cod));
+  mostrarCodSecundario(cod);
+  if(editingProjId){
+    proyectos.find(x=>x.id===editingProjId).codigoSecundario = cod;
+    saveProyectos();
+  }
+}
+function validarCod2Manual(){
+  const inp = document.getElementById('p_codigoSecundario');
+  let cod = inp.value.trim().toUpperCase();
+  inp.value = cod;
+  if(!cod){ mostrarCodSecundario(''); return; }
+  // no puede chocar con ningún código principal ni secundario de otro proyecto,
+  // ni con el código principal de este mismo proyecto
+  const dup = proyectos.some(p =>
+    (p.id!==editingProjId && ((p.codigoCliente||'').toUpperCase()===cod || (p.codigoSecundario||'').toUpperCase()===cod))
+    || (p.id===editingProjId && (p.codigoCliente||'').toUpperCase()===cod)
+  );
+  if(dup){
+    inp.style.borderColor = 'var(--rojo)';
+    document.getElementById('btnCopiarCod2').style.display = 'none';
+    alert('Ese código ya está en uso (por este u otro proyecto). Elige uno distinto.');
+    return false;
+  }
+  inp.style.borderColor = '';
+  document.getElementById('btnCopiarCod2').style.display = 'inline-block';
+  if(editingProjId){
+    proyectos.find(x=>x.id===editingProjId).codigoSecundario = cod;
+    saveProyectos();
+  }
+  return true;
+}
+function copiarAccesoSecundario(){
+  const cod = document.getElementById('p_codigoSecundario').value.trim();
+  if(!cod) return;
+  const texto = `Puedes revisar el avance y los documentos de este proyecto de Averarq aquí:\nhttps://averarq.cl/seguimiento\nCódigo de acceso: ${cod}`;
+  navigator.clipboard.writeText(texto).then(()=>{
+    const b = document.getElementById('btnCopiarCod2');
+    const orig = b.textContent; b.textContent = '¡Copiado!';
+    setTimeout(()=>b.textContent=orig, 1500);
+  }).catch(()=>alert('Acceso para terceros:\n\n'+texto));
+}
+
 function deleteProj(){
   if(!editingProjId) return;
   if(!confirm('¿Eliminar este proyecto definitivamente?')) return;
@@ -3290,69 +3391,6 @@ renderResumen();
 renderCalendario();
 
 // ============================================================
-//  AVISO DE RESPALDO (cuenta los días desde el último)
-//  El registro lo deja respaldar.mjs al terminar; se comparte con el GESTOR.
-// ============================================================
-const RESP_POSPUESTO = 'averarq_respaldo_pospuesto';
-let respRegistro = null;
-
-function respDias(){
-  if(!respRegistro || !respRegistro.fecha) return null;
-  const d = new Date(respRegistro.fecha);
-  if(isNaN(d)) return null;
-  return Math.floor((Date.now() - d.getTime()) / 86400000);
-}
-function respTocaHoy(){
-  const dias = respDias();
-  if(dias === null) return true;                       // nunca se respaldó
-  if(dias >= 7) return true;                           // pasó una semana
-  return new Date().getDay() === 5 && dias >= 1;       // viernes sin respaldo de hoy
-}
-function respTexto(){
-  const dias = respDias();
-  if(dias === null) return 'sin respaldo registrado';
-  if(dias === 0) return 'respaldado hoy';
-  if(dias === 1) return 'hace 1 día';
-  return 'hace ' + dias + ' días';
-}
-function respPintar(){
-  const chip = document.getElementById('avisoResp');
-  if(!chip) return;
-  let pospuesto = '';
-  try { pospuesto = localStorage.getItem(RESP_POSPUESTO) || ''; } catch(e){}
-  const hoy = new Date().toISOString().slice(0,10);
-  const dias = respDias();
-  const mostrar = cloudConfig && respTocaHoy() && pospuesto !== hoy;
-  chip.style.display = mostrar ? '' : 'none';
-  if(mostrar){
-    chip.textContent = '⚠ Respaldar · ' + respTexto();
-    chip.classList.toggle('urgente', dias === null || dias >= 14);
-  }
-}
-function respAbrirAviso(){
-  const dias = respDias();
-  const detalle = dias === null
-    ? 'Todavía no hay ningún respaldo registrado.'
-    : 'El último respaldo fue ' + respTexto() + (respRegistro.equipo ? ' desde ' + respRegistro.equipo : '') + '.';
-  const ok = confirm(detalle + '\n\nLa nube no guarda versiones: si algo se borra ahí, se pierde.\n' +
-    'En el computador de la oficina, en PowerShell:\n\n' +
-    '    cd "...\\0.AV\\averarq-backend"\n    node respaldar.mjs\n\n' +
-    '¿Posponer este aviso hasta mañana?');
-  if(ok){
-    try { localStorage.setItem(RESP_POSPUESTO, new Date().toISOString().slice(0,10)); } catch(e){}
-    respPintar();
-  }
-}
-function respCargar(){
-  if(!cloudConfig){ respRegistro = null; respPintar(); return; }
-  fetch(cloudUrl('/api/respaldo/registro'), { headers: cloudHeaders() })
-    .then(r => r.ok ? r.json() : null)
-    .then(d => { respRegistro = (d && d.registro) || null; })
-    .catch(() => { respRegistro = null; })
-    .finally(respPintar);
-}
-
-// ============================================================
 //  CARGA INICIAL DESDE LA NUBE
 // ============================================================
 function cloudPull(){
@@ -3379,7 +3417,6 @@ function cloudPull(){
       }
       const badge2 = document.getElementById('cloudDot');
       if(badge2){ badge2.className='cloud-dot ok'; badge2.title='Conectado a la nube'; }
-      respCargar();
       render(); renderResumen();
       const at = document.getElementById('tab-proyectos');
       if(at && at.classList.contains('active')) renderProyectos();
@@ -3391,7 +3428,6 @@ function cloudPull(){
     });
 }
 cloudPull();
-respCargar();
 </script>
 
 <!-- Modal de edición de documento -->
