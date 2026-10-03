@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.21</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.22</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -233,7 +233,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.21</span></a>
+    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.22</span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <select id="selProyecto" title="Cambiar de proyecto"></select>
   <span id="nubeDot" class="nube-dot off" title="Sin nube"></span>
@@ -353,11 +353,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.21 =================
+/* ================= GESTOR AVERARQ v3.22 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.21";
+const GESTOR_VERSION="v3.22";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -2331,7 +2331,7 @@ function opcionesCategoria(sel){
   return CATGASTO.map(([id,nom])=>`<option value="${id}" ${sel===id?"selected":""}>${nom}</option>`).join("");
 }
 /* Proveedores: lista base de Llay-Llay + los que se vayan usando (se guardan en este navegador) */
-const PROV_BASE=["ChileMat","Urimat","Ferretería Estrella","Ferretería Andina"];
+const PROV_BASE=["ChileMat","Urimat","Ferretería Estrella","Ferretería Andina","Sodimac"];
 const PROV_KEY="averarq_proveedores";
 function proveedores(){
   let extra=[];
