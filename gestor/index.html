@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.25</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.26</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -233,7 +233,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.25</span></a>
+    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.26</span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <select id="selProyecto" title="Cambiar de proyecto"></select>
   <span id="nubeDot" class="nube-dot off" title="Sin nube"></span>
@@ -353,11 +353,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.25 =================
+/* ================= GESTOR AVERARQ v3.26 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.25";
+const GESTOR_VERSION="v3.26";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -3410,6 +3410,7 @@ function proyPorCliente(){
     c=(c||"").trim()||SIN_CLIENTE;
     (grupos[c]=grupos[c]||[]).push(e);
   }
+  for(const c in grupos)grupos[c].sort((x,y)=>ordenNombre(x.nombre,y.nombre));
   return Object.entries(grupos).sort((a,b)=>a[0]===SIN_CLIENTE?1:(b[0]===SIN_CLIENTE?-1:a[0].localeCompare(b[0],"es")));
 }
 /* Resumen de cobros de un cliente: suma contrato, abonos y saldo de todas sus obras */
@@ -3429,10 +3430,13 @@ function resumenCliente(cliente){
       obras.push({nombre:sn.proyecto||e.nombre||"Obra sin título",base,adic,contrato,recibido,saldo:contrato-recibido});
     }
   }
+  obras.sort((a,b)=>ordenNombre(a.nombre,b.nombre));
   const tot=obras.reduce((a,o)=>({contrato:a.contrato+o.contrato,recibido:a.recibido+o.recibido,saldo:a.saldo+o.saldo}),{contrato:0,recibido:0,saldo:0});
   return {cliente,obras,...tot};
 }
 function proyOrdenados(){return proyIndice().slice().sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));}
+/* Orden natural: "2. Muebles" va antes que "10. Muebles", y las tildes no alteran el orden */
+const ordenNombre=(a,b)=>String(a||"").localeCompare(String(b||""),"es",{numeric:true,sensitivity:"base"});
 function proyFecha(f){try{return new Date(f).toLocaleDateString("es-CL");}catch(e){return "";}}
 function proyBytes(){
   let n=0;
@@ -3781,11 +3785,11 @@ const ISO=`<svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg">
 const R='style="text-align:right"';
 /* titular: qué va a la izquierda de la fecha. Por omisión, el nombre del proyecto;
    los documentos que abarcan varias obras pasan el nombre del cliente. */
-function prHead(sub,fecha,titular){return `
+function prHead(sub,fecha,titular,fila){return `
   <div class="pr-head">${ISO}<h1>AVER<span style="color:#fc4c02">ARQ</span></h1>
     <div class="pr-tag">ARQUITECTURA · VALLE DEL ACONCAGUA<br>${sub}</div></div>
-  <div style="display:flex;justify-content:space-between;color:#555;font-size:11px;margin-bottom:12px">
-    <span>${esc(titular!==undefined?titular:$("#nomProyecto").value)}</span><span>${fecha}</span></div>`;}
+  `+(fila!==undefined?fila:`<div style="display:flex;justify-content:space-between;color:#555;font-size:11px;margin-bottom:12px">
+    <span>${esc(titular!==undefined?titular:$("#nomProyecto").value)}</span><span>${fecha}</span></div>`);}
 function prFoot(){return `<div class="pr-foot"><span><b>AVERARQ</b> · ALEJANDRO VERA DONOSO</span><span>averarq.cl · @averarq · contacto@averarq.cl</span></div>`;}
 
 $("#btnInforme").onclick=()=>$("#dlgInf").showModal();
@@ -4433,9 +4437,9 @@ function emitirEstadoCuentaCliente(){
     <div style="flex:1;background:#f2f1ee;display:flex;align-items:center;justify-content:center;color:#777;font-size:10px;font-weight:600">${(100-pagado)>=12?"Pendiente "+F(100-pagado,0)+"%":""}</div>
   </div>`;
   const td='style="padding:4px 8px"', tdr='style="padding:4px 8px;text-align:right"';
-  $("#printArea").innerHTML=`<div class="pr-page">`+prHead("ESTADO DE CUENTA — RESUMEN DE OBRAS",fecha,"")+`
-    <div style="display:flex;justify-content:space-between;color:#555;font-size:11px;margin-bottom:14px">
-      <span>Mandante: <b>${esc(cliente)}</b></span><span>${r.obras.length} obra${r.obras.length===1?"":"s"} en ejecución o terminadas</span></div>
+  const filaCab=`<div style="display:flex;justify-content:space-between;color:#555;font-size:11px;margin-bottom:12px">
+    <span>Mandante: <b>${esc(cliente)}</b> · ${r.obras.length} obra${r.obras.length===1?"":"s"} en ejecución o terminadas</span><span>${fecha}</span></div>`;
+  $("#printArea").innerHTML=`<div class="pr-page">`+prHead("ESTADO DE CUENTA — RESUMEN DE OBRAS",fecha,"",filaCab)+`
     <h2>DETALLE POR OBRA</h2>
     <table style="width:100%;border-collapse:collapse;font-size:11px">
       <tr style="background:#f7f6f2;color:#555"><th ${td}>Obra</th><th ${tdr}>Contrato</th><th ${tdr}>Abonado</th><th ${tdr}>Saldo</th></tr>
