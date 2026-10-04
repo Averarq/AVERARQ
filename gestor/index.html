@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.23</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.24</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -233,7 +233,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.23</span></a>
+    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.24</span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <select id="selProyecto" title="Cambiar de proyecto"></select>
   <span id="nubeDot" class="nube-dot off" title="Sin nube"></span>
@@ -353,11 +353,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.23 =================
+/* ================= GESTOR AVERARQ v3.24 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.23";
+const GESTOR_VERSION="v3.24";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -2323,7 +2323,8 @@ function selectorProyectoHTML(origen){
       <button class="btn mini" data-proygest="1" title="Ver todos los proyectos, duplicar, exportar o eliminar">🗂 Gestionar</button>
     </div>
     <div class="row"><label style="width:70px">Cliente</label>
-      <input type="text" class="grow" value="${esc(cliAct)}" data-obrainfo="cliente" placeholder="nombre del mandante — agrupa sus obras" title="Mismo dato que el mandante de OBRA">
+      <input type="text" class="grow" list="listaCli" value="${esc(cliAct)}" data-obrainfo="cliente" placeholder="elige un cliente guardado o escribe uno nuevo" title="Mismo dato que el mandante de OBRA. La lista muestra los clientes que ya tienes.">
+      ${datalistClientes()}
       ${hermanas>1?`<button class="btn mini" data-clienteCta="1" title="Estado de cuenta con todas las obras de este cliente">📄 Estado de cuenta del cliente (${hermanas})</button>`:""}</div>
     <div class="row"><span class="small" style="color:var(--muted)">${lista.length} proyecto(s) en este navegador${nubeCfg?" · sincronizados con la nube":""}${act&&act.soloNube?" · este está solo en la nube: se baja al abrirlo":""}${hermanas>1?` · ${hermanas} obras de ${esc(cliAct)}`:""}</span></div>
   </div>`;
@@ -2616,7 +2617,7 @@ function htmlObra(){
   const barra=(pct,color)=>`<div style="background:var(--bg);border-radius:3px;height:7px;overflow:hidden;flex:1"><div style="width:${Math.min(100,pct)}%;height:100%;background:${color}"></div></div>`;
   let h=`<h3>SEGUIMIENTO DE OBRA — PANEL ÚNICO</h3>
   <div class="card">
-    <div class="row"><label style="width:70px">Cliente</label><input type="text" class="grow" value="${esc(o.info.cliente||"")}" data-obrainfo="cliente" placeholder="nombre del mandante"></div>
+    <div class="row"><label style="width:70px">Cliente</label><input type="text" class="grow" list="listaCli" value="${esc(o.info.cliente||"")}" data-obrainfo="cliente" placeholder="elige un cliente guardado o escribe uno nuevo">${datalistClientes()}</div>
     <div class="row"><label style="width:70px">Inicio</label><input type="text" style="width:110px" value="${esc(o.info.inicio||"")}" data-obrainfo="inicio" placeholder="dd-mm-aaaa">
       <span class="small grow" style="text-align:right">Avance físico ponderado: <b class="qty" style="font-size:14px">${F(t.avanceFisico,1)}%</b></span></div>
   </div>
@@ -3387,6 +3388,20 @@ function proyCliente(entrada){
   return c;
 }
 const SIN_CLIENTE="Sin cliente asignado";
+/* Clientes ya escritos en algún proyecto, para elegirlos en vez de volver a teclearlos */
+function clientesConocidos(){
+  const set=new Set();
+  const activo=((state.obra&&state.obra.info&&state.obra.info.cliente)||"").trim();
+  if(activo)set.add(activo);
+  for(const e of proyOrdenados()){
+    const c=(proyCliente(e)||"").trim();
+    if(c)set.add(c);
+  }
+  return [...set].sort((a,b)=>a.localeCompare(b,"es"));
+}
+function datalistClientes(){
+  return `<datalist id="listaCli">${clientesConocidos().map(c=>`<option value="${esc(c)}"></option>`).join("")}</datalist>`;
+}
 /* Agrupa el índice por cliente, con el cliente del proyecto abierto siempre al día */
 function proyPorCliente(){
   const grupos={};
