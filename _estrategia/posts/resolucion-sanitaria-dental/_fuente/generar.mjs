@@ -7,11 +7,11 @@ let pw;
 try { pw = await import('playwright'); }
 catch { pw = await import(pathToFileURL(join(execSync('npm root -g').toString().trim(), 'playwright', 'index.mjs')).href); }
 const b = await pw.chromium.launch();
-for (const sl of ['1', '2', '3', '4', '5', 'h']) for (const S of [1, 2]) {
-  const H = sl === 'h' ? 1920 : 1350, p = await b.newPage({ viewport: { width: 1080 * S, height: H * S } });
+for (const sl of ['1', '2', '3', '4', '5', 'h', 'r']) for (const S of [1, 2]) {
+  const H = 'hr'.includes(sl) ? 1920 : 1350, p = await b.newPage({ viewport: { width: 1080 * S, height: H * S } });
   await p.goto(pathToFileURL(join(aqui, 'carrusel.html')).href + `?slide=${sl}&escala=${S}`);
   await p.evaluate(() => window.ready);
-  const n = sl === 'h' ? 'historia' : `carrusel-0${sl}`;
+  const n = sl === 'h' ? 'historia' : sl === 'r' ? 'historia-registro' : `carrusel-0${sl}`;
   await (await p.$('canvas')).screenshot({ path: join(aqui, '..', `${n}${S > 1 ? '-2160' : ''}.jpg`), type: 'jpeg', quality: 95 });
   await p.close();
 }

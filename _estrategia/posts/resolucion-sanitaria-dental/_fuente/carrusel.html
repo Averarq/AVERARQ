@@ -15,7 +15,7 @@
   El cajetín de la lámina se tapa: contiene datos personales del mandante.
 */
 const Q = new URLSearchParams(location.search), SS = +(Q.get('escala') || 1), SL = Q.get('slide') || '1';
-const W = 1080, H = SL === 'h' ? 1920 : 1350;
+const W = 1080, H = 'hr'.includes(SL) ? 1920 : 1350;
 const cv = document.getElementById('c'), g = cv.getContext('2d'); cv.width = W * SS; cv.height = H * SS;
 const OR = '#FC4C02', CR = '#F2F0EB', BG = '#111110', cr = a => `rgba(242,240,235,${a})`, orA = a => `rgba(252,76,2,${a})`, M = 36;
 const ISO = new Path2D('M 57.574219 52.507812 L 46.25 52.507812 L 51.9375 38.394531 L 53.53125 42.492188 L 56.828125 42.492188 L 53.164062 33.398438 L 50.796875 33.398438 L 41.816406 55.308594 L 45.125 55.304688 L 58.695312 55.304688 L 59.8125 58.101562 L 63.183594 58.101562 L 60.898438 52.464844 Z');
@@ -69,7 +69,7 @@ window.ready = (async () => {
   const [logo, lam, planta, acc, box3, box2, acceso] = await Promise.all(['../../../animaciones/_fuente/img/logotipo-averarq-blanco.png', 'img/lamina.png', 'img/planta.png', 'img/accesibilidad.png', 'img/box3.png', 'img/box2.png', 'img/acceso.png'].map(carga));
   g.setTransform(SS, 0, 0, SS, 0, 0);
   const tapaCajetin = (L) => { // tapa el cajetín (datos personales) dentro de la lámina
-    const x = L.ix + 3015 * L.s, y = L.iy + 1690 * L.s, w = 330 * L.s, h = 820 * L.s;
+    const x = L.ix + 3015 * L.s, y = L.iy + 1690 * L.s, w = 318 * L.s, h = 800 * L.s;
     g.fillStyle = '#fff'; g.fillRect(x, y, w, h); g.strokeStyle = '#222'; g.lineWidth = 1; g.strokeRect(x, y, w, h);
     isotipo(x + w / 2 - 8, y + h * .4, Math.min(28, w * .3), OR);
     texto('ARQ-01', x + w / 2, y + h * .62, `700 ${Math.max(10, w * .2)}px "Barlow Condensed"`, '#111', 'center');
@@ -135,6 +135,36 @@ window.ready = (async () => {
     texto('1  Ruta accesible y rampa al 8 % (OGUC 4.1.7)', M + 40, 1560, '500 24px "IBM Plex Mono"', CR);
     texto('2  Giro Ø 1,50 m en cada recinto', M + 40, 1604, '500 24px "IBM Plex Mono"', CR);
     texto('AVERARQ.CL', W - M - 28, 1760, '600 30px "Barlow Condensed"', OR, 'right');
+  }
+  if (SL === 'r') { // historia de registro: la lámina como protagonista
+    g.fillStyle = BG; g.fillRect(0, 0, W, H);
+    g.strokeStyle = 'rgba(242,240,235,0.045)'; g.lineWidth = 1;
+    for (let x = 30; x < W; x += 30) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); }
+    for (let y = 30; y < H; y += 30) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+    const X0 = 60;
+    texto('REGISTRO DE PROYECTO  ·  OCTUBRE 2026', X0, 268, '500 22px "IBM Plex Mono"', OR);
+    texto('RESOLUCIÓN', X0 - 4, 380, '700 124px "Barlow Condensed"', CR);
+    texto('SANITARIA', X0 - 4, 492, '700 124px "Barlow Condensed"', OR);
+    texto('Clínica dental · Box 2 y Box 3 · Llay-Llay', X0, 548, '400 32px "Barlow"', cr(.85));
+    const L = lamina(lam, X0, 600, W - 2 * X0, 720); tapaCajetin(L);
+    // lupas: detalle del box y ruta accesible
+    const y1 = L.iy + L.ih + 40, wI = (W - 2 * X0 - 30) / 2, hI = 250;
+    const cubre = (im, x, y, w, h, fx = .5, fy = .5) => { // recorte que llena la celda
+      const s = Math.max(w / im.width, h / im.height), sw = w / s, sh = h / s;
+      g.save(); g.shadowColor = 'rgba(0,0,0,0.55)'; g.shadowBlur = 24; g.shadowOffsetY = 8; g.fillStyle = '#fff'; g.fillRect(x, y, w, h); g.restore();
+      g.drawImage(im, (im.width - sw) * fx, (im.height - sh) * fy, sw, sh, x, y, w, h);
+      g.strokeStyle = OR; g.lineWidth = 3; g.strokeRect(x, y, w, h);
+      return { ix: x, iy: y, iw: w, ih: h };
+    };
+    const A = cubre(box3, X0, y1, wI, hI, .4, .45), B = cubre(acc, X0 + wI + 30, y1, wI, hI, .5, .75);
+    texto('BOX EN DETALLE · 1:25', A.ix, A.iy + A.ih + 30, '500 18px "IBM Plex Mono"', cr(.75));
+    texto('RUTA ACCESIBLE · 1:50', B.ix, B.iy + B.ih + 30, '500 18px "IBM Plex Mono"', cr(.75));
+    // estado del trámite
+    const yS = y1 + hI + 80, tS = 'INGRESADO A SEREMI DE SALUD';
+    g.font = '700 40px "Barlow Condensed"'; const wS = g.measureText(tS).width + 96;
+    g.fillStyle = OR; g.fillRect(X0, yS, wS, 64);
+    g.strokeStyle = '#fff'; g.lineWidth = 5; g.lineCap = 'round'; g.beginPath(); g.moveTo(X0 + 24, yS + 33); g.lineTo(X0 + 36, yS + 45); g.lineTo(X0 + 58, yS + 20); g.stroke();
+    texto(tS, X0 + 76, yS + 46, '700 40px "Barlow Condensed"', '#fff');
   }
   return true;
 })();
