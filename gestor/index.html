@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.26</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.27</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -233,7 +233,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.26</span></a>
+    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.27</span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <select id="selProyecto" title="Cambiar de proyecto"></select>
   <span id="nubeDot" class="nube-dot off" title="Sin nube"></span>
@@ -353,11 +353,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.26 =================
+/* ================= GESTOR AVERARQ v3.27 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.26";
+const GESTOR_VERSION="v3.27";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -2326,6 +2326,9 @@ function selectorProyectoHTML(origen){
       <input type="text" class="grow" list="listaCli" value="${esc(cliAct)}" data-obrainfo="cliente" placeholder="elige un cliente guardado o escribe uno nuevo" title="Mismo dato que el mandante de OBRA. La lista muestra los clientes que ya tienes.">
       ${datalistClientes()}
       ${hermanas>1?`<button class="btn mini" data-clienteCta="1" title="Estado de cuenta con todas las obras de este cliente">📄 Estado de cuenta del cliente (${hermanas})</button>`:""}</div>
+    <div class="row"><label style="font-size:11px;color:var(--txt);cursor:pointer" title="Marca la obra como terminada: se refleja en el estado de cuenta del cliente">
+      <input type="checkbox" style="width:auto" data-ctrlfin="1" ${(state.control&&state.control.terminado)?"checked":""}> Obra terminada</label>
+      ${(state.control&&state.control.terminado)?`<span class="small" style="color:#5fbf8a">✓ esta obra se muestra como terminada en los documentos</span>`:""}</div>
     <div class="row"><span class="small" style="color:var(--muted)">${lista.length} proyecto(s) en este navegador${nubeCfg?" · sincronizados con la nube":""}${act&&act.soloNube?" · este está solo en la nube: se baja al abrirlo":""}${hermanas>1?` · ${hermanas} obras de ${esc(cliAct)}`:""}</span></div>
   </div>`;
 }
@@ -3100,6 +3103,11 @@ function bindTab(){
   $$("#tabContent [data-proynuevo]").forEach(b=>b.onclick=proyNuevoCmd);
   $$("#tabContent [data-proygest]").forEach(b=>b.onclick=()=>$("#btnProyGest").click());
   $$("#tabContent [data-clienteCta]").forEach(b=>b.onclick=emitirEstadoCuentaCliente);
+  $$("#tabContent [data-ctrlfin]").forEach(c=>c.onchange=()=>{
+    state.control.terminado=c.checked;
+    autosave();renderTab();
+    hint(c.checked?"Obra marcada como terminada.":"Obra vuelve a figurar en ejecución.");
+  });
   // Control de obra
   const ctrlC=$('[data-ctrl="contrato"]');if(ctrlC)ctrlC.addEventListener("change",()=>{state.control.contrato=parseFloat(ctrlC.value)||"";renderTab();autosave();});
   const adicNuevo=$("#ctrlAdicNuevo");if(adicNuevo)adicNuevo.onclick=()=>{
@@ -3326,6 +3334,7 @@ function loadState(s){
   if(!state.control)state.control={contrato:"", gastos:[]};
   if(!Array.isArray(state.control.gastos))state.control.gastos=[];
   if(!Array.isArray(state.control.adicionales))state.control.adicionales=[];
+  if(typeof state.control.terminado!=="boolean")state.control.terminado=false;
   if(state.control.tarM1===undefined)state.control.tarM1=55000;
   if(state.control.tarM2===undefined)state.control.tarM2=40000;
   if(state.control.usaM2===undefined)state.control.usaM2=true;
@@ -3370,23 +3379,37 @@ function proyEscribir(id,snap){
   catch(e){proySinEspacio(e);return false;}
 }
 function proyLeer(id){try{const v=localStorage.getItem(PROY_KEY+id);return v?JSON.parse(v):null;}catch(e){return null;}}
-function proyTocar(id,nombre,cliente){
+function proyTocar(id,nombre,cliente,terminada){
   const idx=proyIndice(); const it=idx.find(x=>x.id===id); const fecha=new Date().toISOString();
-  if(it){it.nombre=nombre;it.fecha=fecha;if(cliente!==undefined)it.cliente=cliente;}
-  else idx.push({id,nombre,fecha,cliente:cliente||""});
+  if(it){it.nombre=nombre;it.fecha=fecha;
+    if(cliente!==undefined)it.cliente=cliente;
+    if(terminada!==undefined)it.fin=!!terminada;}
+  else idx.push({id,nombre,fecha,cliente:cliente||"",fin:!!terminada});
   proyGuardarIndice(idx);
 }
-/* Cliente de un proyecto: el mandante que ya usa OBRA y los documentos.
-   Para proyectos antiguos se lee una vez de su copia guardada y queda en el índice. */
-function proyCliente(entrada){
-  if(entrada.cliente!==undefined)return entrada.cliente||"";
-  let c="";
-  try{const sn=proyLeer(entrada.id); c=(sn&&sn.obra&&sn.obra.info&&sn.obra.info.cliente)||"";}catch(e){}
+/* Datos de cabecera de un proyecto (mandante y si está terminada): ya viven dentro
+   del propio proyecto. Para los antiguos se leen una vez y quedan en el índice. */
+function proyMeta(entrada){
+  if(entrada.cliente!==undefined && entrada.fin!==undefined)return entrada;
+  let c=entrada.cliente, f=entrada.fin;
+  try{
+    const sn=proyLeer(entrada.id);
+    if(c===undefined)c=(sn&&sn.obra&&sn.obra.info&&sn.obra.info.cliente)||"";
+    if(f===undefined)f=!!(sn&&sn.control&&sn.control.terminado);
+  }catch(e){}
+  if(c===undefined)c=""; f=!!f;
   const idx=proyIndice(); const it=idx.find(x=>x.id===entrada.id);
-  if(it){it.cliente=c;proyGuardarIndice(idx);}
-  entrada.cliente=c;
-  return c;
+  if(it){it.cliente=c;it.fin=f;proyGuardarIndice(idx);}
+  entrada.cliente=c; entrada.fin=f;
+  return entrada;
 }
+function proyCliente(entrada){return proyMeta(entrada).cliente||"";}
+/* ¿terminada? El proyecto abierto manda sobre lo guardado en el índice */
+function proyTerminada(entrada){
+  if(entrada.id===proyActivo)return !!(state.control&&state.control.terminado);
+  return !!proyMeta(entrada).fin;
+}
+const SELLO_FIN=`<span style="display:inline-block;border:1px solid #3a8a5a;color:#3a8a5a;border-radius:3px;padding:0 5px;font-size:9px;font-weight:700;letter-spacing:.6px;vertical-align:middle">TERMINADO</span>`;
 const SIN_CLIENTE="Sin cliente asignado";
 /* Clientes ya escritos en algún proyecto, para elegirlos en vez de volver a teclearlos */
 function clientesConocidos(){
@@ -3427,7 +3450,7 @@ function resumenCliente(cliente){
       const contrato=base+adic;
       const recibido=Math.max(0,+((sn.planPago||{}).cobrado)||0);
       if(contrato<=0&&recibido<=0)continue;      // obras sin montos no entran al estado de cuenta
-      obras.push({nombre:sn.proyecto||e.nombre||"Obra sin título",base,adic,contrato,recibido,saldo:contrato-recibido});
+      obras.push({nombre:sn.proyecto||e.nombre||"Obra sin título",base,adic,contrato,recibido,saldo:contrato-recibido,fin:!!ctrl.terminado});
     }
   }
   obras.sort((a,b)=>ordenNombre(a.nombre,b.nombre));
@@ -3458,7 +3481,7 @@ function renderProyLista(){
   const cont=$("#proyLista"); if(!cont)return;
   const lista=proyOrdenados();
   const filaProy=x=>`<tr style="border-bottom:1px solid var(--line)">
-      <td><b style="color:${x.id===proyActivo?'var(--naranja2)':'var(--txt)'}">${x.id===proyActivo?"● ":""}${esc(x.nombre||"Sin título")}</b>
+      <td><b style="color:${x.id===proyActivo?'var(--naranja2)':'var(--txt)'}">${x.id===proyActivo?"● ":""}${esc(x.nombre||"Sin título")}</b> ${proyTerminada(x)?SELLO_FIN:""}
         <div class="small" style="color:var(--muted)">modificado ${proyFecha(x.fecha)} ${x.soloNube?"· ☁ solo en la nube":(x.nube?"· ☁ sincronizado":"")}</div></td>
       <td style="text-align:right;white-space:nowrap">
         ${x.id===proyActivo?`<span class="small" style="color:var(--muted)">abierto</span>`:`<button class="btn mini" data-proyabrir="${x.id}">abrir</button>`}
@@ -3694,7 +3717,7 @@ function autosave(){
   try{
     const snap=snapshot();
     if(!proyActivo){proyActivo=proyNuevoId();try{localStorage.setItem(PROY_ACT,proyActivo);}catch(e){}}
-    if(proyEscribir(proyActivo,snap))proyTocar(proyActivo,snap.proyecto||"Proyecto sin título",(snap.obra&&snap.obra.info&&snap.obra.info.cliente)||"");
+    if(proyEscribir(proyActivo,snap))proyTocar(proyActivo,snap.proyecto||"Proyecto sin título",(snap.obra&&snap.obra.info&&snap.obra.info.cliente)||"",!!(snap.control&&snap.control.terminado));
     renderProySelect();
     nubeSubirPronto();
   }catch(e){}
@@ -4437,14 +4460,15 @@ function emitirEstadoCuentaCliente(){
     <div style="flex:1;background:#f2f1ee;display:flex;align-items:center;justify-content:center;color:#777;font-size:10px;font-weight:600">${(100-pagado)>=12?"Pendiente "+F(100-pagado,0)+"%":""}</div>
   </div>`;
   const td='style="padding:4px 8px"', tdr='style="padding:4px 8px;text-align:right"';
+  const finN=r.obras.filter(o=>o.fin).length;
   const filaCab=`<div style="display:flex;justify-content:space-between;color:#555;font-size:11px;margin-bottom:12px">
-    <span>Mandante: <b>${esc(cliente)}</b> · ${r.obras.length} obra${r.obras.length===1?"":"s"} en ejecución o terminadas</span><span>${fecha}</span></div>`;
+    <span>Mandante: <b>${esc(cliente)}</b> · ${r.obras.length} obra${r.obras.length===1?"":"s"}${finN?` · ${finN} terminada${finN===1?"":"s"}`:""}</span><span>${fecha}</span></div>`;
   $("#printArea").innerHTML=`<div class="pr-page">`+prHead("ESTADO DE CUENTA — RESUMEN DE OBRAS",fecha,"",filaCab)+`
     <h2>DETALLE POR OBRA</h2>
     <table style="width:100%;border-collapse:collapse;font-size:11px">
       <tr style="background:#f7f6f2;color:#555"><th ${td}>Obra</th><th ${tdr}>Contrato</th><th ${tdr}>Abonado</th><th ${tdr}>Saldo</th></tr>
       ${r.obras.map(o=>`<tr>
-        <td ${td}>${esc(o.nombre)}${o.adic>0?`<div style="font-size:9.5px;color:#777">incluye ${CLP(o.adic)} en obras adicionales</div>`:""}</td>
+        <td ${td}>${esc(o.nombre)} ${o.fin?SELLO_FIN:""}${o.adic>0?`<div style="font-size:9.5px;color:#777">incluye ${CLP(o.adic)} en obras adicionales</div>`:""}</td>
         <td ${tdr}>${CLP(o.contrato)}</td><td ${tdr}>${CLP(o.recibido)}</td>
         <td ${tdr} style="color:${o.saldo>0?'#c1451b':'#3a8a5a'}"><b>${CLP(Math.abs(o.saldo))}</b>${o.saldo<0?" a favor":""}</td></tr>`).join("")}
       <tr style="border-top:2px solid #333"><td ${td}><b>TOTAL</b></td><td ${tdr}><b>${CLP(r.contrato)}</b></td><td ${tdr}><b>${CLP(r.recibido)}</b></td><td ${tdr}><b>${CLP(Math.abs(r.saldo))}</b></td></tr>
@@ -4486,6 +4510,7 @@ function emitirEstadoCuenta(){
       <tr style="border-top:1px solid #333"><td colspan="2" style="padding:4px 8px;font-weight:bold">Total adicionales</td><td style="padding:4px 8px;text-align:right;font-weight:bold">${CLP(t.adicTotal)}</td></tr>
     </table>
     <p style="font-size:10px;color:#777;margin:-6px 0 12px">Obras no incluidas en el contrato original, acordadas con el mandante durante la ejecución.</p>`:""}
+    ${state.control.terminado?`<div style="margin:-6px 0 12px">${SELLO_FIN} <span style="font-size:10.5px;color:#555">Obra terminada</span></div>`:""}
     <h2>RESUMEN DE PAGOS</h2>
     ${t.adicionales.length?`<div class="pr-tot"><span>Contrato original</span><span>${CLP(t.contratoBase)}</span></div>
     <div class="pr-tot"><span>Obras adicionales</span><span>${CLP(t.adicTotal)}</span></div>`:""}
