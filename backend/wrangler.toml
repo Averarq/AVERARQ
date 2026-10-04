@@ -1,0 +1,13 @@
+name = "averarq-backend"
+main = "src/index.js"
+compatibility_date = "2026-07-01"
+
+[[kv_namespaces]]
+binding = "DOCS_KV"
+id = "401ec531e62e457fba941b793ef13697"
+
+# Permite importar gestor.html como texto dentro del bundle del Worker
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = true
