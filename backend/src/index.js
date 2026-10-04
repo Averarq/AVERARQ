@@ -1,8 +1,16 @@
 // AVERARQ · Backend (Cloudflare Worker + KV, sin R2)
-//
-// Además de la API, este Worker SIRVE el GESTOR en /gestor (archivo gestor.html
-// de esta misma carpeta, incrustado en el bundle al desplegar). Así la app y su
-// API quedan en el mismo origen: sin CORS y con la URL de la nube ya propuesta.
+// ============================================================================
+//  v7 · FUSIÓN TOTAL — 2026-10-04
+//  Único archivo válido. Reúne, sin excepción:
+//    · Portal de seguimiento con código del cliente y código secundario
+//      para terceros (modo restringido: sin pagos, sin comprobantes).
+//    · Calendario (feed ICS), PATCH de metadatos y PUT de archivo.
+//    · Proyectos del GESTOR en la nube (gestor:*).
+//    · Página /gestor servida por el propio Worker.
+//    · Respaldo completo, registro del último respaldo y restauración.
+//  Cualquier cambio futuro PARTE DE ESTE ARCHIVO. Desplegar una versión
+//  que no incluya los dos lados vuelve a romper la mitad del sistema.
+// ============================================================================
 // Guarda TODOS los datos en la nube usando solo KV:
 //   - estado global (proyectos, pagos, leads)
 //   - documentos: metadatos + archivo (base64) en KV
@@ -17,7 +25,9 @@
 //   GET    /api/documentos/:id/file   -> descarga el archivo
 //   DELETE /api/documentos/:id        -> elimina metadato + archivo
 //   GET    /api/respaldo[?docs=1]     -> respaldo completo en un JSON
+//   GET/PUT /api/respaldo/registro    -> fecha del último respaldo (aviso de los viernes)
 //   POST   /api/restaurar/documento   -> repone un documento con su id original
+//   GET    /gestor                    -> la página del GESTOR (no es /api/)
 //
 // Auth: header  Authorization: Bearer <API_TOKEN>   (wrangler secret put API_TOKEN)
 
@@ -194,14 +204,23 @@ export default {
           const codigo = String(parts[2] || "").toUpperCase().trim();
           if (!codigo) return json({ error: "Falta el código." }, 400, origin);
 
-          const p = proyectos.find(
+          // Puede entrar con el código del cliente (completo) o el secundario (restringido)
+          let p = proyectos.find(
             (x) => (x.codigoCliente || "").toUpperCase() === codigo
           );
+          let restringido = false;
+          if (!p) {
+            p = proyectos.find(
+              (x) => x.codigoSecundarioOn && (x.codigoSecundario || "").toUpperCase() === codigo
+            );
+            if (p) restringido = true;
+          }
           if (!p) {
             return json({ error: "No encontramos un proyecto con ese código." }, 404, origin);
           }
 
-          // Documentos de ESTE proyecto (solo metadatos, nunca de otros)
+          // Documentos de ESTE proyecto (solo metadatos, nunca de otros).
+          // En modo restringido se ocultan los comprobantes.
           const list = await env.DOCS_KV.list({ prefix: "docmeta:" });
           const docs = [];
           for (const k of list.keys) {
@@ -209,6 +228,7 @@ export default {
             if (!v) continue;
             const m = JSON.parse(v);
             if (m.proyectoId === p.id) {
+              if (restringido && /comprobante/i.test(m.categoria || "")) continue;
               docs.push({
                 id: m.id, nombre: m.nombre, categoria: m.categoria,
                 fecha: m.fecha, size: m.size, type: m.type, fileName: m.fileName,
@@ -241,15 +261,19 @@ export default {
             nombre: p.nombre,
             estado: p.estado,
             avance,
-            total: p.total || 0,
-            totalAbonado,
-            saldo: Math.max(0, (p.total || 0) - totalAbonado),
-            pagos,
-            cuotasFuturas,
             documentos: docs,
             docOrden: p.docOrden || "nombre-asc",
             expediente: expedientePublico(p),
+            restringido: restringido,
           };
+          // Datos financieros SOLO para el cliente (código principal), nunca para terceros
+          if (!restringido) {
+            salida.total = p.total || 0;
+            salida.totalAbonado = totalAbonado;
+            salida.saldo = Math.max(0, (p.total || 0) - totalAbonado);
+            salida.pagos = pagos;
+            salida.cuotasFuturas = cuotasFuturas;
+          }
           return json({ proyecto: salida }, 200, origin);
         }
 
@@ -257,9 +281,16 @@ export default {
         if (request.method === "GET" && parts.length === 5 && parts[3] === "documento") {
           const codigo = String(parts[2] || "").toUpperCase().trim();
           const docId = parts[4];
-          const p = proyectos.find(
+          let p = proyectos.find(
             (x) => (x.codigoCliente || "").toUpperCase() === codigo
           );
+          let restringido = false;
+          if (!p) {
+            p = proyectos.find(
+              (x) => x.codigoSecundarioOn && (x.codigoSecundario || "").toUpperCase() === codigo
+            );
+            if (p) restringido = true;
+          }
           if (!p) return json({ error: "Código no válido." }, 404, origin);
 
           const metaRaw = await env.DOCS_KV.get("docmeta:" + docId);
@@ -267,6 +298,10 @@ export default {
           const meta = JSON.parse(metaRaw);
           // Verificación crítica: el documento debe pertenecer a ESTE proyecto
           if (meta.proyectoId !== p.id) {
+            return json({ error: "Documento no disponible." }, 403, origin);
+          }
+          // En modo restringido, los comprobantes nunca se entregan
+          if (restringido && /comprobante/i.test(meta.categoria || "")) {
             return json({ error: "Documento no disponible." }, 403, origin);
           }
           const b64 = await env.DOCS_KV.get("docfile:" + docId);
@@ -452,6 +487,9 @@ export default {
       // ---------- RESPALDO COMPLETO ----------
       // GET /api/respaldo        -> estado del organizador + proyectos del GESTOR + metadatos de documentos
       // GET /api/respaldo?docs=1 -> además el contenido de cada documento (base64)
+      // El estado se copia TAL CUAL (bloque completo): así viajan también los campos
+      // nuevos por proyecto —codigoSecundario, codigoSecundarioOn, cuotasFuturas,
+      // docList— sin tener que enumerarlos aquí ni mantener esta lista al día.
       // Se escribe en streaming para no armar un texto gigante en memoria.
       if (parts[1] === "respaldo" && request.method === "GET") {
         const conDocs = url.searchParams.get("docs") === "1";
@@ -486,7 +524,9 @@ export default {
             }
             await push("]");
 
-            // Documentos: metadatos siempre; contenido solo si se pidió
+            // Documentos: metadatos siempre; contenido solo si se pidió.
+            // La categoría se guarda textual (incluido "Comprobante"), de modo que
+            // al restaurar el filtro del código secundario siga funcionando.
             await push(',"documentos":[');
             const ld = await kv.list({ prefix: "docmeta:" });
             primero = true;
@@ -511,8 +551,7 @@ export default {
             await w.close();
           }
         })();
-        // Sin esto el runtime corta la petición al devolver la respuesta y el JSON
-        // llega truncado (el error que aparecía al respaldar).
+        // Sin esto el runtime corta la petición al devolver la respuesta y el JSON llega truncado
         if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(escribir);
 
         const nombre = "averarq_respaldo_" + fecha.slice(0, 10) + (conDocs ? "_con_documentos" : "") + ".json";
@@ -528,6 +567,7 @@ export default {
 
       // ---------- RESTAURAR UN DOCUMENTO (conservando su id original) ----------
       // POST /api/restaurar/documento  { meta: {...}, b64: "..." }
+      // El metadato se repone literal, sin renombrar la categoría.
       if (parts[1] === "restaurar" && parts[2] === "documento" && request.method === "POST") {
         const body = await request.json();
         const meta = body && body.meta;
