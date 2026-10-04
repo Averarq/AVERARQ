@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>AVERARQ · Carrusel resolución sanitaria</title>
+<link rel="stylesheet" href="../../../animaciones/_fuente/fonts/fonts.css">
+<style>html,body{margin:0;background:#111110}canvas{display:block}</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+/*
+  Carrusel (y una historia) sobre la lámina ARQ-01 para la resolución sanitaria de una clínica dental en Llay-Llay.
+  ?slide=1..5 (4:5) o ?slide=h (historia 9:16) · ?escala=2. Las imágenes salen del PDF vectorial (ver generar.py).
+  El cajetín de la lámina se tapa: contiene datos personales del mandante.
+*/
+const Q = new URLSearchParams(location.search), SS = +(Q.get('escala') || 1), SL = Q.get('slide') || '1';
+const W = 1080, H = SL === 'h' ? 1920 : 1350;
+const cv = document.getElementById('c'), g = cv.getContext('2d'); cv.width = W * SS; cv.height = H * SS;
+const OR = '#FC4C02', CR = '#F2F0EB', BG = '#111110', cr = a => `rgba(242,240,235,${a})`, orA = a => `rgba(252,76,2,${a})`, M = 36;
+const ISO = new Path2D('M 57.574219 52.507812 L 46.25 52.507812 L 51.9375 38.394531 L 53.53125 42.492188 L 56.828125 42.492188 L 53.164062 33.398438 L 50.796875 33.398438 L 41.816406 55.308594 L 45.125 55.304688 L 58.695312 55.304688 L 59.8125 58.101562 L 63.183594 58.101562 L 60.898438 52.464844 Z');
+const carga = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = src; });
+function isotipo(x, y, h, col) { const s = h / 25.4; g.save(); g.translate(x - 41.6 * s, y - 33 * s); g.scale(s, s); g.fillStyle = col; g.fill(ISO); g.restore(); }
+function texto(s, x, y, font, col, al = 'left') { g.font = font; g.fillStyle = col; g.textAlign = al; g.textBaseline = 'alphabetic'; g.fillText(s, x, y); }
+function envolver(s, x, y, ancho, font, col, alto) {
+  g.font = font; const pal = s.split(' '); let l = '', yy = y;
+  for (const p of pal) { const t = l ? l + ' ' + p : p; if (g.measureText(t).width > ancho && l) { texto(l, x, yy, font, col); l = p; yy += alto; } else l = t; }
+  if (l) texto(l, x, yy, font, col); return yy;
+}
+// lámina sobre la mesa: imagen blanca con sombra y borde fino, ajustada al rectángulo [x, y, w, h]
+function lamina(im, x, y, w, h) {
+  const s = Math.min(w / im.width, h / im.height), iw = im.width * s, ih = im.height * s, ix = x + (w - iw) / 2, iy = y + (h - ih) / 2;
+  g.save(); g.shadowColor = 'rgba(0,0,0,0.55)'; g.shadowBlur = 30; g.shadowOffsetY = 10; g.fillStyle = '#fff'; g.fillRect(ix, iy, iw, ih); g.restore();
+  g.drawImage(im, ix, iy, iw, ih);
+  return { ix, iy, s, iw, ih };
+}
+function marcador(n, x, y, dx, dy) { // punto + guía + círculo numerado (como en los detalles)
+  const X = x + dx, Y = y + dy;
+  g.fillStyle = OR; g.beginPath(); g.arc(x, y, 6, 0, 7); g.fill();
+  g.strokeStyle = OR; g.lineWidth = 2.5; g.beginPath(); g.moveTo(x, y); g.lineTo(X, Y); g.stroke();
+  g.beginPath(); g.arc(X, Y, 22, 0, 7); g.fillStyle = OR; g.fill();
+  texto(String(n), X, Y + 9, '700 26px "Barlow Condensed"', '#fff', 'center');
+}
+function anillo(x, y, rx, ry) { g.strokeStyle = OR; g.lineWidth = 3.5; g.setLineDash([12, 8]); g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, 7); g.stroke(); g.setLineDash([]); }
+function marco(logo, n, titulo, sub) {
+  g.fillStyle = BG; g.fillRect(0, 0, W, H);
+  g.strokeStyle = 'rgba(242,240,235,0.045)'; g.lineWidth = 1;
+  for (let x = M + 30; x < W - M; x += 30) { g.beginPath(); g.moveTo(x, M); g.lineTo(x, H - M - 26); g.stroke(); }
+  for (let y = M + 30; y < H - M - 26; y += 30) { g.beginPath(); g.moveTo(M, y); g.lineTo(W - M, y); g.stroke(); }
+  g.strokeStyle = cr(.5); g.lineWidth = 1.2; g.strokeRect(M, M, W - 2 * M, H - 2 * M - 26);
+  isotipo(M + 30, 62, 34, OR);
+  g.drawImage(logo, M + 76, 64, 28 * logo.naturalWidth / logo.naturalHeight, 28);
+  texto(n, W - M - 28, 88, '500 17px "IBM Plex Mono"', OR, 'right');
+  if (titulo) { texto(titulo, M + 28, 178, '700 64px "Barlow Condensed"', CR); texto(sub, M + 30, 212, '400 17px "IBM Plex Mono"', cr(.6)); g.strokeStyle = cr(.5); g.beginPath(); g.moveTo(M, 236); g.lineTo(W - M, 236); g.stroke(); }
+  texto('Lámina de tramitación · datos del mandante reservados.', W / 2, H - 22, '400 15px "IBM Plex Mono"', cr(.5), 'center');
+}
+function cajetin(y0, items) { // pie con los puntos numerados
+  g.strokeStyle = cr(.5); g.lineWidth = 1.2; g.beginPath(); g.moveTo(M, y0); g.lineTo(W - M, y0); g.stroke();
+  let y = y0 + 52;
+  items.forEach(([t, d], i) => {
+    g.beginPath(); g.arc(M + 52, y - 9, 18, 0, 7); g.fillStyle = OR; g.fill();
+    texto(String(i + 1), M + 52, y - 1, '700 22px "Barlow Condensed"', '#fff', 'center');
+    texto(t, M + 86, y, '700 30px "Barlow Condensed"', CR);
+    texto(d, M + 86, y + 30, '400 21px "Barlow"', cr(.8)); y += 82;
+  });
+}
+window.ready = (async () => {
+  for (const f of ['400 20px Barlow', '700 20px "Barlow Condensed"', '600 20px "Barlow Condensed"', '500 20px "IBM Plex Mono"', '400 20px "IBM Plex Mono"']) await document.fonts.load(f, 'ÁÉÍÓÚÑáéíóúñ');
+  const [logo, lam, planta, acc, box3, box2, acceso] = await Promise.all(['../../../animaciones/_fuente/img/logotipo-averarq-blanco.png', 'img/lamina.png', 'img/planta.png', 'img/accesibilidad.png', 'img/box3.png', 'img/box2.png', 'img/acceso.png'].map(carga));
+  g.setTransform(SS, 0, 0, SS, 0, 0);
+  const tapaCajetin = (L) => { // tapa el cajetín (datos personales) dentro de la lámina
+    const x = L.ix + 3015 * L.s, y = L.iy + 1690 * L.s, w = 330 * L.s, h = 820 * L.s;
+    g.fillStyle = '#fff'; g.fillRect(x, y, w, h); g.strokeStyle = '#222'; g.lineWidth = 1; g.strokeRect(x, y, w, h);
+    isotipo(x + w / 2 - 8, y + h * .4, Math.min(28, w * .3), OR);
+    texto('ARQ-01', x + w / 2, y + h * .62, `700 ${Math.max(10, w * .2)}px "Barlow Condensed"`, '#111', 'center');
+  };
+  if (SL === '1') {
+    marco(logo, 'RESOLUCIÓN SANITARIA · 01/05');
+    texto('DEL PLANO', M + 28, 210, '700 96px "Barlow Condensed"', CR);
+    texto('A LA RESOLUCIÓN', M + 28, 300, '700 96px "Barlow Condensed"', CR);
+    texto('SANITARIA.', M + 24, 410, '700 120px "Barlow Condensed"', OR);
+    g.fillStyle = OR; g.fillRect(M + 30, 440, 110, 6);
+    texto('Clínica dental · Llay-Llay · Box 2 y Box 3', M + 30, 490, '400 28px "Barlow"', cr(.85));
+    const L = lamina(lam, M + 40, 540, W - 2 * M - 80, 640); tapaCajetin(L);
+    texto('Desliza → cómo se lee una lámina para la SEREMI', W / 2, 1245, '500 20px "IBM Plex Mono"', OR, 'center');
+  }
+  if (SL === '2') {
+    marco(logo, '02/05', 'PLANTA CLÍNICA', 'ESC. 1:50 · DISTRIBUCIÓN Y FLUJOS');
+    const L = lamina(planta, M + 30, 262, W - 2 * M - 60, 720);
+    const p = (x, y) => [L.ix + x * L.s, L.iy + y * L.s];
+    let [x, y] = p(2270, 1663); marcador(1, x, y, 70, -60);
+    [x, y] = p(1663, 1698); marcador(2, x, y, -60, 70);
+    [x, y] = p(1421, 728); marcador(3, x, y, -70, -50);
+    cajetin(1010, [['Boxes de procedimiento', 'Cada box con área limpia y área sucia diferenciadas.'], ['Recepción y sala de espera', 'Atención al público separada de la zona clínica.'], ['Esterilización y servicios', 'Flujo de instrumental sucio → limpio sin cruzarse.']]);
+  }
+  if (SL === '3') {
+    marco(logo, '03/05', 'ACCESIBILIDAD UNIVERSAL', 'ESC. 1:50 · RUTA ACCESIBLE DESDE LA VEREDA');
+    const L = lamina(acc, M + 30, 262, W - 2 * M - 60, 720);
+    const p = (x, y) => [L.ix + x * L.s, L.iy + y * L.s];
+    let [x, y] = p(1307, 1837); marcador(1, x, y, 80, -20);
+    [x, y] = p(1300, 1386); marcador(2, x, y, 90, -40);
+    [x, y] = p(555, 780); marcador(3, x, y, -80, -60);
+    cajetin(1010, [['Ruta accesible', 'Continua desde la vía pública hasta los recintos de atención.'], ['Rampa de acceso al 8 %', 'Cumple las exigencias del art. 4.1.7 de la OGUC.'], ['Giro Ø 1,50 m', 'Espacio de maniobra para silla de ruedas en cada recinto.']]);
+  }
+  if (SL === '4') {
+    marco(logo, '04/05', 'BOX EN DETALLE', 'ESC. 1:25 · EQUIPAMIENTO, PUERTAS Y ÁREAS');
+    const A = lamina(box3, M + 30, 262, 560, 720), B = lamina(box2, M + 610, 262, W - 2 * M - 640, 720);
+    let [x, y] = [A.ix + 624 * A.s, A.iy + 763 * A.s]; marcador(1, x, y, 60, 80);
+    [x, y] = [A.ix + 156 * A.s, A.iy + 468 * A.s]; marcador(2, x, y, 20, 110);
+    [x, y] = [A.ix + 225 * A.s, A.iy + 1265 * A.s]; marcador(3, x, y, 60, 50);
+    cajetin(1010, [['Sillón y unidad dental', 'Ubicados con circulación libre a ambos lados.'], ['Área limpia / área sucia', 'Lavamanos y mesón diferenciados en cada box.'], ['Puertas de 90 cm libres', 'Acceso desde sala de espera y entre boxes.']]);
+  }
+  if (SL === '5') {
+    marco(logo, '05/05');
+    texto('CADA RECINTO,', M + 28, 230, '700 92px "Barlow Condensed"', CR);
+    texto('CADA FLUJO,', M + 28, 318, '700 92px "Barlow Condensed"', CR);
+    texto('JUSTIFICADO.', M + 24, 426, '700 112px "Barlow Condensed"', OR);
+    g.fillStyle = OR; g.fillRect(M + 30, 456, 110, 6);
+    envolver('Preparamos la lámina y el expediente para que la SEREMI de Salud revise rápido y sin observaciones.', M + 30, 510, W - 2 * M - 60, '400 30px "Barlow"', cr(.85), 40);
+    const L = lamina(acceso, M + 40, 620, W - 2 * M - 80, 360); anillo(L.ix + L.iw * .52, L.iy + L.ih * .62, L.iw * .2, L.ih * .3);
+    texto('¿TIENES UNA CONSULTA,', W / 2, 1080, '700 58px "Barlow Condensed"', CR, 'center');
+    texto('CLÍNICA O LOCAL? HÁBLANOS.', W / 2, 1142, '700 58px "Barlow Condensed"', OR, 'center');
+    texto('AVERARQ.CL  ·  @AVERARQ  ·  +56 9 5431 7945', W / 2, 1210, '500 20px "IBM Plex Mono"', CR, 'center');
+  }
+  if (SL === 'h') {
+    marco(logo, 'RESOLUCIÓN SANITARIA');
+    texto('INGRESO', M + 28, 250, '700 110px "Barlow Condensed"', CR);
+    texto('SEREMI DE SALUD', M + 28, 355, '700 96px "Barlow Condensed"', OR);
+    g.fillStyle = OR; g.fillRect(M + 30, 390, 110, 6);
+    texto('Clínica dental · Box 2 y Box 3 · Llay-Llay', M + 30, 446, '400 30px "Barlow"', cr(.85));
+    const L = lamina(acc, M + 30, 500, W - 2 * M - 60, 1000);
+    const p = (x, y) => [L.ix + x * L.s, L.iy + y * L.s];
+    let [x, y] = p(1307, 1837); marcador(1, x, y, 90, -10);
+    [x, y] = p(555, 780); marcador(2, x, y, -90, -60);
+    texto('1  Ruta accesible y rampa al 8 % (OGUC 4.1.7)', M + 40, 1560, '500 24px "IBM Plex Mono"', CR);
+    texto('2  Giro Ø 1,50 m en cada recinto', M + 40, 1604, '500 24px "IBM Plex Mono"', CR);
+    texto('AVERARQ.CL', W - M - 28, 1760, '600 30px "Barlow Condensed"', OR, 'right');
+  }
+  return true;
+})();
+</script>
+</body>
+</html>
