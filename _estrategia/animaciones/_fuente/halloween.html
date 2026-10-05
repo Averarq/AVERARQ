@@ -16,7 +16,7 @@
 const Q = new URLSearchParams(location.search);
 const cv = document.getElementById('c'), g = cv.getContext('2d');
 const SS = Math.max(1, +(Q.get('escala') || 1));
-const W = 1080, H = Q.get('formato') === 'reel' ? 1920 : 1350, DUR = 29;
+const W = 1080, H = Q.get('formato') === 'reel' ? 1920 : 1350, DUR = 33;
 const REEL = H > 1500, CPY = REEL ? 285 : 0;
 cv.width = W * SS; cv.height = H * SS;
 const OR = '#FC4C02', CR = '#F2F0EB', BG = '#111110';
@@ -233,12 +233,13 @@ const ET = [
   { n: '01', t0: 1.0, t1: 5.0, tit: 'Fundación', txt: 'Se excava sin mecánica de suelos… y el terreno no era el esperado.', spec: 'FANTASMA: SUELO BLANDO · FUNDACIONES MÁS GRANDES' },
   { n: '02', t0: 5.0, t1: 9.0, tit: 'Muros', txt: 'Sin planos completos, las decisiones se toman en obra: se demuele y se rehace.', spec: 'FANTASMA: CAMBIOS EN OBRA · DEMOLER Y REHACER' },
   { n: '03', t0: 9.0, t1: 13.0, tit: 'Techumbre', txt: 'Canales, bajadas, tapacanes, hojalatería: lo que nadie cotizó.', spec: 'FANTASMA: PARTIDAS NO COTIZADAS' },
-  { n: '04', t0: 13.0, t1: 17.0, tit: 'Terminaciones', txt: 'La obra queda lista… pero sin permiso: multa y regularización.', spec: 'FANTASMA: OBRA SIN PERMISO · MULTA DOM' },
-  { n: '05', t0: 17.0, t1: 21.4, tit: 'Con proyecto', txt: 'Estudio de suelo, planos completos, presupuesto por partidas y permiso: cada gasto con nombre antes de construir.', spec: 'SIN SORPRESAS · SIN FANTASMAS' },
+  { n: '04', t0: 13.0, t1: 17.0, tit: 'Instalaciones y terminaciones', txt: 'Electricidad, pisos y revestimientos con menos presupuesto del que realmente cuestan.', spec: 'FANTASMA: PARTIDAS SUBESTIMADAS' },
+  { n: '05', t0: 17.0, t1: 21.0, tit: 'Recepción final', txt: 'La obra queda lista… pero sin permiso: multa y regularización.', spec: 'FANTASMA: OBRA SIN PERMISO · MULTA DOM' },
+  { n: '06', t0: 21.0, t1: 25.4, tit: 'Con proyecto', txt: 'Estudio de suelo, planos completos, presupuesto por partidas y permiso: cada gasto con nombre antes de construir.', spec: 'SIN SORPRESAS · SIN FANTASMAS' },
 ];
-const N = ET.length - 1, T_RES = 21.8, T_CP = 25.4;
+const N = ET.length - 1, T_RES = 25.8, T_CP = 29.4;
 const hl = e => t => t < ET[e].t0 ? 0 : t < ET[e].t1 ? 1 : 1 - clamp((t - ET[e].t1) / 0.9);
-const SOBRE = [0, 12, 21, 29, 35];                                                    // sobrecosto acumulado (%), referencial
+const SOBRE = [0, 12, 21, 29, 39, 45];                                                    // sobrecosto acumulado (%), referencial
 
 // ------------------------------------------------------------------ geometría (cm): casa simple de dos aguas
 const LX = 400, LY = 300, EM = 15, HM = 250, HC = 120, AL = 30;
@@ -338,13 +339,15 @@ function escena(t) {
   // fantasmas y gastos
   // fantasmas en posiciones fijas de pantalla, alrededor de la casa, con guía al elemento que embrujan
   const yb = REEL ? 0 : -330;
+  const V1x = 200;
   const G = [
     { e: 1, p: [LX, LY, -20], c: [40, -40], s: [700, 1390 + yb], txt: 'SUELO BLANDO', pct: '+12 %' },
     { e: 2, p: [EM, LY, HM * .6], c: [-220, -120], s: [110, 1040 + yb], txt: 'CAMBIOS EN OBRA', pct: '+9 %' },
     { e: 3, p: [LX / 2, LY + AL, HM - 10], c: [-260, -250], s: [110, 760 + yb], txt: 'PARTIDAS NO COTIZADAS', pct: '+8 %' },
-    { e: 4, p: [LX, 150, 120], c: [-30, -250], s: [700, 1070 + yb], txt: 'SIN PERMISO · MULTA', pct: '+6 %' },
+    { e: 4, p: [V1x, LY, 140], c: [-250, 60], s: [110, 1320 + yb], txt: 'ELECTRICIDAD Y PISOS', pct: '+10 % · SUBESTIMADAS' },
+    { e: 5, p: [LX, 150, 120], c: [-30, -250], s: [700, 1070 + yb], txt: 'SIN PERMISO · MULTA', pct: '+6 %' },
   ];
-  const limpia = ap(5, 0.4, 1.6);                                                       // el proyecto barre los fantasmas
+  const limpia = ap(6, 0.4, 1.6);                                                       // el proyecto barre los fantasmas
   G.forEach((q, i) => {
     const a = clamp((t - ET[q.e].t0 - 1.0) / .6) * (1 - limpia), [x, y] = P(...q.p), [X, Y] = ROT ? q.s : [x + q.c[0], y + q.c[1]];
     if (a <= 0) return;
@@ -354,8 +357,8 @@ function escena(t) {
     etiquetaGasto(X + 100, Y - 34, q.txt, q.pct, a);
   });
   // barrido del proyecto: una lámina con grilla cruza el cuadro
-  if (t > ET[5].t0 && t < ET[5].t0 + 2.6) {
-    const q = ease((t - ET[5].t0 - .2) / 2.0), x = lerp(-W * .9, W * 1.1, q);
+  if (t > ET[6].t0 && t < ET[6].t0 + 2.6) {
+    const q = ease((t - ET[6].t0 - .2) / 2.0), x = lerp(-W * .9, W * 1.1, q);
     g.save(); g.globalAlpha *= .92;
     g.fillStyle = '#1b1a18'; g.fillRect(x, TOP, W * .55, CAJ - TOP); g.strokeStyle = OR; g.lineWidth = 3; g.strokeRect(x, TOP, W * .55, CAJ - TOP);
     g.strokeStyle = 'rgba(252,76,2,0.25)'; g.lineWidth = 1;
@@ -365,7 +368,7 @@ function escena(t) {
     g.restore();
   }
   // contador de sobrecosto
-  let e = 0; for (let i = 1; i <= 4; i++) if (t >= ET[i].t0 + 1.0) e = i;
+  let e = 0; for (let i = 1; i <= 5; i++) if (t >= ET[i].t0 + 1.0) e = i;
   const val = Math.round(lerp(SOBRE[Math.max(0, e - 1)], SOBRE[e], clamp((t - (ET[e] ? ET[e].t0 + 1.0 : 0)) / .8)) * (1 - limpia));
   if (!ROT) return;
   const xa = M + 30, ya = TOP + 36;
@@ -475,9 +478,9 @@ function render(t) {
 // ------------------------------------------------------------------ portada del post (imagen fija)
 function renderPortada() {
   const R = H > 1500, dy = R ? 90 : 0; // reel 9:16: titular arriba, dibujo grande abajo
-  const t = 16.2;
+  const t = 20.2;
   g.setTransform(SS, 0, 0, SS, 0, 0);
-  CAM_FIJA = encuadre(BB, R ? [M + 150, 760, W - M - 200, H - M - 190] : [430, 500, W - M - 160, H - M - 130], [30, 20]); ROT = false;
+  CAM_FIJA = encuadre(BB, R ? [M + 170, 700, W - M - 170, H - M - 150] : [430, 500, W - M - 160, H - M - 130], [30, 20]); ROT = false;
   g.fillStyle = BG; g.fillRect(0, 0, W, H);
   retícula(M, H - M - 26);
   g.save(); g.beginPath(); g.rect(M, M, W - 2 * M, H - 2 * M - 96); g.clip();
@@ -496,13 +499,13 @@ function renderPortada() {
   texto('Lo que aparece cuando', M + 30, 506 + dy, '400 28px "Barlow"', cr(.85));
   texto('construyes sin proyecto.', M + 30, 542 + dy, '400 28px "Barlow"', cr(.85));
   linea([M, H - M - 96], [W - M, H - M - 96], cr(.5), 1.2);
-  texto('SUELO · CAMBIOS · PARTIDAS · PERMISOS', M + 30, H - M - 52, '400 17px "IBM Plex Mono"', cr(.65));
+  texto('SUELO · CAMBIOS · PARTIDAS · INSTALACIONES · PERMISOS', M + 30, H - M - 52, '400 17px "IBM Plex Mono"', cr(.65));
   texto('AVERARQ.CL', W - M - 28, H - M - 50, '600 26px "Barlow Condensed"', OR, 'right');
   texto('Detalle referencial.', W / 2, H - 22, '400 15px "IBM Plex Mono"', cr(.5), 'center');
 }
 window.renderPortada = renderPortada;
 window.DUR = DUR;
-window.PORTADA = 16.2; // casa embrujada con todos los fantasmas
+window.PORTADA = 20.2; // casa embrujada con todos los fantasmas
 window.render = render;
 window.ready = (async () => {
   for (const f of ['400 20px Barlow', '700 20px "Barlow Condensed"', '600 20px "Barlow Condensed"', '400 20px "IBM Plex Mono"', '500 20px "IBM Plex Mono"'])
