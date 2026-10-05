@@ -233,7 +233,7 @@ const ET = [
   { n: '01', t0: 1.0, t1: 5.0, tit: 'Fundación', txt: 'Se excava sin mecánica de suelos… y el terreno no era el esperado.', spec: 'FANTASMA: SUELO BLANDO · FUNDACIONES MÁS GRANDES' },
   { n: '02', t0: 5.0, t1: 9.0, tit: 'Muros', txt: 'Sin planos completos, las decisiones se toman en obra: se demuele y se rehace.', spec: 'FANTASMA: CAMBIOS EN OBRA · DEMOLER Y REHACER' },
   { n: '03', t0: 9.0, t1: 13.0, tit: 'Techumbre', txt: 'Canales, bajadas, tapacanes, hojalatería: lo que nadie cotizó.', spec: 'FANTASMA: PARTIDAS NO COTIZADAS' },
-  { n: '04', t0: 13.0, t1: 17.0, tit: 'Instalaciones y terminaciones', txt: 'Electricidad, pisos y revestimientos con menos presupuesto del que realmente cuestan.', spec: 'FANTASMA: PARTIDAS SUBESTIMADAS' },
+  { n: '04', t0: 13.0, t1: 17.0, tit: 'Instalaciones y terminaciones', txt: 'Partidas con menos presupuesto del que realmente cuestan. Por ejemplo: la instalación eléctrica, o los revestimientos de piso.', spec: 'FANTASMA: PARTIDAS SUBESTIMADAS' },
   { n: '05', t0: 17.0, t1: 21.0, tit: 'Recepción final', txt: 'La obra queda lista… pero sin permiso: multa y regularización.', spec: 'FANTASMA: OBRA SIN PERMISO · MULTA DOM' },
   { n: '06', t0: 21.0, t1: 25.4, tit: 'Con proyecto', txt: 'Estudio de suelo, planos completos, presupuesto por partidas y permiso: cada gasto con nombre antes de construir.', spec: 'SIN SORPRESAS · SIN FANTASMAS' },
 ];
@@ -344,7 +344,7 @@ function escena(t) {
     { e: 1, p: [LX, LY, -20], c: [40, -40], s: [700, 1390 + yb], txt: 'SUELO BLANDO', pct: '+12 %' },
     { e: 2, p: [EM, LY, HM * .6], c: [-220, -120], s: [110, 1040 + yb], txt: 'CAMBIOS EN OBRA', pct: '+9 %' },
     { e: 3, p: [LX / 2, LY + AL, HM - 10], c: [-260, -250], s: [110, 760 + yb], txt: 'PARTIDAS NO COTIZADAS', pct: '+8 %' },
-    { e: 4, p: [V1x, LY, 140], c: [-250, 60], s: [110, 1320 + yb], txt: 'ELECTRICIDAD Y PISOS', pct: '+10 % · SUBESTIMADAS' },
+    { e: 4, p: [V1x, LY, 140], c: [-250, 60], s: [110, 1320 + yb], txt: 'PARTIDAS SUBESTIMADAS', pct: '+10 %' },
     { e: 5, p: [LX, 150, 120], c: [-30, -250], s: [700, 1070 + yb], txt: 'SIN PERMISO · MULTA', pct: '+6 %' },
   ];
   const limpia = ap(6, 0.4, 1.6);                                                       // el proyecto barre los fantasmas
@@ -499,7 +499,7 @@ function renderPortada() {
   texto('Lo que aparece cuando', M + 30, 506 + dy, '400 28px "Barlow"', cr(.85));
   texto('construyes sin proyecto.', M + 30, 542 + dy, '400 28px "Barlow"', cr(.85));
   linea([M, H - M - 96], [W - M, H - M - 96], cr(.5), 1.2);
-  texto('SUELO · CAMBIOS · PARTIDAS · INSTALACIONES · PERMISOS', M + 30, H - M - 52, '400 17px "IBM Plex Mono"', cr(.65));
+  texto('SUELO · CAMBIOS · NO COTIZADAS · SUBESTIMADAS · PERMISOS', M + 30, H - M - 52, '400 17px "IBM Plex Mono"', cr(.65));
   texto('AVERARQ.CL', W - M - 28, H - M - 50, '600 26px "Barlow Condensed"', OR, 'right');
   texto('Detalle referencial.', W / 2, H - 22, '400 15px "IBM Plex Mono"', cr(.5), 'center');
 }
