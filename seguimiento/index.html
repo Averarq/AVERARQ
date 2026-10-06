@@ -66,6 +66,15 @@
   .bar-fill.full{ background:var(--verde); }
   .avance-detalle{ display:flex; gap:20px; margin-top:12px; font-size:12px; color:var(--gris); }
   .avance-detalle b{ color:var(--crema); }
+  /* Portada con obra: expediente y construcción, lado a lado */
+  .hero-cols{ display:grid; grid-template-columns:1fr 1fr; gap:26px; margin-top:22px; }
+  .hero-cols .avance-box{ margin-top:0; }
+  .hero-cols .avance-box + .avance-box{ border-left:1px solid var(--grafito3); padding-left:26px; }
+  @media(max-width:620px){
+    .hero-cols{ grid-template-columns:1fr; gap:18px; }
+    .hero-cols .avance-box + .avance-box{ border-left:none; padding-left:0; border-top:1px solid var(--grafito3); padding-top:18px; }
+  }
+  .pct-de{ font-size:19px; font-weight:700; color:var(--gris); }
 
   /* Secciones */
   .seccion{ background:var(--grafito2); border-radius:14px; padding:22px 24px; margin-bottom:18px; border:1px solid var(--grafito3); }
@@ -198,7 +207,7 @@
 
   /* Versión del portal. Va en el pie, en gris: al cliente no le estorba y a ti
      te dice de inmediato si el navegador te está mostrando una copia vieja. */
-  const SEG_VERSION = "v1.1";
+  const SEG_VERSION = "v1.2";
   const SEG_FECHA   = "06-10-2026";
   document.addEventListener('DOMContentLoaded', ()=>{
     const el = document.getElementById('segVer');
@@ -241,6 +250,29 @@
 
     const a = p.avance || {pct:0};
     const full = a.pct >= 100;
+
+    // ---- Portada: avance de construcción junto al del expediente ----
+    // Se cuenta por obras terminadas, no por dinero: decir "Construcción 24%"
+    // cuando ese 24% es lo abonado haría creer al cliente que la obra va por ahí.
+    let heroObra = "";
+    if(p.obra && (p.obra.obras||[]).length){
+      const tot = p.obra.obras.length;
+      const fin = p.obra.terminadas || 0;
+      const pctFin = tot ? Math.round(fin/tot*100) : 0;
+      const listo = fin === tot;
+      heroObra = `
+        <div class="avance-box">
+          <div class="avance-top">
+            <span class="lbl">Construcción</span>
+            <span class="pct ${listo?'full':''}">${fin}<span class="pct-de">/${tot}</span></span>
+          </div>
+          <div class="bar"><div class="bar-fill ${listo?'full':''}" style="width:${pctFin}%"></div></div>
+          <div class="avance-detalle">
+            <span>Terminada${tot===1?'':'s'}: <b>${fin}</b></span>
+            <span>En ejecución: <b>${tot-fin}</b></span>
+          </div>
+        </div>`;
+    }
 
     // ---- Obra en ejecución (datos del GESTOR) ----
     // Bloque separado a propósito: son dos contratos distintos y no se suman.
@@ -374,16 +406,19 @@
         <div class="eyebrow">Proyecto</div>
         <h1>${esc(p.nombre)}</h1>
         <div class="estado">${esc(p.estado||"En proceso")}</div>
-        <div class="avance-box">
-          <div class="avance-top">
-            <span class="lbl">Avance del expediente</span>
-            <span class="pct ${full?'full':''}">${a.pct}%</span>
+        <div class="${heroObra?'hero-cols':''}">
+          <div class="avance-box">
+            <div class="avance-top">
+              <span class="lbl">Avance del expediente</span>
+              <span class="pct ${full?'full':''}">${a.pct}%</span>
+            </div>
+            <div class="bar"><div class="bar-fill ${full?'full':''}" style="width:${a.pct}%"></div></div>
+            <div class="avance-detalle">
+              <span>Documentos: <b>${a.docsPct==null?'—':a.docsPct+'%'}</b></span>
+              <span>Planos: <b>${a.planosPct==null?'—':a.planosPct+'%'}</b></span>
+            </div>
           </div>
-          <div class="bar"><div class="bar-fill ${full?'full':''}" style="width:${a.pct}%"></div></div>
-          <div class="avance-detalle">
-            <span>Documentos: <b>${a.docsPct==null?'—':a.docsPct+'%'}</b></span>
-            <span>Planos: <b>${a.planosPct==null?'—':a.planosPct+'%'}</b></span>
-          </div>
+          ${heroObra}
         </div>
       </div>
 
