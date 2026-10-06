@@ -75,6 +75,7 @@
     .hero-cols .avance-box + .avance-box{ border-left:none; padding-left:0; border-top:1px solid var(--grafito3); padding-top:18px; }
   }
   .pct-de{ font-size:19px; font-weight:700; color:var(--gris); }
+  .avance-detalle b.ok{ color:var(--verde); }
 
   /* Secciones */
   .seccion{ background:var(--grafito2); border-radius:14px; padding:22px 24px; margin-bottom:18px; border:1px solid var(--grafito3); }
@@ -207,7 +208,7 @@
 
   /* Versión del portal. Va en el pie, en gris: al cliente no le estorba y a ti
      te dice de inmediato si el navegador te está mostrando una copia vieja. */
-  const SEG_VERSION = "v1.2";
+  const SEG_VERSION = "v1.3";
   const SEG_FECHA   = "06-10-2026";
   document.addEventListener('DOMContentLoaded', ()=>{
     const el = document.getElementById('segVer');
@@ -259,16 +260,18 @@
       const tot = p.obra.obras.length;
       const fin = p.obra.terminadas || 0;
       const pctFin = tot ? Math.round(fin/tot*100) : 0;
-      const listo = fin === tot;
+      // El verde entra apenas hay una obra entregada: es lo que el mandante
+      // lee como avance real, no solo cuando están las cuatro.
+      const hayFin = fin > 0;
       heroObra = `
         <div class="avance-box">
           <div class="avance-top">
             <span class="lbl">Construcción</span>
-            <span class="pct ${listo?'full':''}">${fin}<span class="pct-de">/${tot}</span></span>
+            <span class="pct ${hayFin?'full':''}">${fin}<span class="pct-de">/${tot}</span></span>
           </div>
-          <div class="bar"><div class="bar-fill ${listo?'full':''}" style="width:${pctFin}%"></div></div>
+          <div class="bar"><div class="bar-fill ${hayFin?'full':''}" style="width:${pctFin}%"></div></div>
           <div class="avance-detalle">
-            <span>Terminada${tot===1?'':'s'}: <b>${fin}</b></span>
+            <span>Terminada${tot===1?'':'s'}: <b class="${hayFin?'ok':''}">${fin}</b></span>
             <span>En ejecución: <b>${tot-fin}</b></span>
           </div>
         </div>`;
