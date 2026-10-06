@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Organizador Averarq v1.0 · Captación, Proyectos y Pagos</title>
+<title>Organizador Averarq v1.1 · Captación, Proyectos y Pagos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -1159,7 +1159,7 @@
 <script>
 /* Versión del ORGANIZADOR. Se sube al mismo tiempo que el archivo:
    así, si hay dos copias dando vueltas, se distinguen a simple vista. */
-const ORG_VERSION = "v1.0";
+const ORG_VERSION = "v1.1";
 const ORG_FECHA   = "06-10-2026";
 (function(){
   const el = document.getElementById('orgVer');
@@ -3058,8 +3058,9 @@ function cargarClientesGestor(forzar){
   fetch(cloudUrl('/api/gestor'), { headers: cloudHeaders() })
     .then(r=>r.ok?r.json():Promise.reject(r.status))
     .then(d=>{
+      const lista = d.proyectos || [];
       const cuenta = {};
-      (d.proyectos||[]).forEach(p=>{
+      lista.forEach(p=>{
         const c = (p.cliente||'').trim();
         if(c) cuenta[c] = (cuenta[c]||0) + 1;
       });
@@ -3067,8 +3068,19 @@ function cargarClientesGestor(forzar){
         .map(c=>({cliente:c, obras:cuenta[c]}));
       const sel = (editingProjId && (proyectos.find(x=>x.id===editingProjId)||{}).obraCliente) || '';
       pintarSelectObra(sel);
+      // Diagnóstico honesto: distinguir "no hay obras" de "el backend no manda el mandante"
       if(hint && !clientesGestor.length){
-        hint.innerHTML = 'Todavía no hay obras sincronizadas desde el GESTOR. Abre el GESTOR, escribe el mandante en el proyecto y espera a que el punto de la nube quede verde.';
+        const backendViejo = lista.length && !lista.some(p=>'cliente' in p);
+        if(backendViejo){
+          hint.innerHTML = '<span style="color:var(--orange)">⚠️ La nube responde con ' + lista.length +
+            ' obra(s), pero sin el mandante.</span> El backend desplegado es anterior al v8. ' +
+            'En el computador de la oficina: <b>cd "...\\0.AV\\averarq-backend"</b> y <b>npx wrangler deploy</b>.';
+        } else if(!lista.length){
+          hint.innerHTML = 'La nube no tiene obras del GESTOR todavía. Abre el GESTOR y espera a que el punto de la nube quede verde.';
+        } else {
+          hint.innerHTML = 'Hay ' + lista.length + ' obra(s) en la nube, pero ninguna tiene el mandante escrito. ' +
+            'Abre el GESTOR, escribe el cliente en la tarjeta PROYECTO y vuelve a pulsar Actualizar.';
+        }
       }
     })
     .catch(()=>{ if(hint) hint.innerHTML = 'No se pudo leer la lista de obras del GESTOR. Revisa la conexión con la nube.'; });
