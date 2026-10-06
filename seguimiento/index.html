@@ -157,6 +157,8 @@
   .cf-rel.venc{ color:var(--rojo); }
 
   footer{ text-align:center; padding:30px 20px; color:var(--gris); font-size:12px; border-top:1px solid var(--grafito3); margin-top:20px; }
+  /* Versión: discreta, para el cliente es solo un dato de pie de página */
+  .seg-ver{ display:block; margin-top:6px; font-size:10px; color:#5c5e5c; letter-spacing:.5px; }
   footer a{ color:var(--naranja); text-decoration:none; }
   .loading{ text-align:center; padding:40px; color:var(--gris); }
 </style>
@@ -185,11 +187,21 @@
 
   <footer>
     Averarq · Arquitectura · Valle del Aconcagua · <a href="https://averarq.cl">averarq.cl</a>
+    <span class="seg-ver" id="segVer"></span>
   </footer>
 
 <script>
   // CONFIG: la URL del backend
   const API = "https://averarq-backend.ai-veradonoso.workers.dev";
+
+  /* Versión del portal. Va en el pie, en gris: al cliente no le estorba y a ti
+     te dice de inmediato si el navegador te está mostrando una copia vieja. */
+  const SEG_VERSION = "v1.0";
+  const SEG_FECHA   = "06-10-2026";
+  document.addEventListener('DOMContentLoaded', ()=>{
+    const el = document.getElementById('segVer');
+    if(el){ el.textContent = 'Portal de seguimiento ' + SEG_VERSION; el.title = SEG_VERSION + ' · ' + SEG_FECHA; }
+  });
 
   const $ = s => document.querySelector(s);
   function money(n){ return "$ " + Number(n||0).toLocaleString("es-CL"); }
