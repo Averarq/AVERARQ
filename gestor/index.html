@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.27</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.28</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -23,6 +23,7 @@ body{background:var(--bg);color:var(--txt);font:13px/1.45 'Segoe UI',system-ui,s
 #logo svg{width:26px;height:26px;flex:0 0 auto}
 #logo b{color:var(--naranja)}
 #logo span{color:var(--txt2);font-weight:400;letter-spacing:2px;font-size:10px;margin-left:8px;border-left:1px solid var(--line);padding-left:10px;align-self:center}
+#logo .lg-ver{border:none;padding:0;margin-left:6px}
 #nomProyecto{background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:5px 10px;border-radius:3px;width:230px;font-size:13px}
 #selProyecto{width:auto;max-width:200px;background:var(--panel2)}
 .nube-dot{width:9px;height:9px;border-radius:50%;background:#6b7280;flex:0 0 auto;cursor:help}
@@ -109,6 +110,52 @@ td input{padding:3px 5px;font-size:11px}
 dialog{background:var(--panel);color:var(--txt);border:1px solid var(--naranja);border-radius:6px;padding:18px;max-width:560px;width:90%}
 dialog::backdrop{background:rgba(0,0,0,.6)}
 dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naranja2)}
+
+/* ============================================================
+   VISTA MÓVIL  (≤820px)
+   En el teléfono el trazado sobre plano no es usable: se ocultan el lienzo,
+   la barra de herramientas y el botón de PDF, y el panel de la derecha pasa a
+   ocupar toda la pantalla. Así quedan a mano PARTIDAS, OBRA y CONTROL, que es
+   lo que se consulta en terreno. El plano se sigue trabajando en el computador.
+   ============================================================ */
+@media (max-width:820px){
+  #toolbar,#canvasWrap,#panelResizer,#btnPDF{display:none!important}
+  #main{flex-direction:column}
+  #panel{width:100%!important;max-width:none;min-width:0;border-left:none;flex:1 1 auto}
+
+  /* Barra superior: se reparte en dos filas en vez de salirse de la pantalla */
+  #topbar{flex-wrap:wrap;gap:6px;padding:7px 10px}
+  #topbar .sep{display:none}              /* sin el separador los botones se compactan */
+  #topbar .btn{padding:7px 10px;font-size:12px}
+  /* 🧹 Limpiar borra trazados y cantidades: en el teléfono, donde no se dibuja,
+     solo puede destruir trabajo hecho en el computador. Se oculta. */
+  #btnLimpiar{display:none!important}
+  #logo{font-size:14px;letter-spacing:2px}
+  #logo span{margin-left:6px;padding-left:8px;white-space:nowrap}
+  #logo .lg-nom{display:none}
+  #logo .lg-ver{font-size:10px;letter-spacing:1px}
+  #nomProyecto{flex:1 1 150px;width:auto;min-width:0}
+  #selProyecto{flex:1 1 130px;max-width:none;min-width:0}
+
+  /* Pestañas: se deslizan de lado, así CONTROL siempre se alcanza */
+  #tabs{overflow-x:auto;overflow-y:hidden;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  #tabs::-webkit-scrollbar{display:none}
+  .tab{flex:0 0 auto;padding:11px 13px;font-size:11px;white-space:nowrap}
+
+  /* Contenido: 16px en los campos evita que el navegador haga zoom al escribir */
+  #tabContent{padding:10px;overflow-x:auto}
+  #tabContent input,#tabContent select,#tabContent textarea{font-size:16px}
+  #tabContent table{font-size:12px;table-layout:fixed;word-break:break-word}
+  /* Las filas se parten en varias líneas en vez de empujar hacia el costado */
+  #tabContent .row{flex-wrap:wrap}
+  #tabContent label{max-width:100%}
+  #tabContent input,#tabContent select,#tabContent textarea,#tabContent .btn{max-width:100%}
+  #tabContent .grow{flex:1 1 140px;min-width:0}
+
+  #status{flex-wrap:wrap;gap:10px;padding:5px 10px;font-size:10px}
+  #stCoord,#stEscala{display:none}
+  #stMovil{display:inline!important}
+}
 
 @media print{
   @page{ size:letter; margin:11mm 14mm 20mm; }
@@ -233,7 +280,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span>GESTOR DE PROYECTO v3.27</span></a>
+    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.28</span></span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <select id="selProyecto" title="Cambiar de proyecto"></select>
   <span id="nubeDot" class="nube-dot off" title="Sin nube"></span>
@@ -297,6 +344,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 <div id="status">
   <span id="stCoord">x: — , y: —</span>
   <span id="stEscala">escala: <b>sin definir</b></span>
+  <span id="stMovil" style="display:none">Vista móvil · el trazado sobre plano se trabaja en el computador</span>
   <span id="stHint"></span>
 </div>
 
@@ -353,11 +401,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.27 =================
+/* ================= GESTOR AVERARQ v3.28 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.27";
+const GESTOR_VERSION="v3.28";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -1010,7 +1058,11 @@ function histSet(i){histI=i;state.shapes=JSON.parse(hist[i]);selShape=null;dragV
 function undo(){if(histI>0)histSet(histI-1);}
 function redo(){if(histI<hist.length-1)histSet(histI+1);}
 
-function resize(){cv.width=wrap.clientWidth;cv.height=wrap.clientHeight;draw();}
+function resize(){
+  const w=wrap.clientWidth,h=wrap.clientHeight;
+  if(!w||!h)return;          // en vista móvil el lienzo está oculto
+  cv.width=w;cv.height=h;draw();
+}
 window.addEventListener("resize",resize);
 
 const s2w=(x,y)=>({x:(x-view.x)/view.s, y:(y-view.y)/view.s});
@@ -1489,7 +1541,11 @@ $("#pdfOp").oninput=e=>{pdfOpacity=e.target.value/100;draw();};
 
 /* ---------- PESTAÑAS ---------- */
 let curTab="partidas";
-$$(".tab").forEach(t=>t.onclick=()=>{curTab=t.dataset.tab;$$(".tab").forEach(x=>x.classList.toggle("active",x===t));renderTab();});
+$$(".tab").forEach(t=>t.onclick=()=>{
+  curTab=t.dataset.tab;$$(".tab").forEach(x=>x.classList.toggle("active",x===t));renderTab();
+  // En móvil las pestañas se deslizan: la recién tocada se centra sola
+  try{t.scrollIntoView({behavior:"smooth",inline:"center",block:"nearest"});}catch(e){}
+});
 function refreshUI(){renderTab();autosave();}
 
 function renderTab(){
