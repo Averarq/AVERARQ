@@ -134,6 +134,19 @@
   .pago-stat .n{ font-family:'Outfit'; font-size:21px; font-weight:800; }
   .pago-stat .n.verde{ color:var(--verde); } .pago-stat .n.rojo{ color:var(--rojo); }
   .pago-stat .l{ font-size:11px; color:var(--gris); text-transform:uppercase; letter-spacing:.5px; margin-top:3px; }
+  /* Obra en ejecución — bloque propio, nunca mezclado con los honorarios */
+  .obra-nota{ font-size:11.5px; color:var(--gris); margin:-8px 0 14px; }
+  .obra-tabla{ width:100%; border-collapse:collapse; font-size:13px; }
+  .obra-tabla th{ font-size:11px; color:var(--gris); text-transform:uppercase; letter-spacing:.5px; font-weight:600; text-align:right; padding:0 0 8px; }
+  .obra-tabla th:first-child{ text-align:left; }
+  .obra-tabla td{ padding:11px 0; border-top:1px solid var(--grafito3); text-align:right; }
+  .obra-tabla td:first-child{ text-align:left; }
+  .obra-tabla tr.total td{ border-top:2px solid var(--grafito3); font-weight:700; }
+  .obra-nombre{ font-weight:600; }
+  .obra-fin{ display:inline-block; border:1px solid var(--verde); color:var(--verde); border-radius:3px; padding:0 6px; font-size:9.5px; font-weight:700; letter-spacing:.6px; margin-left:7px; vertical-align:middle; }
+  .obra-adic{ font-size:10.5px; color:var(--gris); margin-top:2px; }
+  .obra-saldo{ color:var(--rojo); font-weight:700; } .obra-saldo.pagado{ color:var(--verde); }
+  @media(max-width:600px){ .obra-tabla{ font-size:12px; } .obra-tabla th:nth-child(3), .obra-tabla td:nth-child(3){ display:none; } }
   .pago-item{ display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid rgba(255,255,255,.05); font-size:13.5px; }
   .pago-item .pm{ font-size:16px; } .pago-item .pmonto{ font-weight:700; } .pago-item .pfecha{ margin-left:auto; color:var(--gris); font-size:12px; }
   .cf-titulo{ font-family:'Outfit'; font-size:14px; font-weight:700; margin:20px 0 10px; color:var(--neutro); }
@@ -214,6 +227,40 @@
 
     const a = p.avance || {pct:0};
     const full = a.pct >= 100;
+
+    // ---- Obra en ejecución (datos del GESTOR) ----
+    // Bloque separado a propósito: son dos contratos distintos y no se suman.
+    let obraHtml = "";
+    if(p.obra && (p.obra.obras||[]).length){
+      const o = p.obra;
+      const filas = o.obras.map(x=>`
+        <tr>
+          <td>
+            <div class="obra-nombre">${esc(x.nombre)}${x.terminada?'<span class="obra-fin">TERMINADO</span>':''}</div>
+            ${x.adicionales>0?`<div class="obra-adic">incluye ${money(x.adicionales)} en obras adicionales acordadas</div>`:''}
+          </td>
+          <td>${money(x.contrato)}</td>
+          <td>${money(x.abonado)}</td>
+          <td class="obra-saldo ${x.saldo<=0?'pagado':''}">${money(Math.abs(x.saldo))}${x.saldo<0?' a favor':''}</td>
+        </tr>`).join("");
+      obraHtml = `
+      <div class="seccion">
+        <h2>🏗 Obra en ejecución</h2>
+        <div class="obra-nota">${o.obras.length} obra${o.obras.length===1?'':'s'}${o.terminadas?` · ${o.terminadas} terminada${o.terminadas===1?'':'s'}`:''}. Montos de obra, independientes de los honorarios de arquitectura.</div>
+        <div class="pago-resumen">
+          <div class="pago-stat"><div class="n">${money(o.contrato)}</div><div class="l">Total obra</div></div>
+          <div class="pago-stat"><div class="n verde">${money(o.abonado)}</div><div class="l">Abonado</div></div>
+          <div class="pago-stat"><div class="n rojo">${money(o.saldo)}</div><div class="l">Saldo pendiente</div></div>
+        </div>
+        <div class="bar"><div class="bar-fill ${o.pct>=100?'full':''}" style="width:${Math.min(100,Math.max(0,o.pct))}%"></div></div>
+        <div class="avance-detalle"><span>Abonado: <b>${o.pct}%</b></span><span>Pendiente: <b>${100-o.pct}%</b></span></div>
+        <table class="obra-tabla" style="margin-top:18px">
+          <tr><th>Obra</th><th>Contrato</th><th>Abonado</th><th>Saldo</th></tr>
+          ${filas}
+          <tr class="total"><td>TOTAL</td><td>${money(o.contrato)}</td><td>${money(o.abonado)}</td><td>${money(o.saldo)}</td></tr>
+        </table>
+      </div>`;
+    }
 
     // Expediente
     const docsRows = (p.expediente && p.expediente.docs || []).map(d=>rowExp(d.label, d.estado)).join("");
@@ -339,9 +386,12 @@
         ${docsHtml}
       </div>
 
+      ${obraHtml}
+
       ${p.restringido ? '' : `
       <div class="seccion">
-        <h2>💰 Estado de pagos</h2>
+        <h2>💰 Honorarios de arquitectura</h2>
+        <div class="obra-nota">Corresponde al contrato de diseño y tramitación. La obra se cobra por separado.</div>
         <div class="pago-resumen">
           <div class="pago-stat"><div class="n">${money(p.total)}</div><div class="l">Total proyecto</div></div>
           <div class="pago-stat"><div class="n verde">${money(p.totalAbonado)}</div><div class="l">Abonado</div></div>

@@ -1,6 +1,6 @@
 // AVERARQ · Backend (Cloudflare Worker + KV, sin R2)
 // ============================================================================
-//  v7 · FUSIÓN TOTAL — 2026-10-04
+//  v8 · FUSIÓN TOTAL + ENLACE OBRA — 2026-10-06
 //  Único archivo válido. Reúne, sin excepción:
 //    · Portal de seguimiento con código del cliente y código secundario
 //      para terceros (modo restringido: sin pagos, sin comprobantes).
@@ -8,6 +8,8 @@
 //    · Proyectos del GESTOR en la nube (gestor:*).
 //    · Página /gestor servida por el propio Worker.
 //    · Respaldo completo, registro del último respaldo y restauración.
+//    · Enlace arquitectura ↔ obra: el portal del cliente muestra el estado
+//      de pagos de sus obras del GESTOR, con lista blanca de campos.
 //  Cualquier cambio futuro PARTE DE ESTE ARCHIVO. Desplegar una versión
 //  que no incluya los dos lados vuelve a romper la mitad del sistema.
 // ============================================================================
@@ -167,6 +169,64 @@ function expedientePublico(p) {
   return { docs, planos };
 }
 
+// ---------------------------------------------------------------------------
+//  RESUMEN DE OBRA PARA EL CLIENTE  (enlace ORGANIZADOR ↔ GESTOR)
+//  Devuelve el consolidado de las obras del GESTOR cuyo mandante coincide.
+//  REGLA INVIOLABLE: el registro "gestor:<id>" guarda el snapshot completo del
+//  GESTOR —gastos, boletas, proveedores, utilidad, tarifas—. Aquí se arma un
+//  objeto NUEVO campo por campo. Nunca se reenvía reg.data ni parte de él.
+//  Si algún día hace falta un dato más, se agrega a esta lista a mano.
+// ---------------------------------------------------------------------------
+async function resumenObraCliente(env, cliente) {
+  const objetivo = String(cliente || "").trim().toLowerCase();
+  if (!objetivo) return null;
+  const lista = await env.DOCS_KV.list({ prefix: "gestor:" });
+  const obras = [];
+  for (const k of lista.keys) {
+    const raw = await env.DOCS_KV.get(k.name);
+    if (!raw) continue;
+    let reg;
+    try { reg = JSON.parse(raw); } catch (e) { continue; }
+    const d = reg && reg.data;
+    if (!d) continue;
+    const cli = ((d.obra && d.obra.info && d.obra.info.cliente) || "").trim().toLowerCase();
+    if (cli !== objetivo) continue;
+
+    const ctrl = d.control || {};
+    const base = Number(ctrl.contrato) || 0;
+    const adic = (Array.isArray(ctrl.adicionales) ? ctrl.adicionales : [])
+      .reduce((acc, x) => acc + (Number(x.monto) || 0), 0);
+    const contrato = base + adic;
+    const abonado = Math.max(0, Number((d.planPago || {}).cobrado) || 0);
+    if (contrato <= 0 && abonado <= 0) continue;   // obras sin montos no se muestran
+
+    obras.push({
+      nombre: d.proyecto || reg.nombre || "Obra",
+      contrato: contrato,
+      adicionales: adic,
+      abonado: abonado,
+      saldo: contrato - abonado,
+      terminada: !!ctrl.terminado,
+      actualizado: reg.actualizado || null,
+    });
+  }
+  if (!obras.length) return null;
+  obras.sort((a, b) =>
+    String(a.nombre).localeCompare(String(b.nombre), "es", { numeric: true, sensitivity: "base" }));
+  const t = obras.reduce(
+    (a, o) => ({ contrato: a.contrato + o.contrato, abonado: a.abonado + o.abonado, saldo: a.saldo + o.saldo }),
+    { contrato: 0, abonado: 0, saldo: 0 });
+  return {
+    obras: obras,
+    contrato: t.contrato,
+    abonado: t.abonado,
+    saldo: t.saldo,
+    pct: t.contrato > 0 ? Math.round((t.abonado / t.contrato) * 100) : 0,
+    terminadas: obras.filter((o) => o.terminada).length,
+    actualizado: obras.map((o) => o.actualizado).filter(Boolean).sort().pop() || null,
+  };
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -268,6 +328,12 @@ export default {
           };
           // Datos financieros SOLO para el cliente (código principal), nunca para terceros
           if (!restringido) {
+            // Obra en ejecución: solo si el arquitecto activó el enlace en el
+            // ORGANIZADOR. Lleva montos, así que queda fuera del modo restringido.
+            if (p.obraOn && String(p.obraCliente || "").trim()) {
+              const obra = await resumenObraCliente(env, p.obraCliente);
+              if (obra) salida.obra = obra;
+            }
             salida.total = p.total || 0;
             salida.totalAbonado = totalAbonado;
             salida.saldo = Math.max(0, (p.total || 0) - totalAbonado);
@@ -357,6 +423,10 @@ export default {
                 nombre: p.nombre || "Proyecto sin título",
                 actualizado: p.actualizado || null,
                 version: p.version || null,
+                // Mandante y estado: los usa el ORGANIZADOR para ofrecer la lista
+                // de clientes al enlazar. Ruta con token, no la ve el cliente.
+                cliente: (p.data && p.data.obra && p.data.obra.info && p.data.obra.info.cliente) || "",
+                terminada: !!(p.data && p.data.control && p.data.control.terminado),
               });
             } catch (e) { /* ignora entradas corruptas */ }
           }

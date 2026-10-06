@@ -1001,6 +1001,24 @@
             </div>
           </div>
         </div>
+
+        <div class="cod2-wrap">
+          <label class="cod2-toggle">
+            <input type="checkbox" id="p_obraOn" onchange="toggleObraGestor()">
+            <span>🏗 ¿Se construye? — mostrar también el estado de pagos de la obra</span>
+          </label>
+          <div id="obraBody" style="display:none; margin-top:10px;">
+            <div class="cliente-cod-row">
+              <select id="p_obraCliente" onchange="guardarObraCliente()" style="flex:1">
+                <option value="">— elige el mandante en el GESTOR —</option>
+              </select>
+              <button type="button" class="btn-ghost" onclick="cargarClientesGestor(true)">Actualizar</button>
+            </div>
+            <div class="cliente-cod-hint" id="obraHint">
+              El portal mostrará, en un bloque aparte de los honorarios, el contrato, lo abonado y el saldo de <b>todas las obras de ese mandante</b> en el GESTOR. Nunca se muestran costos, proveedores ni utilidad. El tercero con código secundario no ve este bloque.
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -2029,6 +2047,9 @@ function openProjModal(id){
     document.getElementById('p_cod2On').checked = !!p.codigoSecundarioOn;
     document.getElementById('cod2Body').style.display = p.codigoSecundarioOn ? 'block' : 'none';
     mostrarCodSecundario(p.codigoSecundario || '');
+    document.getElementById('p_obraOn').checked = !!p.obraOn;
+    document.getElementById('obraBody').style.display = p.obraOn ? 'block' : 'none';
+    prepararSelectObra(p.obraCliente || '');
     renderProjNotes(p.notas||[]);
   } else {
     ['p_nombre','p_estado','p_total','p_pagoLabel','p_fecha','p_fechaLabel'].forEach(id=>document.getElementById(id).value='');
@@ -2039,6 +2060,9 @@ function openProjModal(id){
     document.getElementById('p_cod2On').checked = false;
     document.getElementById('cod2Body').style.display = 'none';
     mostrarCodSecundario('');
+    document.getElementById('p_obraOn').checked = false;
+    document.getElementById('obraBody').style.display = 'none';
+    prepararSelectObra('');
     renderProjNotes([]);
     renderPagosList(null);
     renderCuotasList(null);
@@ -2952,6 +2976,8 @@ function saveProj(){
     docOrden:document.getElementById('p_docOrden').value,
     codigoSecundarioOn:document.getElementById('p_cod2On').checked,
     codigoSecundario:document.getElementById('p_codigoSecundario').value.trim().toUpperCase(),
+    obraOn:document.getElementById('p_obraOn').checked,
+    obraCliente:document.getElementById('p_obraCliente').value,
   };
   if(editingProjId){
     Object.assign(proyectos.find(x=>x.id===editingProjId), data);
@@ -2959,6 +2985,81 @@ function saveProj(){
     proyectos.push({id:crypto.randomUUID(), ...data, notas:[], pagos:[]});
   }
   saveProyectos(); renderProyectos(); closeProjModal();
+}
+
+/* ---------- Enlace con el GESTOR: obra en ejecución ----------
+   Se guarda SOLO el nombre del mandante tal como está escrito en el GESTOR.
+   El Worker busca con ese nombre las obras en gestor:* y arma el resumen.
+   Nada se copia aquí: así no hay dos verdades que puedan discrepar. */
+let clientesGestor = null;          // caché de la sesión
+
+function toggleObraGestor(){
+  const on = document.getElementById('p_obraOn').checked;
+  document.getElementById('obraBody').style.display = on ? 'block' : 'none';
+  if(on) cargarClientesGestor();
+  if(editingProjId){
+    const p = proyectos.find(x=>x.id===editingProjId);
+    if(p){ p.obraOn = on; saveProyectos(); }
+  }
+}
+function guardarObraCliente(){
+  if(!editingProjId) return;
+  const p = proyectos.find(x=>x.id===editingProjId);
+  if(p){ p.obraCliente = document.getElementById('p_obraCliente').value; saveProyectos(); }
+}
+function prepararSelectObra(sel){
+  const el = document.getElementById('p_obraCliente');
+  if(!el) return;
+  pintarSelectObra(sel);
+  if(document.getElementById('p_obraOn').checked) cargarClientesGestor();
+}
+function pintarSelectObra(sel){
+  const el = document.getElementById('p_obraCliente');
+  if(!el) return;
+  // Se arma con nodos, no con HTML: el nombre del mandante es texto del usuario
+  const lista = clientesGestor || (sel ? [{cliente:sel, obras:0}] : []);
+  el.textContent = '';
+  const op0 = document.createElement('option');
+  op0.value = ''; op0.textContent = '— elige el mandante en el GESTOR —';
+  el.appendChild(op0);
+  lista.forEach(c=>{
+    const op = document.createElement('option');
+    op.value = c.cliente;
+    op.textContent = c.cliente + (c.obras ? ' · ' + c.obras + ' obra' + (c.obras===1?'':'s') : '');
+    el.appendChild(op);
+  });
+  // Si el mandante guardado ya no está en el GESTOR, no se pierde en silencio
+  if(sel && clientesGestor && !clientesGestor.some(c=>c.cliente===sel)){
+    const op = document.createElement('option');
+    op.value = sel; op.textContent = sel + ' (ya no está en el GESTOR)';
+    el.appendChild(op);
+  }
+  el.value = sel || '';
+}
+function cargarClientesGestor(forzar){
+  const hint = document.getElementById('obraHint');
+  if(!cloudConfig){
+    if(hint) hint.innerHTML = 'Para enlazar la obra necesitas la nube configurada: el ORGANIZADOR lee los proyectos que el GESTOR sincroniza.';
+    return;
+  }
+  if(clientesGestor && !forzar) return;
+  fetch(cloudUrl('/api/gestor'), { headers: cloudHeaders() })
+    .then(r=>r.ok?r.json():Promise.reject(r.status))
+    .then(d=>{
+      const cuenta = {};
+      (d.proyectos||[]).forEach(p=>{
+        const c = (p.cliente||'').trim();
+        if(c) cuenta[c] = (cuenta[c]||0) + 1;
+      });
+      clientesGestor = Object.keys(cuenta).sort((a,b)=>a.localeCompare(b,'es'))
+        .map(c=>({cliente:c, obras:cuenta[c]}));
+      const sel = (editingProjId && (proyectos.find(x=>x.id===editingProjId)||{}).obraCliente) || '';
+      pintarSelectObra(sel);
+      if(hint && !clientesGestor.length){
+        hint.innerHTML = 'Todavía no hay obras sincronizadas desde el GESTOR. Abre el GESTOR, escribe el mandante en el proyecto y espera a que el punto de la nube quede verde.';
+      }
+    })
+    .catch(()=>{ if(hint) hint.innerHTML = 'No se pudo leer la lista de obras del GESTOR. Revisa la conexión con la nube.'; });
 }
 
 /* ---------- Código del portal del cliente ---------- */
