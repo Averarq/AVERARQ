@@ -208,7 +208,7 @@
 
   /* Versión del portal. Va en el pie, en gris: al cliente no le estorba y a ti
      te dice de inmediato si el navegador te está mostrando una copia vieja. */
-  const SEG_VERSION = "v1.3";
+  const SEG_VERSION = "v1.4";
   const SEG_FECHA   = "06-10-2026";
   document.addEventListener('DOMContentLoaded', ()=>{
     const el = document.getElementById('segVer');
@@ -251,6 +251,9 @@
 
     const a = p.avance || {pct:0};
     const full = a.pct >= 100;
+
+    // % abonado de los honorarios: mismo lenguaje visual que la obra
+    const pctHon = (p.total>0) ? Math.min(100,Math.max(0,Math.round((p.totalAbonado||0)/p.total*100))) : 0;
 
     // ---- Portada: avance de construcción junto al del expediente ----
     // Se cuenta por obras terminadas, no por dinero: decir "Construcción 24%"
@@ -449,6 +452,8 @@
           <div class="pago-stat"><div class="n verde">${money(p.totalAbonado)}</div><div class="l">Abonado</div></div>
           <div class="pago-stat"><div class="n rojo">${money(p.saldo)}</div><div class="l">Saldo pendiente</div></div>
         </div>
+        <div class="bar"><div class="bar-fill ${pctHon>=100?'full':''}" style="width:${pctHon}%"></div></div>
+        <div class="avance-detalle"><span>Abonado: <b>${pctHon}%</b></span><span>Pendiente: <b>${100-pctHon}%</b></span></div>
         ${pagosHtml}
         ${cuotasHtml ? '<h3 class="cf-titulo">📅 Próximas cuotas pactadas</h3>'+cuotasHtml : ''}
       </div>`}
