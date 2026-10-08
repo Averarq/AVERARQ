@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.28</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.30</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -280,7 +280,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.28</span></span></a>
+    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.30</span></span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <select id="selProyecto" title="Cambiar de proyecto"></select>
   <span id="nubeDot" class="nube-dot off" title="Sin nube"></span>
@@ -325,7 +325,9 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
   <div id="panelResizer" title="Arrastra para ajustar el ancho del panel"></div>
   <div id="panel">
     <div id="tabs">
-      <div class="tab active" data-tab="partidas">PARTIDAS</div>
+      <div class="tab active" data-tab="control">CONTROL</div>
+      <div class="tab" data-tab="panol">PAÑOL</div>
+      <div class="tab" data-tab="partidas">PARTIDAS</div>
       <div class="tab" data-tab="apu">APU</div>
       <div class="tab" data-tab="costos">ADMINISTRACIÓN</div>
       <div class="tab" data-tab="honorarios">HONOR.</div>
@@ -335,7 +337,6 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
       <div class="tab" data-tab="comparar">COMPARAR</div>
       <div class="tab" data-tab="radiografia">RADIOGRAFÍA</div>
       <div class="tab" data-tab="recibo">RECIBO</div>
-      <div class="tab" data-tab="control">CONTROL</div>
     </div>
     <div id="tabContent"></div>
   </div>
@@ -401,11 +402,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.28 =================
+/* ================= GESTOR AVERARQ v3.30 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.28";
+const GESTOR_VERSION="v3.30";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -1540,7 +1541,7 @@ $("#pgNext").onclick=async()=>{if(pdfDoc&&pdfPage<pdfDoc.numPages){pdfPage++;awa
 $("#pdfOp").oninput=e=>{pdfOpacity=e.target.value/100;draw();};
 
 /* ---------- PESTAÑAS ---------- */
-let curTab="partidas";
+let curTab="control";
 $$(".tab").forEach(t=>t.onclick=()=>{
   curTab=t.dataset.tab;$$(".tab").forEach(x=>x.classList.toggle("active",x===t));renderTab();
   // En móvil las pestañas se deslizan: la recién tocada se centra sola
@@ -1561,6 +1562,7 @@ function renderTab(){
   if(curTab==="radiografia")el.innerHTML=htmlRadiografia();
   if(curTab==="recibo")el.innerHTML=htmlRecibo();
   if(curTab==="control")el.innerHTML=htmlControl();
+  if(curTab==="panol")el.innerHTML=htmlPanol();
   bindTab();
 }
 const TRZ={area:"m² (superficie)",linea:"ml (línea)",punto:"un (conteo)"};
@@ -2400,6 +2402,171 @@ function opcionesCategoria(sel){
 /* Proveedores: lista base de Llay-Llay + los que se vayan usando (se guardan en este navegador) */
 const PROV_BASE=["ChileMat","Urimat","Ferretería Estrella","Ferretería Andina","Sodimac"];
 const PROV_KEY="averarq_proveedores";
+
+/* ============================================================
+   PAÑOL — herramienta eléctrica de la oficina
+   No pertenece a un proyecto: es transversal, como el pañol real.
+   Vive en su propia clave y, si hay nube, se sincroniza aparte.
+   ============================================================ */
+const PANOL_KEY="averarq_panol";
+/* Faenas: lo que necesitas HACER. Una herramienta puede cubrir varias y una
+   faena puede tener varias herramientas. El vacío es lo que hay que comprar. */
+const FAENAS=[
+  ["perf_menor","Perforaciones menores","taladro"],
+  ["perf_horm","Perforar hormigón y albañilería","rotomartillo"],
+  ["atornillar","Atornillar","atornillador"],
+  ["cortar_fierro","Cortar fierro y metal","esmeril angular"],
+  ["pulir","Pulir y desbastar","esmeril + copa"],
+  ["cortar_madera","Cortar madera recta","sierra circular"],
+  ["calar","Cortar curvas y calados","caladora"],
+  ["cepillar","Cepillar madera","cepillo"],
+  ["lijar","Lijar","lijadora orbital"],
+  ["fresar","Fresar y rebajar","router"],
+  ["ceramica","Cortar cerámica y porcelanato","cortadora de cerámica"],
+  ["demoler","Demoler y picar","martillo demoledor"],
+  ["soldar","Soldar","soldadora"],
+  ["clavar","Clavar y fijar","clavadora"],
+  ["nivelar","Nivelar y aplomar","nivel láser"],
+  ["aspirar","Aspirar la obra","aspiradora"],
+  ["mezclar","Mezclar pintura y mortero","mezclador"],
+];
+/* ----------------------------------------------------------
+   Iconos de herramienta — SVG de línea, dibujados aquí mismo.
+   Sin archivos externos ni fuentes de iconos: el GESTOR sigue
+   siendo un solo archivo. Heredan el color del texto que los rodea.
+   ---------------------------------------------------------- */
+const SVG_HERR={
+  taladro:'<rect x="3" y="7" width="9.5" height="7" rx="1.6"/><path d="M12.5 10.5h5.5M18 9.3v2.4M6.5 14l-1.5 6M4.5 20h4.5"/>',
+  rotomartillo:'<rect x="3" y="7" width="9" height="7" rx="1.6"/><path d="M12 10.5h5M17 9.3v2.4M6.5 14l-1.5 6M4.5 20h4.5"/><path d="M19.2 7.6l1.6-1.1M19.2 13.4l1.6 1.1M20 10.5h1.6"/>',
+  demoledor:'<rect x="8.5" y="2.5" width="7" height="9" rx="1.6"/><path d="M12 11.5v4.5M10.3 16h3.4l-1.7 5.2z"/><path d="M5.5 5h3M15.5 5h3"/>',
+  esmeril:'<rect x="2.5" y="9" width="9.5" height="6" rx="2"/><circle cx="17.3" cy="12" r="3.9"/><path d="M12.8 7.6a6 6 0 0 1 7.3 1.3"/><path d="M4.5 15l-1 4.5"/>',
+  sierra:'<rect x="2.5" y="5" width="7" height="5.2" rx="1.4"/><circle cx="13.6" cy="11" r="4.8"/><path d="M13.6 6.2v1.4M18.4 11H17M13.6 15.8v-1.4M8.8 11h1.4M17 7.6l-1 1M17 14.4l-1-1M10.2 7.6l1 1M10.2 14.4l1-1"/><path d="M2.5 17.8h19"/>',
+  caladora:'<path d="M4.5 4.5h9a2 2 0 0 1 2 2v4H4.5a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z"/><path d="M2.5 12.8h14"/><path d="M8.6 12.8v6.6"/><path d="M7.6 14.4h2M7.6 16h2M7.6 17.6h2"/>',
+  cepillo:'<path d="M3 15.5h14.5l3.5-4.5H6.5z"/><path d="M11 11l1.8-4.2"/><path d="M3 15.5V18h14.5"/>',
+  lijadora:'<rect x="4" y="6.5" width="16" height="7" rx="2.2"/><path d="M4 16h16"/><circle cx="8" cy="18.6" r=".7"/><circle cx="12" cy="18.6" r=".7"/><circle cx="16" cy="18.6" r=".7"/>',
+  soldadora:'<rect x="2.5" y="10" width="9" height="8" rx="1.6"/><path d="M4.6 12.6h4.8"/><path d="M11.5 13.2c3 0 4.2-1.6 6.2-3.6"/><path d="M17.7 9.6l3-2.6"/><path d="M19.2 13.1l1.8.6M20.6 10.2l1.4-.5M17.9 14.8l.5 1.7"/>',
+  aspiradora:'<rect x="4.2" y="9" width="10.3" height="8.8" rx="2.2"/><path d="M4.2 12.2h10.3"/><circle cx="7.4" cy="19.4" r="1.2"/><circle cx="11.4" cy="19.4" r="1.2"/><path d="M14.5 10.6c3.6 0 5.1-2 5.1-4.2 0-1.7-2.1-2.7-3.1-.8"/>',
+  nivel:'<rect x="8.5" y="8.5" width="7" height="7" rx="1.4"/><path d="M2 12h5M17 12h5M12 2.5v5M12 16.5v5"/>',
+  ceramica:'<rect x="2.5" y="9" width="11" height="9" rx="1"/><path d="M8 9v9"/><circle cx="18" cy="8" r="2.4"/><path d="M18 10.4V18"/><path d="M15.2 18h5.6"/>',
+  clavadora:'<path d="M3 5.5h11.5v5.2H10v3.8H7.2v-3.8H3z"/><path d="M8.6 14.5v4.4"/><path d="M14.5 10.7l4.6 6.6"/>',
+  mezclador:'<rect x="9.5" y="2.5" width="5" height="3.2" rx="1"/><path d="M12 5.7v5"/><path d="M8 11.5c4 2.2 4 2.2 8 0M8 15.3c4 2.2 4 2.2 8 0M8 19.1c4 2.2 4 2.2 8 0"/>',
+  router:'<rect x="5.5" y="3.5" width="13" height="8" rx="2.2"/><path d="M12 11.5v4"/><path d="M10 15.5h4l-2 3.2z"/><path d="M3.5 19.5h17"/>',
+  generica:'<path d="M4 9.5h16v10H4z"/><path d="M9 9.5V6.5h6v3"/><path d="M4 13.5h16"/>',
+};
+/* Del nombre escrito a mano se deduce el icono; si no calza ninguno, va el genérico */
+const HERR_PATRON=[
+  [/rotomartillo|roto ?martillo|percutor/i,"rotomartillo"],
+  [/demoled|demolici/i,"demoledor"],
+  [/taladro|atornillad/i,"taladro"],
+  [/esmeril|amoladora|angular/i,"esmeril"],
+  [/sierra|circular|inglet|tronzad/i,"sierra"],
+  [/calador|caladora|sierra ?cal/i,"caladora"],
+  [/cepill/i,"cepillo"],
+  [/lijad|pulidora orbital|orbital/i,"lijadora"],
+  [/soldad|soldador/i,"soldadora"],
+  [/aspirad/i,"aspiradora"],
+  [/nivel|l[aá]ser|plomo/i,"nivel"],
+  [/cer[aá]mic|porcelanato|galletera|cortadora/i,"ceramica"],
+  [/clavad|fijad|engrapad/i,"clavadora"],
+  [/mezclad|batidor|revolved/i,"mezclador"],
+  [/router|fresad|tup[ií]/i,"router"],
+];
+const FAENAICONO={perf_menor:"taladro",perf_horm:"rotomartillo",atornillar:"taladro",
+  cortar_fierro:"esmeril",pulir:"esmeril",cortar_madera:"sierra",calar:"caladora",
+  cepillar:"cepillo",lijar:"lijadora",fresar:"router",ceramica:"ceramica",
+  demoler:"demoledor",soldar:"soldadora",clavar:"clavadora",nivelar:"nivel",
+  aspirar:"aspiradora",mezclar:"mezclador"};
+function iconoClave(nombre,faenas){
+  const n=(nombre||"")+"";
+  for(const [re,k] of HERR_PATRON) if(re.test(n)) return k;
+  if(Array.isArray(faenas)) for(const f of faenas) if(FAENAICONO[f]) return FAENAICONO[f];
+  return "generica";
+}
+function iconoHerr(nombre,faenas,tam,color){
+  const k=iconoClave(nombre,faenas), t=tam||20;
+  return `<svg viewBox="0 0 24 24" width="${t}" height="${t}" fill="none" stroke="${color||"currentColor"}"
+    stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"
+    style="vertical-align:middle;flex:0 0 auto">${SVG_HERR[k]}</svg>`;
+}
+const FAENANOM=id=>{const f=FAENAS.find(x=>x[0]===id);return f?f[1]:id;};
+const FAENAHERR=id=>{const f=FAENAS.find(x=>x[0]===id);return f?f[2]:"";};
+
+/* Lo que Alejandro declaró tener al abrir el pañol por primera vez */
+function panolSemilla(){
+  return {herramientas:[
+    {id:"h1",nombre:"Taladro atornillador inalámbrico",marca:"DeWalt",alim:"ina",faenas:["perf_menor","atornillar"],precio:0,fecha:"",nota:""},
+    {id:"h2",nombre:"Taladro",marca:"Bosch",alim:"ala",faenas:["perf_menor"],precio:0,fecha:"",nota:""},
+    {id:"h3",nombre:"Esmeril angular",marca:"Bosch",alim:"ala",faenas:["cortar_fierro","pulir"],precio:0,fecha:"",nota:""},
+    {id:"h4",nombre:"Esmeril angular",marca:"DeWalt",alim:"ala",faenas:["cortar_fierro","pulir"],precio:0,fecha:"",nota:""},
+    {id:"h5",nombre:"Sierra circular",marca:"Bosch",alim:"ala",faenas:["cortar_madera"],precio:0,fecha:"",nota:""},
+    {id:"h6",nombre:"Caladora inalámbrica",marca:"Bosch",alim:"ina",faenas:["calar"],precio:0,fecha:"",nota:""},
+    {id:"h7",nombre:"Cepillo",marca:"DeWalt",alim:"ala",faenas:["cepillar"],precio:0,fecha:"",nota:""},
+  ],omitidas:[],actualizado:new Date().toISOString()};
+}
+let panol=null;
+function panolCargar(){
+  if(panol)return panol;
+  try{
+    const raw=localStorage.getItem(PANOL_KEY);
+    panol=raw?JSON.parse(raw):panolSemilla();
+  }catch(e){ panol=panolSemilla(); }
+  if(!Array.isArray(panol.herramientas))panol.herramientas=[];
+  if(!Array.isArray(panol.omitidas))panol.omitidas=[];
+  return panol;
+}
+function panolGuardar(){
+  panol.actualizado=new Date().toISOString();
+  try{localStorage.setItem(PANOL_KEY,JSON.stringify(panol));}catch(e){}
+  if(typeof panolSubir==="function")panolSubir();
+}
+/* Qué faenas quedan cubiertas por lo que hay en el pañol */
+function panolCobertura(){
+  const p=panolCargar();
+  const mapa={};
+  FAENAS.forEach(([id])=>mapa[id]=[]);
+  p.herramientas.forEach(h=>(h.faenas||[]).forEach(f=>{ if(mapa[f])mapa[f].push(h); }));
+  return mapa;
+}
+/* Arriendos de TODOS los proyectos, agrupados por herramienta.
+   Es la señal más honesta de qué conviene comprar: ya lo pagaste varias veces. */
+function panolArriendos(){
+  const acc={};
+  const sumar=(sn)=>{
+    const g=(sn&&sn.control&&Array.isArray(sn.control.gastos))?sn.control.gastos:[];
+    g.forEach(x=>{
+      if(x.cat!=="arr_herr")return;
+      const nom=((x.herr||x.nota||"sin identificar")+"").trim();
+      const k=nom.toLowerCase();
+      if(!acc[k])acc[k]={nombre:nom,veces:0,monto:0,obras:new Set(),ultima:""};
+      acc[k].veces++; acc[k].monto+=(+x.monto||0);
+      acc[k].obras.add(sn.proyecto||"obra");
+      if((x.fecha||"")>acc[k].ultima)acc[k].ultima=x.fecha||"";
+    });
+  };
+  try{
+    for(const e of proyOrdenados()){
+      const sn=(e.id===proyActivo)?snapshot():proyLeer(e.id);
+      if(sn)sumar(sn);
+    }
+  }catch(e){}
+  return Object.values(acc).map(a=>({...a,obras:a.obras.size}))
+    .sort((a,b)=>b.monto-a.monto);
+}
+/* Herramientas ya compradas según los gastos: sirve para avisar que falta
+   anotarlas en el pañol, no para inventarlas por su cuenta. */
+function panolComprasRegistradas(){
+  const out=[];
+  try{
+    for(const e of proyOrdenados()){
+      const sn=(e.id===proyActivo)?snapshot():proyLeer(e.id);
+      const g=(sn&&sn.control&&Array.isArray(sn.control.gastos))?sn.control.gastos:[];
+      g.forEach(x=>{ if(x.cat==="comp_herr")out.push({
+        nombre:((x.herr||x.nota||"herramienta")+"").trim(),
+        monto:+x.monto||0, fecha:x.fecha||"", prov:x.prov||""}); });
+    }
+  }catch(e){}
+  return out.sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
+}
 function proveedores(){
   let extra=[];
   try{const a=JSON.parse(localStorage.getItem(PROV_KEY)||"[]");if(Array.isArray(a))extra=a;}catch(e){}
@@ -2412,6 +2579,16 @@ function recordarProveedor(nom){
     const a=JSON.parse(localStorage.getItem(PROV_KEY)||"[]");
     if(!a.includes(nom)){a.push(nom);localStorage.setItem(PROV_KEY,JSON.stringify(a));}
   }catch(e){}
+}
+/* Las herramientas del pañol y las ya arrendadas, para escribir siempre igual
+   y que el conteo de arriendos no se parta en dos por una letra distinta. */
+function datalistHerramientas(){
+  const set=new Set();
+  try{
+    panolCargar().herramientas.forEach(h=>{const n=(h.nombre||"").trim();if(n)set.add(n);});
+    FAENAS.forEach(f=>set.add(f[2]));
+  }catch(e){}
+  return `<datalist id="listaHerr">${[...set].sort((a,b)=>a.localeCompare(b,"es")).map(h=>`<option value="${esc(h)}"></option>`).join("")}</datalist>`;
 }
 function datalistProveedores(){
   return `<datalist id="listaProv">${proveedores().map(p=>`<option value="${esc(p)}"></option>`).join("")}</datalist>`;
@@ -2466,6 +2643,104 @@ function controlTotales(){
   const sinProveedor=g.filter(x=>!(x.prov||"").trim()).reduce((s,x)=>s+(+x.monto||0),0);
   return {contratoBase,adicTotal,adicionales:c.adicionales,recibido,porCobrar,cajaReal,pctRecibido:pct(recibido),porPartida,porProveedor,sinProveedor,arrH,compH,mat,mo,gg,otro,gastoTotal,contrato,utilidad,pctMat:pct(mat),pctMo:pct(mo),pctGG:pct(gg),pctOtro:pct(otro),pctUtil:pct(utilidad)};
 }
+/* ============================================================
+   PAÑOL — qué tengo, qué cubro y qué conviene comprar
+   ============================================================ */
+function htmlPanol(){
+  const p=panolCargar();
+  const cob=panolCobertura();
+  const arr=panolArriendos();
+  const compras=panolComprasRegistradas();
+  const valor=p.herramientas.reduce((s,h)=>s+(+h.precio||0),0);
+
+  // --- qué tengo ---
+  const filas=p.herramientas.map((h,i)=>`<tr>
+    <td style="width:26px;color:var(--naranja2)">${iconoHerr(h.nombre,h.faenas,22)}</td>
+    <td><input type="text" value="${esc(h.nombre)}" data-hk="nombre" data-hi="${i}" style="width:100%"></td>
+    <td><input type="text" value="${esc(h.marca||"")}" list="listaMarca" data-hk="marca" data-hi="${i}" style="width:95px"></td>
+    <td><select data-hk="alim" data-hi="${i}" style="width:95px">
+      <option value="ina" ${h.alim==="ina"?"selected":""}>inalámbrica</option>
+      <option value="ala" ${h.alim!=="ina"?"selected":""}>alámbrica</option></select></td>
+    <td><button class="btn mini" data-hfaena="${i}" title="Elegir para qué sirve">${(h.faenas||[]).length?esc((h.faenas||[]).map(FAENANOM).join(" · ")):"— sin faena —"}</button></td>
+    <td><input type="number" value="${h.precio||""}" data-hk="precio" data-hi="${i}" style="width:85px;text-align:right" placeholder="$"></td>
+    <td class="tdel" data-hdel="${i}">✕</td></tr>`).join("");
+
+  // --- cobertura por faena ---
+  const faenaFilas=FAENAS.map(([id,nom,sug])=>{
+    const hs=cob[id]||[];
+    const omit=p.omitidas.includes(id);
+    const estado=hs.length?"ok":(omit?"omit":"falta");
+    const col=estado==="ok"?"#7fb069":(estado==="omit"?"var(--txt2)":"var(--naranja2)");
+    const txt=hs.length
+      ? hs.map(h=>esc(h.nombre+(h.marca?" "+h.marca:""))).join(" · ")
+      : (omit?"la arriendo a propósito":"sin herramienta propia — "+esc(sug));
+    return `<tr>
+      <td style="width:16px;color:${col};font-weight:700">${estado==="ok"?"✓":(estado==="omit"?"·":"!")}</td>
+      <td style="width:28px;color:${col};opacity:${estado==="ok"?1:.55}">${iconoHerr(hs.length?hs[0].nombre:sug,[id],22,"currentColor")}</td>
+      <td><b>${esc(nom)}</b><div class="small" style="color:${col}">${txt}</div></td>
+      <td style="text-align:right;white-space:nowrap">
+        ${hs.length?"":`<button class="btn mini" data-fomit="${id}">${omit?"la quiero comprar":"la arriendo"}</button>`}
+      </td></tr>`;
+  }).join("");
+
+  const faltan=FAENAS.filter(([id])=>!(cob[id]||[]).length && !p.omitidas.includes(id));
+
+  // --- qué comprar: primero lo que ya pagaste arrendando ---
+  const sug=[];
+  arr.forEach(a=>{
+    sug.push({nombre:a.nombre, razon:`${a.veces} arriendo${a.veces===1?"":"s"} en ${a.obras} obra${a.obras===1?"":"s"}`,
+              monto:a.monto, peso:a.monto});
+  });
+  faltan.forEach(([id,nom,herr])=>{
+    if(sug.some(x=>x.nombre.toLowerCase().includes(herr.split(" ")[0].toLowerCase())))return;
+    sug.push({nombre:herr, razon:"no puedes "+nom.toLowerCase()+" con lo que tienes", monto:0, peso:-1});
+  });
+  sug.sort((a,b)=>b.peso-a.peso);
+
+  const sugHtml=sug.length?`<table style="width:100%;font-size:12px">
+    ${sug.map(x=>`<tr style="border-bottom:1px solid var(--line)">
+      <td style="width:30px;padding:6px 0;color:${x.monto>0?"var(--naranja2)":"var(--txt2)"}">${iconoHerr(x.nombre,[],24)}</td>
+      <td style="padding:6px 0"><b>${esc(x.nombre)}</b><div class="small" style="color:var(--txt2)">${esc(x.razon)}</div></td>
+      <td class="money" style="text-align:right;white-space:nowrap">${x.monto>0?`<b style="color:var(--naranja2)">${CLP(x.monto)}</b><div class="small" style="color:var(--txt2)">ya gastado en arriendo</div>`:`<span class="small" style="color:var(--txt2)">sin arriendos registrados</span>`}</td>
+    </tr>`).join("")}
+  </table>`:`<p class="small" style="color:var(--txt2)">Nada que sugerir todavía: no hay faenas descubiertas ni arriendos registrados.</p>`;
+
+  const comprasHtml=compras.length?`<table style="width:100%;font-size:11px">
+    <tr style="color:var(--txt2)"><th style="text-align:left">Compra registrada</th><th style="text-align:left">Proveedor</th><th style="text-align:left">Fecha</th><th class="money">Monto</th></tr>
+    ${compras.slice(0,12).map(c=>`<tr><td>${esc(c.nombre)}</td><td>${esc(c.prov||"—")}</td><td>${c.fecha||"—"}</td><td class="money">${CLP(c.monto)}</td></tr>`).join("")}
+  </table>
+  <p class="small" style="color:var(--txt2);margin-top:6px">Sale de los gastos marcados como <b>compra de herramienta</b> en todas tus obras. Si alguna no está arriba en el pañol, agrégala.</p>`
+  :`<p class="small" style="color:var(--txt2)">Aún no hay gastos marcados como compra de herramienta.</p>`;
+
+  return `<h3>PAÑOL — HERRAMIENTA ELÉCTRICA</h3>
+  <p class="small" style="color:var(--txt2);margin-bottom:8px">El pañol es de la oficina, no de una obra: es el mismo en todos tus proyectos. Los arriendos y las compras se leen de los gastos que ya registras en CONTROL.</p>
+
+  <div class="card">
+    <div class="row"><span class="small grow"><b>${p.herramientas.length}</b> herramienta${p.herramientas.length===1?"":"s"} · <b>${FAENAS.length-faltan.length}</b> de ${FAENAS.length} faenas cubiertas${valor>0?` · valor declarado ${CLP(valor)}`:""}</span>
+      <button class="btn mini" id="panolAdd">＋ herramienta</button></div>
+    ${p.herramientas.length?`<table style="width:100%;font-size:11px">
+      <tr style="color:var(--txt2)"><th></th><th style="text-align:left">Herramienta</th><th style="text-align:left">Marca</th><th style="text-align:left">Alim.</th><th style="text-align:left">Para qué sirve</th><th class="money">Precio</th><th style="width:18px"></th></tr>
+      ${filas}</table>
+      <datalist id="listaMarca"><option value="Bosch"></option><option value="DeWalt"></option><option value="Makita"></option><option value="Stanley"></option><option value="Einhell"></option><option value="Total"></option></datalist>`
+      :`<p class="small" style="color:var(--txt2)">El pañol está vacío.</p>`}
+  </div>
+
+  <h3 style="margin-top:14px">QUÉ PUEDO HACER Y QUÉ NO</h3>
+  <div class="card">
+    <table style="width:100%;font-size:11px">${faenaFilas}</table>
+    <p class="small" style="color:var(--txt2);margin-top:6px">Marca <b>la arriendo</b> en las faenas que no piensas cubrir: así la lista de compras queda limpia y solo muestra lo que de verdad te falta.</p>
+  </div>
+
+  <h3 style="margin-top:14px">QUÉ CONVIENE COMPRAR</h3>
+  <div class="card">
+    ${sugHtml}
+    <p class="small" style="color:var(--txt2);margin-top:8px">Lo de arriba sale de tus propios datos: primero lo que ya pagaste arrendando —ese monto no vuelve— y después las faenas que hoy no puedes hacer. Compara el acumulado con el precio de la herramienta antes de decidir.</p>
+  </div>
+
+  <h3 style="margin-top:14px">COMPRAS YA REGISTRADAS</h3>
+  <div class="card">${comprasHtml}</div>`;
+}
+
 function htmlControl(){
   if(!state.control)state.control={contrato:"",gastos:[]};
   if(state.control.tarM1===undefined)state.control.tarM1=55000;
@@ -2503,6 +2778,8 @@ function htmlControl(){
       <select id="ctrlCat" style="width:150px">${opcionesCategoria("material")}</select>
       <select id="ctrlPart" style="width:130px" title="Partida de obra">${opcionesPartida("")}</select>
       <input type="text" id="ctrlProv" list="listaProv" style="width:140px" placeholder="proveedor" title="Dónde se compró (ferretería, arrendadora)">
+      <input type="text" id="ctrlHerr" list="listaHerr" style="width:150px;display:none" placeholder="¿qué herramienta?" title="Nombre de la herramienta: así el PAÑOL puede contar cuántas veces la arrendaste">
+      ${datalistHerramientas()}
       ${datalistProveedores()}
     </div>
     <div class="row"><input type="text" id="ctrlNota" class="grow" placeholder="nota (ej: fierro y cemento Sodimac)"><button class="btn primary" id="ctrlAdd">+ agregar</button></div>
@@ -3159,6 +3436,30 @@ function bindTab(){
   $$("#tabContent [data-proynuevo]").forEach(b=>b.onclick=proyNuevoCmd);
   $$("#tabContent [data-proygest]").forEach(b=>b.onclick=()=>$("#btnProyGest").click());
   $$("#tabContent [data-clienteCta]").forEach(b=>b.onclick=emitirEstadoCuentaCliente);
+  // ---- PAÑOL ----
+  const pAdd=$("#panolAdd");if(pAdd)pAdd.onclick=()=>{
+    const p=panolCargar();
+    p.herramientas.push({id:"h"+Date.now(),nombre:"",marca:"",alim:"ala",faenas:[],precio:0,fecha:new Date().toISOString().slice(0,10),nota:""});
+    panolGuardar();renderTab();hint("Herramienta agregada: escribe el nombre y elige para qué sirve.");
+  };
+  $$("#tabContent [data-hk]").forEach(i=>i.addEventListener("change",()=>{
+    const p=panolCargar(), h=p.herramientas[+i.dataset.hi]; if(!h)return;
+    const k=i.dataset.hk;
+    h[k]=(k==="precio")?(parseFloat(i.value)||0):i.value;
+    panolGuardar(); if(k!=="nombre"&&k!=="marca")renderTab();
+  }));
+  $$("#tabContent [data-hdel]").forEach(x=>x.onclick=()=>{
+    const p=panolCargar(), h=p.herramientas[+x.dataset.hdel];
+    if(!h)return;
+    if(!confirm('¿Quitar "'+(h.nombre||"esta herramienta")+'" del pañol?'))return;
+    p.herramientas.splice(+x.dataset.hdel,1);panolGuardar();renderTab();
+  });
+  $$("#tabContent [data-hfaena]").forEach(b=>b.onclick=()=>panolFaenasDlg(+b.dataset.hfaena));
+  $$("#tabContent [data-fomit]").forEach(b=>b.onclick=()=>{
+    const p=panolCargar(), id=b.dataset.fomit, ix=p.omitidas.indexOf(id);
+    if(ix>=0)p.omitidas.splice(ix,1); else p.omitidas.push(id);
+    panolGuardar();renderTab();
+  });
   $$("#tabContent [data-ctrlfin]").forEach(c=>c.onchange=()=>{
     state.control.terminado=c.checked;
     autosave();renderTab();
@@ -3185,12 +3486,20 @@ function bindTab(){
     state.planPago.cobrado=Math.max(0,parseFloat(ctrlR.value)||0);   // mismo dato del estado de pago
     renderTab();autosave();
   });
+  // El campo de herramienta solo aparece cuando el gasto es arriendo o compra
+  const ctrlCatSel=$("#ctrlCat"), ctrlHerrInp=$("#ctrlHerr");
+  if(ctrlCatSel&&ctrlHerrInp){
+    const verHerr=()=>{ctrlHerrInp.style.display=["arr_herr","comp_herr"].includes(ctrlCatSel.value)?"":"none";};
+    ctrlCatSel.addEventListener("change",verHerr); verHerr();
+  }
   const ctrlAdd=$("#ctrlAdd");if(ctrlAdd)ctrlAdd.onclick=()=>{
     const monto=parseFloat($("#ctrlMonto").value)||0;
     if(monto<=0){hint("Ingresa un monto válido.");return;}
     const prov=$("#ctrlProv")?$("#ctrlProv").value.trim():"";
     if(prov)recordarProveedor(prov);
-    state.control.gastos.push({fecha:$("#ctrlFecha").value,monto,cat:$("#ctrlCat").value,part:$("#ctrlPart")?$("#ctrlPart").value:"",prov,nota:$("#ctrlNota").value});
+    const esHerr=["arr_herr","comp_herr"].includes($("#ctrlCat").value);
+    state.control.gastos.push({fecha:$("#ctrlFecha").value,monto,cat:$("#ctrlCat").value,part:$("#ctrlPart")?$("#ctrlPart").value:"",prov,
+      herr:esHerr&&$("#ctrlHerr")?$("#ctrlHerr").value.trim():"",nota:$("#ctrlNota").value});
     renderTab();autosave();hint("Gasto registrado.");
   };
   $$("#tabContent [data-ctrldel]").forEach(x=>x.onclick=()=>{
@@ -3711,6 +4020,33 @@ function nubeSubirPronto(){
   const id=proyActivo;
   nubeTimer=setTimeout(()=>{if(id===proyActivo)nubeSubir(id,snapshot());},2000);
 }
+/* El pañol también viaja a la nube: es de la oficina y se consulta en terreno
+   desde el teléfono. Clave propia, aparte de los proyectos. */
+let panolTimer=null;
+function panolSubir(){
+  if(!nubeCfg)return;
+  clearTimeout(panolTimer);
+  panolTimer=setTimeout(()=>{
+    nubeFetch("/api/panol",{method:"PUT",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(panolCargar())}).catch(()=>{});
+  },1500);
+}
+function panolBajar(){
+  if(!nubeCfg)return Promise.resolve();
+  return nubeFetch("/api/panol").then(r=>{
+    const rem=r&&r.panol;
+    if(!rem||!Array.isArray(rem.herramientas))return;
+    const loc=panolCargar();
+    // Gana el más reciente: no se mezclan dos pañoles a medias
+    if((rem.actualizado||"")>(loc.actualizado||"")){
+      panol=rem;
+      if(!Array.isArray(panol.omitidas))panol.omitidas=[];
+      try{localStorage.setItem(PANOL_KEY,JSON.stringify(panol));}catch(e){}
+      if(curTab==="panol")renderTab();
+    }
+  }).catch(()=>{});
+}
+
 function nubeBajar(id){
   return nubeFetch("/api/gestor/"+encodeURIComponent(id)).then(r=>{
     const reg=r.proyecto;
@@ -4504,6 +4840,32 @@ function emitirEETT(){
    Solo contrato, abonos y saldo: nunca costos, gastos por partida ni utilidad. */
 /* ESTADO DE CUENTA DEL CLIENTE — todas sus obras en un documento.
    Solo contrato, abonos y saldo por obra: nunca costos ni utilidad. */
+/* Elegir para qué sirve una herramienta. Varias faenas por herramienta:
+   un taladro atornillador perfora y atornilla, y así debe quedar registrado. */
+function panolFaenasDlg(ix){
+  const p=panolCargar(), h=p.herramientas[ix]; if(!h)return;
+  const sel=new Set(h.faenas||[]);
+  const dlg=document.createElement("dialog");
+  dlg.innerHTML=`<h3 style="margin-bottom:6px">¿PARA QUÉ SIRVE?</h3>
+    <p class="small" style="color:var(--txt2);margin-bottom:8px">${esc(h.nombre||"Herramienta")}${h.marca?" · "+esc(h.marca):""} — marca todas las faenas que cubre.</p>
+    <div id="faenaLista" style="max-height:52vh;overflow-y:auto">
+    ${FAENAS.map(([id,nom,sug])=>`<label class="row" style="cursor:pointer;margin-bottom:2px">
+      <input type="checkbox" style="width:auto" value="${id}" ${sel.has(id)?"checked":""}>
+      <span style="color:var(--naranja2)">${iconoHerr(sug,[id],20)}</span>
+      <span class="grow">${esc(nom)} <span class="small" style="color:var(--txt2)">(${esc(sug)})</span></span></label>`).join("")}
+    </div>
+    <div class="row" style="margin-top:10px;justify-content:flex-end">
+      <button class="btn" id="faenaCancel">Cancelar</button>
+      <button class="btn primary" id="faenaOk">Guardar</button></div>`;
+  document.body.appendChild(dlg);
+  dlg.showModal();
+  dlg.querySelector("#faenaCancel").onclick=()=>{dlg.close();dlg.remove();};
+  dlg.querySelector("#faenaOk").onclick=()=>{
+    h.faenas=[...dlg.querySelectorAll('#faenaLista input:checked')].map(c=>c.value);
+    panolGuardar();dlg.close();dlg.remove();renderTab();
+  };
+}
+
 function emitirEstadoCuentaCliente(){
   const cliente=((state.obra&&state.obra.info&&state.obra.info.cliente)||"").trim();
   if(!cliente){hint("Primero escribe el nombre del cliente.");return;}
@@ -5049,7 +5411,7 @@ function emitirObra(){
   if(!hist.length)pushHist();
   renderTab();setTool("select");
   // La nube se consulta al final: si no hay configuración, el GESTOR funciona igual en local
-  if(nubeCargarCfg())setTimeout(()=>nubeSincronizar(true),300);
+  if(nubeCargarCfg())setTimeout(()=>{nubeSincronizar(true);panolBajar();},300);
   else nubeDot("off","Sin nube: los proyectos viven solo en este navegador");
 })();
 </script>
