@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.30</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.31</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -280,7 +280,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.30</span></span></a>
+    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.31</span></span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <select id="selProyecto" title="Cambiar de proyecto"></select>
   <span id="nubeDot" class="nube-dot off" title="Sin nube"></span>
@@ -327,6 +327,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <div id="tabs">
       <div class="tab active" data-tab="control">CONTROL</div>
       <div class="tab" data-tab="panol">PAÑOL</div>
+      <div class="tab" data-tab="cliente">CLIENTE</div>
       <div class="tab" data-tab="partidas">PARTIDAS</div>
       <div class="tab" data-tab="apu">APU</div>
       <div class="tab" data-tab="costos">ADMINISTRACIÓN</div>
@@ -402,11 +403,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.30 =================
+/* ================= GESTOR AVERARQ v3.31 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.30";
+const GESTOR_VERSION="v3.31";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -1563,6 +1564,7 @@ function renderTab(){
   if(curTab==="recibo")el.innerHTML=htmlRecibo();
   if(curTab==="control")el.innerHTML=htmlControl();
   if(curTab==="panol")el.innerHTML=htmlPanol();
+  if(curTab==="cliente")el.innerHTML=htmlCliente();
   bindTab();
 }
 const TRZ={area:"m² (superficie)",linea:"ml (línea)",punto:"un (conteo)"};
@@ -2393,9 +2395,21 @@ function selectorProyectoHTML(origen){
 /* Partidas de gasto del CONTROL: pocas y de oficio, para saber en qué se fue la plata
    sin convertir el registro en una contabilidad. */
 /* Categorías de gasto del CONTROL */
-const CATGASTO=[["material","Material"],["mano_obra","Mano de obra"],["arr_herr","Arriendo de herramienta"],["comp_herr","Compra de herramienta"],["gasto_general","Gasto general"],["otro","Otro"]];
+const CATGASTO=[["material","Material"],["mano_obra","Mano de obra"],["arr_herr","Arriendo de herramienta"],["comp_herr","Compra de herramienta"],["ins_herr","Insumo de herramienta"],["gasto_general","Gasto general"],["otro","Otro"]];
+/* Insumo = lo que se consume usando la herramienta (brocas, discos, hojas de
+   sierra, lijas). No entra al pañol: no es un bien que quede, es un gasto. */
+const CATHERR=["arr_herr","comp_herr","ins_herr"];
+/* Jornadas de un gasto de mano de obra. Las semanas nuevas lo traen como dato;
+   las anteriores se leen de la nota "Maestros semana 3 (1×M1 5d + 1×M2 5d)". */
+function jornadasDe(x){
+  if(x&&x.jor&&(typeof x.jor.m1==="number"||typeof x.jor.m2==="number"))
+    return {m1:+x.jor.m1||0, m2:+x.jor.m2||0};
+  const m=/(\d+)\s*×\s*M1\s*(\d+)\s*d(?:\s*\+\s*(\d+)\s*×\s*M2\s*(\d+)\s*d)?/i.exec((x&&x.nota)||"");
+  if(!m)return {m1:0,m2:0};
+  return {m1:(+m[1]||0)*(+m[2]||0), m2:(+m[3]||0)*(+m[4]||0)};
+}
 const CATNOMBRE=id=>{const c=CATGASTO.find(x=>x[0]===id);return c?c[1]:"—";};
-const CATCOLOR={material:"#e8a33d",mano_obra:"#fc4c02",arr_herr:"#9b7fd4",comp_herr:"#7a68b8",gasto_general:"#4f9dc4",otro:"#6b7280"};
+const CATCOLOR={material:"#e8a33d",mano_obra:"#fc4c02",arr_herr:"#9b7fd4",comp_herr:"#7a68b8",ins_herr:"#5d4e96",gasto_general:"#4f9dc4",otro:"#6b7280"};
 function opcionesCategoria(sel){
   return CATGASTO.map(([id,nom])=>`<option value="${id}" ${sel===id?"selected":""}>${nom}</option>`).join("");
 }
@@ -2609,6 +2623,7 @@ function controlTotales(){
   const gg=g.filter(x=>x.cat==="gasto_general").reduce((s,x)=>s+(+x.monto||0),0);
   const arrH=g.filter(x=>x.cat==="arr_herr").reduce((s,x)=>s+(+x.monto||0),0);
   const compH=g.filter(x=>x.cat==="comp_herr").reduce((s,x)=>s+(+x.monto||0),0);
+  const insH=g.filter(x=>x.cat==="ins_herr").reduce((s,x)=>s+(+x.monto||0),0);
   const otro=g.filter(x=>x.cat==="otro").reduce((s,x)=>s+(+x.monto||0),0);
   const gastoTotal=mat+mo+arrH+compH+gg+otro;
   // Obras adicionales acordadas con el cliente (él las asume): suben el contrato
@@ -2643,6 +2658,107 @@ function controlTotales(){
   const sinProveedor=g.filter(x=>!(x.prov||"").trim()).reduce((s,x)=>s+(+x.monto||0),0);
   return {contratoBase,adicTotal,adicionales:c.adicionales,recibido,porCobrar,cajaReal,pctRecibido:pct(recibido),porPartida,porProveedor,sinProveedor,arrH,compH,mat,mo,gg,otro,gastoTotal,contrato,utilidad,pctMat:pct(mat),pctMo:pct(mo),pctGG:pct(gg),pctOtro:pct(otro),pctUtil:pct(utilidad)};
 }
+/* ============================================================
+   CLIENTE — balance consolidado de todas sus obras (interno)
+   ============================================================ */
+let cliSel=null;
+function htmlCliente(){
+  const grupos=proyPorCliente().filter(([c])=>c!==SIN_CLIENTE);
+  if(!grupos.length)
+    return `<h3>BALANCE POR CLIENTE</h3><div class="card"><p class="small" style="color:var(--txt2)">
+      Todavía no hay obras con mandante escrito. Anótalo en la tarjeta PROYECTO de CONTROL y vuelve aquí.</p></div>`;
+
+  const activo=((state.obra&&state.obra.info&&state.obra.info.cliente)||"").trim();
+  let cli=cliSel&&grupos.some(g=>g[0]===cliSel)?cliSel:(grupos.some(g=>g[0]===activo)?activo:grupos[0][0]);
+  cliSel=cli;
+  const b=balanceCliente(cli);
+  const barra=(pct,col)=>`<div style="height:10px;background:var(--panel2,#1a1c1a);border-radius:3px;overflow:hidden;margin:2px 0"><div style="height:10px;background:${col};width:${Math.max(0,Math.min(100,pct))}%"></div></div>`;
+  const pc=v=>b.gasto>0?v/b.gasto*100:0;
+  const sel=`<select id="cliSel" class="grow">${grupos.map(([c,l])=>`<option value="${esc(c)}" ${c===cli?"selected":""}>${esc(c)} · ${l.length} obra${l.length===1?"":"s"}</option>`).join("")}</select>`;
+
+  if(!b.obras.length)
+    return `<h3>BALANCE POR CLIENTE</h3><div class="card"><div class="row">${sel}</div>
+      <p class="small" style="color:var(--txt2);margin-top:6px">Este cliente no tiene obras con montos registrados.</p></div>`;
+
+  const kpi=(lbl,val,col,sub)=>`<div style="flex:1 1 130px;background:var(--panel2,#1a1c1a);border-radius:5px;padding:9px 11px">
+    <div class="money" style="font-size:17px;font-weight:700;color:${col||"var(--txt)"}">${val}</div>
+    <div class="small" style="color:var(--txt2);letter-spacing:.5px">${lbl}</div>
+    ${sub?`<div class="small" style="color:var(--txt2);opacity:.8">${sub}</div>`:""}</div>`;
+
+  const catFilas=CATGASTO.map(([k,nom])=>{
+    const v=b.cat[k]||0; if(v<=0)return "";
+    return `<div class="tot"><span style="color:${CATCOLOR[k]}">${nom} (${F(pc(v),1)}%)</span><span class="money">${CLP(v)}</span></div>${barra(pc(v),CATCOLOR[k])}`;
+  }).join("");
+
+  const herrTot=(b.cat.arr_herr||0)+(b.cat.comp_herr||0)+(b.cat.ins_herr||0);
+  const costoJor=b.jor>0?(b.cat.mano_obra||0)/b.jor:0;
+
+  return `<h3>BALANCE POR CLIENTE</h3>
+  <p class="small" style="color:var(--txt2);margin-bottom:8px">Uso interno: aquí están tus costos y tu utilidad. El documento que se entrega al cliente es el <b>Estado de cuenta</b> de CONTROL, que no muestra nada de esto.</p>
+
+  <div class="card"><div class="row">${sel}
+    <span class="small" style="color:var(--txt2);white-space:nowrap">${b.obras.length} obra${b.obras.length===1?"":"s"}${b.terminadas?` · ${b.terminadas} terminada${b.terminadas===1?"":"s"}`:""}</span></div>
+    ${b.pri?`<div class="row"><span class="small" style="color:var(--txt2)">Desde ${b.pri} hasta ${b.ult} · ${b.nGastos} gasto${b.nGastos===1?"":"s"} registrados</span></div>`:""}
+  </div>
+
+  <div class="row" style="flex-wrap:wrap;gap:6px;margin-bottom:8px">
+    ${kpi("CONTRATADO",CLP(b.contrato))}
+    ${kpi("GASTADO",CLP(b.gasto),"var(--naranja2)")}
+    ${kpi("UTILIDAD REAL",CLP(b.utilidad),b.utilidad>=0?"#7fb069":"#c0392b",F(b.margen,1)+"% del contrato")}
+  </div>
+  <div class="row" style="flex-wrap:wrap;gap:6px">
+    ${kpi("RECIBIDO",CLP(b.recibido),"#7fb069")}
+    ${kpi(b.porCobrar<0?"PAGADO DE MÁS":"POR COBRAR",CLP(Math.abs(b.porCobrar)),b.porCobrar>0?"var(--naranja2)":"var(--txt)")}
+    ${kpi(b.caja>=0?"EN CAJA HOY":"ESTÁS FINANCIANDO",CLP(Math.abs(b.caja)),b.caja>=0?"#7fb069":"#c0392b","recibido − gastado")}
+  </div>
+
+  <h3 style="margin-top:14px">EN QUÉ SE FUE</h3>
+  <div class="card">
+    ${catFilas}
+    <div class="tot big" style="color:${b.utilidad>=0?'#7fb069':'#c0392b'}"><span>Utilidad real (${F(b.margen,1)}% del contrato)</span><span class="money">${CLP(b.utilidad)}</span></div>
+    ${herrTot>0?`<p class="small" style="color:var(--txt2);margin-top:6px">Herramienta (arriendo + compra + insumo): <b class="money">${CLP(herrTot)}</b> · ${F(pc(herrTot),1)}% del gasto.</p>`:""}
+  </div>
+
+  <h3 style="margin-top:14px">MANO DE OBRA</h3>
+  <div class="card">
+    <div class="tot"><span>Pagado a maestros</span><span class="money">${CLP(b.cat.mano_obra||0)}</span></div>
+    <div class="tot"><span>Jornadas M1</span><span class="money">${b.jorM1}</span></div>
+    ${b.jorM2>0?`<div class="tot"><span>Jornadas M2</span><span class="money">${b.jorM2}</span></div>`:""}
+    <div class="tot"><span><b>Total jornadas</b></span><span class="money"><b>${b.jor}</b></span></div>
+    ${b.jor>0?`<div class="tot"><span class="small" style="color:var(--txt2)">Costo promedio por jornada</span><span class="small money" style="color:var(--txt2)">${CLP(costoJor)}</span></div>`:
+      `<p class="small" style="color:var(--txt2);margin-top:4px">Las jornadas se cuentan de las semanas agregadas con la calculadora de maestros. Los pagos sueltos de mano de obra suman al monto pero no a las jornadas.</p>`}
+  </div>
+
+  <h3 style="margin-top:14px">OBRA POR OBRA</h3>
+  <div class="card"><table style="width:100%;font-size:11px">
+    <tr style="color:var(--txt2)"><th style="text-align:left">Obra</th><th class="money">Contrato</th><th class="money">Gastado</th><th class="money">Utilidad</th><th class="money">Margen</th></tr>
+    ${b.obras.map(o=>`<tr>
+      <td>${esc(o.nombre)}${o.terminada?' <span style="color:#7fb069;font-size:9px;font-weight:700">✓</span>':""}${o.adic>0?`<div class="small" style="color:var(--txt2)">incluye ${CLP(o.adic)} en adicionales</div>`:""}</td>
+      <td class="money">${CLP(o.contrato)}</td>
+      <td class="money">${CLP(o.gasto)}</td>
+      <td class="money" style="color:${o.utilidad>=0?'#7fb069':'#c0392b'}">${CLP(o.utilidad)}</td>
+      <td class="money" style="color:${o.margen>=0?'#7fb069':'#c0392b'}">${F(o.margen,1)}%</td></tr>`).join("")}
+    <tr style="border-top:1px solid var(--line)"><td><b>TOTAL</b></td><td class="money"><b>${CLP(b.contrato)}</b></td><td class="money"><b>${CLP(b.gasto)}</b></td>
+      <td class="money" style="color:${b.utilidad>=0?'#7fb069':'#c0392b'}"><b>${CLP(b.utilidad)}</b></td>
+      <td class="money" style="color:${b.margen>=0?'#7fb069':'#c0392b'}"><b>${F(b.margen,1)}%</b></td></tr>
+  </table></div>
+
+  ${b.proveedores.length?`<h3 style="margin-top:14px">DÓNDE SE COMPRÓ</h3><div class="card">
+    ${b.proveedores.map(p=>`<div class="tot"><span>${esc(p.nombre)} <span class="small" style="color:var(--txt2)">(${p.compras} compra${p.compras===1?"":"s"})</span></span><span class="money">${CLP(p.monto)}</span></div>${barra(pc(p.monto),"#e8a33d")}`).join("")}
+  </div>`:""}
+
+  ${b.partidas.length?`<h3 style="margin-top:14px">POR PARTIDA</h3><div class="card">
+    ${b.partidas.map(([n,v])=>`<div class="tot"><span>${esc(n)}</span><span class="money">${CLP(v)}</span></div>${barra(pc(v),"#4f9dc4")}`).join("")}
+  </div>`:""}
+
+  ${b.herramientas.length?`<h3 style="margin-top:14px">HERRAMIENTA E INSUMOS</h3><div class="card">
+    <table style="width:100%;font-size:11px">
+      <tr style="color:var(--txt2)"><th></th><th style="text-align:left">Herramienta</th><th class="money">Arriendo</th><th class="money">Compra</th><th class="money">Insumo</th></tr>
+      ${b.herramientas.map(h=>`<tr><td style="width:26px;color:var(--naranja2)">${iconoHerr(h.nombre,[],20)}</td><td>${esc(h.nombre)}</td>
+        <td class="money">${h.arr>0?CLP(h.arr):"—"}</td><td class="money">${h.comp>0?CLP(h.comp):"—"}</td><td class="money">${h.ins>0?CLP(h.ins):"—"}</td></tr>`).join("")}
+    </table></div>`:""}`;
+}
+
 /* ============================================================
    PAÑOL — qué tengo, qué cubro y qué conviene comprar
    ============================================================ */
@@ -2778,7 +2894,7 @@ function htmlControl(){
       <select id="ctrlCat" style="width:150px">${opcionesCategoria("material")}</select>
       <select id="ctrlPart" style="width:130px" title="Partida de obra">${opcionesPartida("")}</select>
       <input type="text" id="ctrlProv" list="listaProv" style="width:140px" placeholder="proveedor" title="Dónde se compró (ferretería, arrendadora)">
-      <input type="text" id="ctrlHerr" list="listaHerr" style="width:150px;display:none" placeholder="¿qué herramienta?" title="Nombre de la herramienta: así el PAÑOL puede contar cuántas veces la arrendaste">
+      <input type="text" id="ctrlHerr" list="listaHerr" style="width:150px;display:none" placeholder="¿qué herramienta o insumo?" title="Nombre de la herramienta o del insumo (broca, disco, hoja): así el PAÑOL puede contar arriendos y consumo">
       ${datalistHerramientas()}
       ${datalistProveedores()}
     </div>
@@ -3436,6 +3552,8 @@ function bindTab(){
   $$("#tabContent [data-proynuevo]").forEach(b=>b.onclick=proyNuevoCmd);
   $$("#tabContent [data-proygest]").forEach(b=>b.onclick=()=>$("#btnProyGest").click());
   $$("#tabContent [data-clienteCta]").forEach(b=>b.onclick=emitirEstadoCuentaCliente);
+  // ---- CLIENTE ----
+  const cs=$("#cliSel");if(cs)cs.onchange=()=>{cliSel=cs.value;renderTab();};
   // ---- PAÑOL ----
   const pAdd=$("#panolAdd");if(pAdd)pAdd.onclick=()=>{
     const p=panolCargar();
@@ -3489,7 +3607,7 @@ function bindTab(){
   // El campo de herramienta solo aparece cuando el gasto es arriendo o compra
   const ctrlCatSel=$("#ctrlCat"), ctrlHerrInp=$("#ctrlHerr");
   if(ctrlCatSel&&ctrlHerrInp){
-    const verHerr=()=>{ctrlHerrInp.style.display=["arr_herr","comp_herr"].includes(ctrlCatSel.value)?"":"none";};
+    const verHerr=()=>{ctrlHerrInp.style.display=CATHERR.includes(ctrlCatSel.value)?"":"none";};
     ctrlCatSel.addEventListener("change",verHerr); verHerr();
   }
   const ctrlAdd=$("#ctrlAdd");if(ctrlAdd)ctrlAdd.onclick=()=>{
@@ -3497,7 +3615,7 @@ function bindTab(){
     if(monto<=0){hint("Ingresa un monto válido.");return;}
     const prov=$("#ctrlProv")?$("#ctrlProv").value.trim():"";
     if(prov)recordarProveedor(prov);
-    const esHerr=["arr_herr","comp_herr"].includes($("#ctrlCat").value);
+    const esHerr=CATHERR.includes($("#ctrlCat").value);
     state.control.gastos.push({fecha:$("#ctrlFecha").value,monto,cat:$("#ctrlCat").value,part:$("#ctrlPart")?$("#ctrlPart").value:"",prov,
       herr:esHerr&&$("#ctrlHerr")?$("#ctrlHerr").value.trim():"",nota:$("#ctrlNota").value});
     renderTab();autosave();hint("Gasto registrado.");
@@ -3538,7 +3656,10 @@ function bindTab(){
     // numerar la semana consecutivamente contando las notas que empiezan con "Maestros semana"
     const nSem=(state.control.gastos.filter(x=>/^Maestros semana/i.test(x.nota||"")).length)+1;
     const detalle=`Maestros semana ${nSem} (${nM1}×M1 ${dM1}d${(usaM2&&nM2>0)?` + ${nM2}×M2 ${dM2}d`:""})`;
-    state.control.gastos.push({fecha:new Date().toISOString().slice(0,10),monto:tot,cat:"mano_obra",part:$("#ctrlSemPart")?$("#ctrlSemPart").value:"",prov:"",nota:detalle});
+    // Las jornadas quedan guardadas como dato, no solo dentro del texto de la nota:
+    // así el balance por cliente puede sumarlas sin depender de cómo esté escrita.
+    state.control.gastos.push({fecha:new Date().toISOString().slice(0,10),monto:tot,cat:"mano_obra",part:$("#ctrlSemPart")?$("#ctrlSemPart").value:"",prov:"",
+      jor:{m1:nM1*dM1, m2:(usaM2?nM2*dM2:0)},nota:detalle});
     renderTab();autosave();hint("Semana "+nSem+" de maestros agregada: "+CLP(tot));
   };
   // Meta de rentabilidad
@@ -4838,6 +4959,64 @@ function emitirEETT(){
 /* ---------- COMPARATIVA DE SISTEMAS (impresión) ---------- */
 /* ESTADO DE CUENTA — versión CLIENTE.
    Solo contrato, abonos y saldo: nunca costos, gastos por partida ni utilidad. */
+/* ============================================================
+   BALANCE POR CLIENTE — uso interno
+   Suma todas las obras de un mandante: contrato, gasto por categoría,
+   jornadas de maestros y utilidad real. Es el mismo criterio del RESULTADO
+   de CONTROL, pero acumulado. Nunca sale de la oficina: aquí sí hay costos.
+   ============================================================ */
+function balanceCliente(cliente){
+  const obras=[], prov={}, part={}, herrNom={};
+  const cat={}; CATGASTO.forEach(([k])=>cat[k]=0);
+  let jorM1=0, jorM2=0, nGastos=0, pri="", ult="";
+
+  for(const [c,lista] of proyPorCliente()){
+    if(c!==cliente)continue;
+    for(const e of lista){
+      const sn=(e.id===proyActivo)?snapshot():proyLeer(e.id);
+      if(!sn)continue;
+      const ctrl=sn.control||{};
+      const base=+ctrl.contrato||0;
+      const adic=(Array.isArray(ctrl.adicionales)?ctrl.adicionales:[]).reduce((a,x)=>a+(+x.monto||0),0);
+      const contrato=base+adic;
+      const g=Array.isArray(ctrl.gastos)?ctrl.gastos:[];
+      let gasto=0;
+      const catObra={};
+      g.forEach(x=>{
+        const m=+x.monto||0, k=cat[x.cat]!==undefined?x.cat:"otro";
+        cat[k]+=m; catObra[k]=(catObra[k]||0)+m; gasto+=m; nGastos++;
+        if(x.fecha){ if(!pri||x.fecha<pri)pri=x.fecha; if(x.fecha>ult)ult=x.fecha; }
+        if(k==="mano_obra"){ const j=jornadasDe(x); jorM1+=j.m1; jorM2+=j.m2; }
+        const p=(x.prov||"").trim();
+        if(p){ if(!prov[p])prov[p]={nombre:p,monto:0,compras:0}; prov[p].monto+=m; prov[p].compras++; }
+        const pa=PARTNOM(x.part||"");
+        part[pa]=(part[pa]||0)+m;
+        const h=(x.herr||"").trim();
+        if(h&&CATHERR.includes(k)){ if(!herrNom[h])herrNom[h]={nombre:h,arr:0,comp:0,ins:0,veces:0};
+          herrNom[h][k==="arr_herr"?"arr":(k==="comp_herr"?"comp":"ins")]+=m; herrNom[h].veces++; }
+      });
+      const recibido=Math.max(0,+((sn.planPago||{}).cobrado)||0);
+      if(contrato<=0&&gasto<=0&&recibido<=0)continue;
+      obras.push({nombre:sn.proyecto||e.nombre||"Obra",contrato,adic,gasto,recibido,
+        utilidad:contrato-gasto, margen:contrato>0?(contrato-gasto)/contrato*100:0,
+        terminada:!!ctrl.terminado, cat:catObra});
+    }
+  }
+  obras.sort((a,b)=>String(a.nombre).localeCompare(String(b.nombre),"es",{numeric:true,sensitivity:"base"}));
+  const T=obras.reduce((a,o)=>({contrato:a.contrato+o.contrato,gasto:a.gasto+o.gasto,recibido:a.recibido+o.recibido}),
+    {contrato:0,gasto:0,recibido:0});
+  const utilidad=T.contrato-T.gasto;
+  return {cliente,obras,...T,utilidad,
+    margen:T.contrato>0?utilidad/T.contrato*100:0,
+    porCobrar:T.contrato-T.recibido,
+    caja:T.recibido-T.gasto,
+    cat, jorM1, jorM2, jor:jorM1+jorM2, nGastos, pri, ult,
+    terminadas:obras.filter(o=>o.terminada).length,
+    proveedores:Object.values(prov).sort((a,b)=>b.monto-a.monto),
+    partidas:Object.entries(part).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]),
+    herramientas:Object.values(herrNom).sort((a,b)=>(b.arr+b.comp+b.ins)-(a.arr+a.comp+a.ins))};
+}
+
 /* ESTADO DE CUENTA DEL CLIENTE — todas sus obras en un documento.
    Solo contrato, abonos y saldo por obra: nunca costos ni utilidad. */
 /* Elegir para qué sirve una herramienta. Varias faenas por herramienta:
