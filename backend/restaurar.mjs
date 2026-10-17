@@ -52,6 +52,8 @@ async function main() {
 
   const gestor = Array.isArray(datos.gestor) ? datos.gestor : [];
   const metas = (datos.documentos || []).map(d => d.meta || d).filter(m => m && m.id);
+  // El pañol es uno solo para todo el taller: viaja con el GESTOR
+  const panol = (datos.panol && Array.isArray(datos.panol.herramientas)) ? datos.panol : null;
   const archivoDe = (id) => {
     if (!existsSync(POOL)) return null;
     const f = readdirSync(POOL).find(n => n.split("__")[0] === id);
@@ -62,6 +64,7 @@ async function main() {
   console.log(`Respaldo del ${(datos._fecha || "").slice(0, 10)} · destino ${url}`);
   console.log(`  organizador  ${datos.estado ? "sí" : "no hay"}`);
   console.log(`  gestor       ${gestor.length} cubicación(es)`);
+  console.log(`  pañol        ${panol ? panol.herramientas.length + " herramienta(s)" : "no hay"}`);
   console.log(`  documentos   ${conArchivo.length} con archivo, de ${metas.length}`);
   console.log("Sobrescribe lo que venga en el respaldo. No borra lo que se haya creado después.");
 
@@ -82,6 +85,7 @@ async function main() {
   };
 
   if (datos.estado && !soloGestor) await enviar("/api/estado", datos.estado, "estado del organizador");
+  if (panol && !soloOrg) await enviar("/api/panol", panol, "pañol de herramientas");
   if (!soloOrg) for (const p of gestor) {
     if (!p || !p.id || !p.data) continue;
     await enviar("/api/gestor/" + encodeURIComponent(p.id), { nombre: p.nombre, version: p.version, data: p.data }, "gestor: " + (p.nombre || p.id));

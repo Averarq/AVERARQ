@@ -1,17 +1,28 @@
 // AVERARQ · Backend (Cloudflare Worker + KV, sin R2)
 // ============================================================================
-//  v8 · FUSIÓN TOTAL + ENLACE OBRA — 2026-10-06
+//  v9 · FUSIÓN TOTAL + ENLACE OBRA + LISTADOS POR METADATA — 2026-10-17
 //  Único archivo válido. Reúne, sin excepción:
 //    · Portal de seguimiento con código del cliente y código secundario
 //      para terceros (modo restringido: sin pagos, sin comprobantes).
 //    · Calendario (feed ICS), PATCH de metadatos y PUT de archivo.
 //    · Proyectos del GESTOR en la nube (gestor:*).
+//    · Pañol de herramientas (panol:global).
 //    · Página /gestor servida por el propio Worker.
 //    · Respaldo completo, registro del último respaldo y restauración.
 //    · Enlace arquitectura ↔ obra: el portal del cliente muestra el estado
 //      de pagos de sus obras del GESTOR, con lista blanca de campos.
 //  Cualquier cambio futuro PARTE DE ESTE ARCHIVO. Desplegar una versión
 //  que no incluya los dos lados vuelve a romper la mitad del sistema.
+//
+//  NOVEDAD DE v9 — VELOCIDAD DEL PORTAL
+//  Hasta v8, abrir el portal costaba una lectura de KV por CADA documento
+//  guardado en la nube (142 lecturas en fila para un proyecto de 1 archivo) y
+//  además bajaba los snapshots completos del GESTOR —50 KB cada uno— para leer
+//  cuatro números. Ahora los pocos campos que necesitan los listados viajan en
+//  la METADATA de cada clave: list() la entrega sin cobrar una lectura por
+//  clave, de modo que el portal se arma con una sola llamada.
+//  Las claves escritas antes de v9 no la traen y se leen aparte, en paralelo;
+//  POST /api/reindexar las pone al día de una vez y esa diferencia desaparece.
 // ============================================================================
 // Guarda TODOS los datos en la nube usando solo KV:
 //   - estado global (proyectos, pagos, leads)
@@ -26,9 +37,11 @@
 //   POST   /api/documentos            -> sube archivo (multipart/form-data)
 //   GET    /api/documentos/:id/file   -> descarga el archivo
 //   DELETE /api/documentos/:id        -> elimina metadato + archivo
+//   GET/PUT /api/panol                -> pañol de herramientas del GESTOR
 //   GET    /api/respaldo[?docs=1]     -> respaldo completo en un JSON
 //   GET/PUT /api/respaldo/registro    -> fecha del último respaldo (aviso de los viernes)
 //   POST   /api/restaurar/documento   -> repone un documento con su id original
+//   POST   /api/reindexar             -> escribe la metadata que falte (una vez)
 //   GET    /gestor                    -> la página del GESTOR (no es /api/)
 //
 // Auth: header  Authorization: Bearer <API_TOKEN>   (wrangler secret put API_TOKEN)
@@ -170,45 +183,177 @@ function expedientePublico(p) {
 }
 
 // ---------------------------------------------------------------------------
-//  RESUMEN DE OBRA PARA EL CLIENTE  (enlace ORGANIZADOR ↔ GESTOR)
-//  Devuelve el consolidado de las obras del GESTOR cuyo mandante coincide.
+//  METADATA DE LAS CLAVES KV  —  de donde sale la velocidad del portal
+//  list() devuelve la metadata de cada clave SIN cobrar una lectura por clave.
+//  Guardando ahí los pocos campos que necesitan los listados, el portal se
+//  arma con una sola llamada en vez de una lectura por documento.
+//  El tope de la metadata es 1024 bytes por clave, así que los textos se
+//  recortan: son nombres de archivo y de proyecto, nunca pasan de 120.
+// ---------------------------------------------------------------------------
+function corta(t, n) {
+  const s = String(t == null ? "" : t);
+  const max = n || 120;
+  return s.length > max ? s.slice(0, max) : s;
+}
+
+// Red de seguridad del tope de 1024 bytes: con acentos cada letra pesa dos, de
+// modo que un nombre de archivo absurdo podría pasarse. Antes que rechazar la
+// subida, se recorta el campo de texto más largo hasta que quepa.
+// Con los nombres reales esto nunca se ejecuta: el pico medido es 259 bytes.
+function cabeEnMetadata(md) {
+  const textos = ["n", "a", "pn", "o", "c", "t"];
+  for (let vuelta = 0; vuelta < 40; vuelta++) {
+    if (new TextEncoder().encode(JSON.stringify(md)).length <= 900) return md;
+    let largo = null;
+    for (const k of textos) {
+      if (typeof md[k] === "string" && md[k].length > 8 &&
+          (!largo || md[k].length > md[largo].length)) largo = k;
+    }
+    if (!largo) return md;
+    md[largo] = md[largo].slice(0, Math.max(8, Math.floor(md[largo].length / 2)));
+  }
+  return md;
+}
+
+// Recorre TODAS las páginas de list(): KV entrega 1000 claves por página.
+// Hasta v8 se leía solo la primera, así que al pasar los 1000 documentos el
+// respaldo se habría truncado en silencio.
+async function listarTodo(kv, prefix) {
+  const keys = [];
+  let cursor;
+  for (let vuelta = 0; vuelta < 200; vuelta++) {
+    const r = await kv.list(cursor ? { prefix: prefix, cursor: cursor } : { prefix: prefix });
+    for (const k of r.keys) keys.push(k);
+    if (r.list_complete || !r.cursor) break;
+    cursor = r.cursor;
+  }
+  return keys;
+}
+
+// Resumen de un documento, tal como lo piden los listados
+function metaDocumento(m) {
+  return cabeEnMetadata({
+    v: 1,                                  // versión del formato de la metadata
+    p: corta(m.proyectoId, 64),
+    n: corta(m.nombre),
+    c: corta(m.categoria, 80),
+    f: corta(m.fecha, 24),
+    s: Number(m.size) || 0,
+    t: corta(m.type, 80),
+    a: corta(m.fileName),
+    pn: corta(m.proyectoNombre),
+  });
+}
+// Documento para el cliente, armado desde la metadata de la clave
+function docDesdeMeta(id, md) {
+  return {
+    id: id, nombre: md.n || "", categoria: md.c || "", fecha: md.f || "",
+    size: md.s || 0, type: md.t || "", fileName: md.a || "",
+  };
+}
+
+// ---------------------------------------------------------------------------
+//  LISTA BLANCA DE LA OBRA  —  único lugar del sistema donde se decide
+//  qué ve el cliente de un proyecto del GESTOR.
 //  REGLA INVIOLABLE: el registro "gestor:<id>" guarda el snapshot completo del
 //  GESTOR —gastos, boletas, proveedores, utilidad, tarifas—. Aquí se arma un
 //  objeto NUEVO campo por campo. Nunca se reenvía reg.data ni parte de él.
 //  Si algún día hace falta un dato más, se agrega a esta lista a mano.
 // ---------------------------------------------------------------------------
+function resumenDeRegistro(reg) {
+  const d = reg && reg.data;
+  if (!d) return null;
+  const ctrl = d.control || {};
+  const base = Number(ctrl.contrato) || 0;
+  const adic = (Array.isArray(ctrl.adicionales) ? ctrl.adicionales : [])
+    .reduce((acc, x) => acc + (Number(x.monto) || 0), 0);
+  const contrato = base + adic;
+  const abonado = Math.max(0, Number((d.planPago || {}).cobrado) || 0);
+  return {
+    cliente: ((d.obra && d.obra.info && d.obra.info.cliente) || "").trim(),
+    nombre: d.proyecto || reg.nombre || "Obra",
+    contrato: contrato,
+    adicionales: adic,
+    abonado: abonado,
+    saldo: contrato - abonado,
+    terminada: !!ctrl.terminado,
+    actualizado: reg.actualizado || null,
+  };
+}
+
+// Metadata de un proyecto del GESTOR: solo los campos de la lista blanca más
+// los del listado interno. El snapshot con los gastos jamás entra aquí.
+function metaGestor(reg) {
+  const r = resumenDeRegistro(reg) || {};
+  return cabeEnMetadata({
+    v: 1,
+    // Mismo texto que devolvía el listado de v8: el nombre del registro, no el
+    // de la obra. Si cae en el otro, un proyecto sin título cambia de nombre.
+    n: corta((reg && reg.nombre) || "Proyecto sin título"),
+    o: corta(r.nombre),                    // nombre de la obra dentro del GESTOR
+    u: corta(reg && reg.actualizado, 32),
+    e: corta(reg && reg.version, 24),
+    c: corta(r.cliente),                   // mandante, ya sin espacios al borde
+    t: r.terminada ? 1 : 0,
+    k: Number(r.contrato) || 0,
+    d: Number(r.adicionales) || 0,
+    b: Number(r.abonado) || 0,
+  });
+}
+// Obra para el cliente, armada desde la metadata de la clave
+function obraDesdeMeta(md) {
+  const contrato = Number(md.k) || 0;
+  const abonado = Math.max(0, Number(md.b) || 0);
+  return {
+    nombre: md.o || md.n || "Obra",
+    contrato: contrato,
+    adicionales: Number(md.d) || 0,
+    abonado: abonado,
+    saldo: contrato - abonado,
+    terminada: !!md.t,
+    actualizado: md.u || null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+//  RESUMEN DE OBRA PARA EL CLIENTE  (enlace ORGANIZADOR ↔ GESTOR)
+//  Devuelve el consolidado de las obras del GESTOR cuyo mandante coincide.
+//  Se arma desde la metadata de las claves: ya no se abre un solo snapshot.
+// ---------------------------------------------------------------------------
 async function resumenObraCliente(env, cliente) {
   const objetivo = String(cliente || "").trim().toLowerCase();
   if (!objetivo) return null;
-  const lista = await env.DOCS_KV.list({ prefix: "gestor:" });
+  const claves = await listarTodo(env.DOCS_KV, "gestor:");
   const obras = [];
-  for (const k of lista.keys) {
-    const raw = await env.DOCS_KV.get(k.name);
-    if (!raw) continue;
-    let reg;
-    try { reg = JSON.parse(raw); } catch (e) { continue; }
-    const d = reg && reg.data;
-    if (!d) continue;
-    const cli = ((d.obra && d.obra.info && d.obra.info.cliente) || "").trim().toLowerCase();
-    if (cli !== objetivo) continue;
-
-    const ctrl = d.control || {};
-    const base = Number(ctrl.contrato) || 0;
-    const adic = (Array.isArray(ctrl.adicionales) ? ctrl.adicionales : [])
-      .reduce((acc, x) => acc + (Number(x.monto) || 0), 0);
-    const contrato = base + adic;
-    const abonado = Math.max(0, Number((d.planPago || {}).cobrado) || 0);
-    if (contrato <= 0 && abonado <= 0) continue;   // obras sin montos no se muestran
-
-    obras.push({
-      nombre: d.proyecto || reg.nombre || "Obra",
-      contrato: contrato,
-      adicionales: adic,
-      abonado: abonado,
-      saldo: contrato - abonado,
-      terminada: !!ctrl.terminado,
-      actualizado: reg.actualizado || null,
-    });
+  const sinMeta = [];
+  for (const k of claves) {
+    const md = k.metadata;
+    if (md && md.v) {
+      if (String(md.c || "").trim().toLowerCase() !== objetivo) continue;
+      const o = obraDesdeMeta(md);
+      if (o.contrato <= 0 && o.abonado <= 0) continue;  // obras sin montos no se muestran
+      obras.push(o);
+    } else {
+      sinMeta.push(k.name);   // clave anterior a v9
+    }
+  }
+  // Claves antiguas: se leen solo esas, y en paralelo, no una tras otra
+  if (sinMeta.length) {
+    const crudos = await Promise.all(sinMeta.map((n) => env.DOCS_KV.get(n)));
+    for (const raw of crudos) {
+      if (!raw) continue;
+      let reg;
+      try { reg = JSON.parse(raw); } catch (e) { continue; }
+      const r = resumenDeRegistro(reg);
+      if (!r) continue;
+      if (r.cliente.toLowerCase() !== objetivo) continue;
+      if (r.contrato <= 0 && r.abonado <= 0) continue;
+      obras.push({
+        nombre: r.nombre, contrato: r.contrato, adicionales: r.adicionales,
+        abonado: r.abonado, saldo: r.saldo, terminada: r.terminada,
+        actualizado: r.actualizado,
+      });
+    }
   }
   if (!obras.length) return null;
   obras.sort((a, b) =>
@@ -281,13 +426,29 @@ export default {
 
           // Documentos de ESTE proyecto (solo metadatos, nunca de otros).
           // En modo restringido se ocultan los comprobantes.
-          const list = await env.DOCS_KV.list({ prefix: "docmeta:" });
+          // Se filtra desde la metadata de cada clave, sin abrir los valores:
+          // así el proyecto de 1 archivo cuesta lo mismo que el de 34.
+          const claves = await listarTodo(env.DOCS_KV, "docmeta:");
           const docs = [];
-          for (const k of list.keys) {
-            const v = await env.DOCS_KV.get(k.name);
-            if (!v) continue;
-            const m = JSON.parse(v);
-            if (m.proyectoId === p.id) {
+          const sinMeta = [];
+          for (const k of claves) {
+            const md = k.metadata;
+            if (md && md.v) {
+              if (md.p !== p.id) continue;
+              if (restringido && /comprobante/i.test(md.c || "")) continue;
+              docs.push(docDesdeMeta(k.name.slice("docmeta:".length), md));
+            } else {
+              sinMeta.push(k.name);   // clave anterior a v9
+            }
+          }
+          // Claves antiguas: se leen solo esas, y en paralelo
+          if (sinMeta.length) {
+            const crudos = await Promise.all(sinMeta.map((n) => env.DOCS_KV.get(n)));
+            for (const v of crudos) {
+              if (!v) continue;
+              let m;
+              try { m = JSON.parse(v); } catch (e) { continue; }
+              if (m.proyectoId !== p.id) continue;
               if (restringido && /comprobante/i.test(m.categoria || "")) continue;
               docs.push({
                 id: m.id, nombre: m.nombre, categoria: m.categoria,
@@ -411,24 +572,44 @@ export default {
       if (parts[1] === "gestor") {
         // GET /api/gestor -> lista de proyectos (metadatos, sin el cuerpo completo)
         if (request.method === "GET" && parts.length === 2) {
-          const list = await env.DOCS_KV.list({ prefix: "gestor:" });
+          // Igual que el portal: desde la metadata, sin bajar los snapshots
+          // completos (50 KB cada uno) para leer cuatro campos.
+          const claves = await listarTodo(env.DOCS_KV, "gestor:");
           const proyectos = [];
-          for (const k of list.keys) {
-            const v = await env.DOCS_KV.get(k.name);
-            if (!v) continue;
-            try {
-              const p = JSON.parse(v);
+          const sinMeta = [];
+          for (const k of claves) {
+            const md = k.metadata;
+            if (md && md.v) {
               proyectos.push({
                 id: k.name.slice("gestor:".length),
-                nombre: p.nombre || "Proyecto sin título",
-                actualizado: p.actualizado || null,
-                version: p.version || null,
+                nombre: md.n || "Proyecto sin título",
+                actualizado: md.u || null,
+                version: md.e || null,
                 // Mandante y estado: los usa el ORGANIZADOR para ofrecer la lista
                 // de clientes al enlazar. Ruta con token, no la ve el cliente.
-                cliente: (p.data && p.data.obra && p.data.obra.info && p.data.obra.info.cliente) || "",
-                terminada: !!(p.data && p.data.control && p.data.control.terminado),
+                cliente: md.c || "",
+                terminada: !!md.t,
               });
-            } catch (e) { /* ignora entradas corruptas */ }
+            } else {
+              sinMeta.push(k.name);   // clave anterior a v9
+            }
+          }
+          if (sinMeta.length) {
+            const crudos = await Promise.all(sinMeta.map((n) => env.DOCS_KV.get(n)));
+            crudos.forEach((v, i) => {
+              if (!v) return;
+              try {
+                const p = JSON.parse(v);
+                proyectos.push({
+                  id: sinMeta[i].slice("gestor:".length),
+                  nombre: p.nombre || "Proyecto sin título",
+                  actualizado: p.actualizado || null,
+                  version: p.version || null,
+                  cliente: String((p.data && p.data.obra && p.data.obra.info && p.data.obra.info.cliente) || "").trim(),
+                  terminada: !!(p.data && p.data.control && p.data.control.terminado),
+                });
+              } catch (e) { /* ignora entradas corruptas */ }
+            });
           }
           proyectos.sort((a, b) => (b.actualizado || "").localeCompare(a.actualizado || ""));
           return json({ proyectos }, 200, origin);
@@ -450,7 +631,8 @@ export default {
             data: (body && body.data) || null, // el snapshot() del GESTOR
           };
           if (!registro.data) return json({ error: "Falta el cuerpo del proyecto (data)." }, 400, origin);
-          await env.DOCS_KV.put("gestor:" + parts[2], JSON.stringify(registro));
+          await env.DOCS_KV.put("gestor:" + parts[2], JSON.stringify(registro),
+            { metadata: metaGestor(registro) });
           return json({ ok: true, id: parts[2], actualizado: registro.actualizado }, 200, origin);
         }
         // DELETE /api/gestor/:id -> elimina un proyecto
@@ -458,6 +640,68 @@ export default {
           await env.DOCS_KV.delete("gestor:" + parts[2]);
           return json({ ok: true }, 200, origin);
         }
+      }
+
+      // ---------- PAÑOL DE HERRAMIENTAS (clave KV "panol:global") ----------
+      // Uno solo para todo el taller: no es por proyecto. El GESTOR manda el
+      // objeto completo { herramientas, omitidas, actualizado } y gana el más
+      // reciente, así que la fecha que trae el cuerpo se respeta tal cual.
+      if (parts[1] === "panol") {
+        if (request.method === "GET") {
+          const raw = await env.DOCS_KV.get("panol:global");
+          return json({ panol: raw ? JSON.parse(raw) : null }, 200, origin);
+        }
+        if (request.method === "PUT") {
+          const body = await request.json().catch(() => null);
+          const p = (body && body.panol) ? body.panol : body;
+          if (!p || !Array.isArray(p.herramientas)) {
+            return json({ error: "Falta la lista de herramientas." }, 400, origin);
+          }
+          const registro = {
+            herramientas: p.herramientas,
+            omitidas: Array.isArray(p.omitidas) ? p.omitidas : [],
+            actualizado: p.actualizado || new Date().toISOString(),
+          };
+          await env.DOCS_KV.put("panol:global", JSON.stringify(registro));
+          return json({ ok: true, actualizado: registro.actualizado,
+            herramientas: registro.herramientas.length }, 200, origin);
+        }
+      }
+
+      // ---------- REINDEXAR (una sola vez, después de desplegar v9) ----------
+      // POST /api/reindexar        -> escribe la metadata que falte
+      // POST /api/reindexar?todo=1 -> la reescribe toda, aunque ya exista
+      // No cambia ni un dato: vuelve a guardar el MISMO valor, agregándole la
+      // metadata. Es idempotente y se puede repetir: lo ya hecho se salta.
+      if (parts[1] === "reindexar" && request.method === "POST") {
+        const kv = env.DOCS_KV;
+        const todo = url.searchParams.get("todo") === "1";
+        const res = { documentos: 0, proyectos: 0, saltados: 0, errores: [] };
+        // De a 10 en paralelo: ni en fila (lento) ni todas juntas (se ahoga)
+        const porLotes = async (claves, hacer) => {
+          for (let i = 0; i < claves.length; i += 10) {
+            await Promise.all(claves.slice(i, i + 10).map(hacer));
+          }
+        };
+        await porLotes(await listarTodo(kv, "docmeta:"), async (k) => {
+          if (!todo && k.metadata && k.metadata.v) { res.saltados++; return; }
+          try {
+            const raw = await kv.get(k.name);
+            if (!raw) return;
+            await kv.put(k.name, raw, { metadata: metaDocumento(JSON.parse(raw)) });
+            res.documentos++;
+          } catch (e) { res.errores.push(k.name + ": " + String(e)); }
+        });
+        await porLotes(await listarTodo(kv, "gestor:"), async (k) => {
+          if (!todo && k.metadata && k.metadata.v) { res.saltados++; return; }
+          try {
+            const raw = await kv.get(k.name);
+            if (!raw) return;
+            await kv.put(k.name, raw, { metadata: metaGestor(JSON.parse(raw)) });
+            res.proyectos++;
+          } catch (e) { res.errores.push(k.name + ": " + String(e)); }
+        });
+        return json({ ok: true, ...res }, 200, origin);
       }
 
       // ---------- CALENDARIO (feed ICS: dirección secreta o calendario público) ----------
@@ -582,11 +826,15 @@ export default {
             const estadoRaw = await kv.get("estado:global");
             await push(',"estado":' + (estadoRaw || "null"));
 
+            // Pañol de herramientas (uno solo para todo el taller)
+            const panolRaw = await kv.get("panol:global");
+            await push(',"panol":' + (panolRaw || "null"));
+
             // Proyectos del GESTOR
             await push(',"gestor":[');
-            const lg = await kv.list({ prefix: "gestor:" });
+            const lg = await listarTodo(kv, "gestor:");
             let primero = true;
-            for (const k of lg.keys) {
+            for (const k of lg) {
               const v = await kv.get(k.name);
               if (!v) continue;
               await push((primero ? "" : ",") + v);
@@ -598,9 +846,9 @@ export default {
             // La categoría se guarda textual (incluido "Comprobante"), de modo que
             // al restaurar el filtro del código secundario siga funcionando.
             await push(',"documentos":[');
-            const ld = await kv.list({ prefix: "docmeta:" });
+            const ld = await listarTodo(kv, "docmeta:");
             primero = true;
-            for (const k of ld.keys) {
+            for (const k of ld) {
               const metaRaw = await kv.get(k.name);
               if (!metaRaw) continue;
               const id = k.name.slice("docmeta:".length);
@@ -644,7 +892,8 @@ export default {
         const b64 = body && body.b64;
         if (!meta || !meta.id) return json({ error: "Falta el metadato del documento." }, 400, origin);
         if (b64) await env.DOCS_KV.put("docfile:" + meta.id, b64);
-        await env.DOCS_KV.put("docmeta:" + meta.id, JSON.stringify(meta));
+        await env.DOCS_KV.put("docmeta:" + meta.id, JSON.stringify(meta),
+          { metadata: metaDocumento(meta) });
         return json({ ok: true, id: meta.id, conArchivo: !!b64 }, 200, origin);
       }
 
@@ -652,9 +901,9 @@ export default {
       if (parts[1] === "documentos") {
         // GET /api/documentos  (lista de metadatos, sin archivo)
         if (request.method === "GET" && parts.length === 2) {
-          const list = await env.DOCS_KV.list({ prefix: "docmeta:" });
+          const claves = await listarTodo(env.DOCS_KV, "docmeta:");
           const items = await Promise.all(
-            list.keys.map(async (k) => {
+            claves.map(async (k) => {
               const v = await env.DOCS_KV.get(k.name);
               return v ? JSON.parse(v) : null;
             })
@@ -690,7 +939,8 @@ export default {
           };
           try {
             await env.DOCS_KV.put("docfile:" + id, b64);
-            await env.DOCS_KV.put("docmeta:" + id, JSON.stringify(meta));
+            await env.DOCS_KV.put("docmeta:" + id, JSON.stringify(meta),
+              { metadata: metaDocumento(meta) });
           } catch (e) {
             return json({ error: "No se pudo guardar en KV: " + String(e) }, 500, origin);
           }
@@ -737,7 +987,8 @@ export default {
           meta.fecha = new Date().toISOString().slice(0, 10);
           try {
             await env.DOCS_KV.put("docfile:" + parts[2], b64);
-            await env.DOCS_KV.put("docmeta:" + parts[2], JSON.stringify(meta));
+            await env.DOCS_KV.put("docmeta:" + parts[2], JSON.stringify(meta),
+              { metadata: metaDocumento(meta) });
           } catch (e) {
             return json({ error: "No se pudo guardar en KV: " + String(e) }, 500, origin);
           }
@@ -751,7 +1002,8 @@ export default {
           const body = await request.json().catch(() => ({}));
           if (typeof body.nombre === "string" && body.nombre.trim()) meta.nombre = body.nombre.trim();
           if (typeof body.categoria === "string") meta.categoria = body.categoria;
-          await env.DOCS_KV.put("docmeta:" + parts[2], JSON.stringify(meta));
+          await env.DOCS_KV.put("docmeta:" + parts[2], JSON.stringify(meta),
+            { metadata: metaDocumento(meta) });
           return json({ documento: meta }, 200, origin);
         }
         // DELETE /api/documentos/:id
