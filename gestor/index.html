@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.32</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.33</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -11,6 +11,9 @@
   --bg:#111311; --panel:#191c19; --panel2:#20241f; --line:#2e332c;
   --txt:#e8e6df; --txt2:#9aa094; --naranja:#fc4c02; --naranja2:#ff6d33;
   --ok:#7fb069; --warn:#e8b12c;
+  /* --muted se usaba en toda la app pero nunca se había definido: esos textos
+     secundarios heredaban el color del padre en vez de verse atenuados. */
+  --muted:#6f756a;
   --mono:'Courier New',monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -94,6 +97,25 @@ input[type=color]{width:26px;height:26px;border:none;background:none;padding:0;c
 .qty{font-family:var(--mono);font-size:16px;color:var(--naranja2);font-weight:700}
 .small{font-size:10px;color:var(--txt2)}
 .money{font-family:var(--mono);text-align:right;white-space:nowrap}
+/* ---- planilla semanal de maestros ---- */
+.semtab{width:100%;border-collapse:collapse;font-size:11px}
+.semtab th{color:var(--muted);font-weight:600;padding:2px 3px;font-size:10px;text-align:center}
+.semtab th.hoy{color:var(--naranja2)}
+.semtab td{padding:2px 3px;border-top:1px solid var(--line)}
+.semnom{max-width:106px;overflow:hidden;font-size:11px;line-height:1.25}
+.semnombre{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sempaga{font-family:var(--mono);font-size:10px;color:var(--naranja2);white-space:nowrap}
+.semplata{font-family:var(--mono);text-align:right;white-space:nowrap;font-size:11px}
+.semtipo{display:inline-block;font-size:9px;font-family:var(--mono);padding:1px 3px;border-radius:2px;margin-right:4px;vertical-align:1px}
+.semtipo.m1{background:#3a2a1e;color:var(--naranja2)}
+.semtipo.m2{background:#24302c;color:var(--ok)}
+.semcel{padding:1px!important;text-align:center}
+.semd{width:27px;height:27px;padding:0;border:1px solid var(--line);background:var(--panel2);color:var(--muted);
+  border-radius:4px;cursor:pointer;font-size:12px;font-family:var(--mono);line-height:1}
+.semd:hover:not(:disabled){border-color:var(--naranja)}
+.semd.medio{background:#4a2a14;border-color:#7a431f;color:#ffb98a}
+.semd.lleno{background:var(--naranja);border-color:var(--naranja);color:#fff;font-weight:700}
+.semd:disabled{cursor:default;opacity:.75}
 
 table{width:100%;border-collapse:collapse;font-size:11px}
 th{color:var(--txt2);text-align:left;font-weight:600;padding:4px 4px;border-bottom:1px solid var(--line);font-size:10px;letter-spacing:.5px}
@@ -154,6 +176,14 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
   #tabContent label{max-width:100%}
   #tabContent input,#tabContent select,#tabContent textarea,#tabContent .btn{max-width:100%}
   #tabContent .grow{flex:1 1 140px;min-width:0}
+  /* En el teléfono sobra ancho y falta puntería: casillas más grandes */
+  .semd{width:36px;height:36px;font-size:15px}
+  /* La regla de arriba pone table-layout:fixed a TODAS las tablas y reparte
+     las columnas en partes iguales; acá el nombre necesita más que una casilla */
+  #tabContent table.semtab{table-layout:auto;word-break:normal;font-size:11px}
+  .semcel{width:36px}
+  .semnom{max-width:150px}
+  .semnombre{font-size:12px}
 
   #status{flex-wrap:wrap;gap:10px;padding:5px 10px;font-size:10px}
   #stCoord,#stEscala{display:none}
@@ -283,7 +313,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.32</span></span></a>
+    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.33</span></span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <select id="selProyecto" title="Cambiar de proyecto"></select>
   <span id="nubeDot" class="nube-dot off" title="Sin nube"></span>
@@ -406,11 +436,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.32 =================
+/* ================= GESTOR AVERARQ v3.33 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.32";
+const GESTOR_VERSION="v3.33";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -2411,6 +2441,108 @@ function jornadasDe(x){
   if(!m)return {m1:0,m2:0};
   return {m1:(+m[1]||0)*(+m[2]||0), m2:(+m[3]||0)*(+m[4]||0)};
 }
+/* ---------------------------------------------------------------------------
+   SEMANA DE MAESTROS — planilla día por día
+   Un maestro no trabaja siempre los cinco días ni siempre la jornada completa.
+   La planilla guarda, por semana y por maestro, cuánto hizo cada día: 0, ½ o 1.
+   El viernes el pago sale de ahí y no de una estimación.
+   La tarifa se copia DENTRO de la semana: subir el día de M1 en diciembre no
+   puede mover lo que ya se pagó en octubre.
+--------------------------------------------------------------------------- */
+const DIASEM=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+const MESCORTO=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+/* Fechas en hora local: new Date(iso) las lee en UTC y en Chile eso corre el día */
+function isoDe(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function hoyISO(){return isoDe(new Date());}
+function fechaDe(iso){const p=String(iso||"").slice(0,10).split("-");return new Date(+p[0],(+p[1]||1)-1,+p[2]||1);}
+function sumarDias(iso,n){const d=fechaDe(iso);d.setDate(d.getDate()+n);return isoDe(d);}
+/* Lunes de la semana a la que pertenece una fecha */
+function lunesDe(iso){
+  const d=fechaDe(iso);
+  if(isNaN(d.getTime()))return lunesDe(hoyISO());
+  d.setDate(d.getDate()-((d.getDay()+6)%7));   // getDay(): 0 es domingo
+  return isoDe(d);
+}
+function rotuloSemana(ini){
+  const f=sumarDias(ini,6), dd=s=>+s.slice(8,10), mm=s=>MESCORTO[+s.slice(5,7)-1];
+  return mm(ini)===mm(f) ? `${dd(ini)} al ${dd(f)} de ${mm(f)}`
+                         : `${dd(ini)} de ${mm(ini)} al ${dd(f)} de ${mm(f)}`;
+}
+/* La cuadrilla de esta obra: los maestros con nombre y su tarifa */
+function cuadrilla(){
+  const c=state.control;
+  if(!Array.isArray(c.cuadrilla))c.cuadrilla=[];
+  return c.cuadrilla;
+}
+/* Trae la semana que empieza ese lunes; la crea si no existe.
+   A una semana ya cerrada no se le agregan maestros nuevos: ya se pagó. */
+function semanaDe(ini){
+  const c=state.control;
+  if(!Array.isArray(c.semanas))c.semanas=[];
+  let s=c.semanas.find(x=>x.ini===ini);
+  if(!s){s={ini:ini,part:"",cerrada:false,filas:[]};c.semanas.push(s);}
+  if(!Array.isArray(s.filas))s.filas=[];
+  s.filas.forEach(f=>{if(!Array.isArray(f.d)||f.d.length!==7)f.d=[0,0,0,0,0,0,0];});
+  if(!s.cerrada){
+    // Una semana ABIERTA toma a los maestros que falten en la cuadrilla.
+    // El nombre se refresca siempre; la TARIFA solo mientras ese maestro no
+    // tenga días marcados en la semana. Una vez que hay días anotados, el valor
+    // del día queda congelado: lo trabajado no puede cambiar de precio porque
+    // después se haya subido la tarifa, ni al reabrir la semana para corregirla.
+    cuadrilla().forEach(m=>{
+      if(m.activo===false)return;
+      const f=s.filas.find(x=>x.mid===m.id);
+      if(!f){s.filas.push({mid:m.id,nombre:m.nombre,tipo:m.tipo,tarifa:+m.tarifa||0,d:[0,0,0,0,0,0,0]});return;}
+      f.nombre=m.nombre;
+      if(jornadasFila(f)===0){f.tipo=m.tipo;f.tarifa=+m.tarifa||0;}
+    });
+  }
+  return s;
+}
+function jornadasFila(f){return (f.d||[]).reduce((a,x)=>a+(+x||0),0);}
+function totalSemana(s){
+  let tot=0,jm1=0,jm2=0;
+  (s&&s.filas||[]).forEach(f=>{
+    const j=jornadasFila(f);
+    tot+=j*(+f.tarifa||0);
+    if(f.tipo==="m2")jm2+=j;else jm1+=j;
+  });
+  return {tot:tot,jm1:jm1,jm2:jm2,jor:jm1+jm2};
+}
+/* Deja la semana reflejada como UN gasto de mano de obra de esta obra.
+   El gasto lleva semId, así que reabrir y corregir actualiza el mismo registro
+   en vez de agregar otro. Las jornadas van como dato (jor), que es lo que leen
+   el balance por cliente y la radiografía. */
+function sincronizarGastoSemana(s){
+  const c=state.control;
+  if(!Array.isArray(c.gastos))c.gastos=[];
+  const t=totalSemana(s);
+  const ix=c.gastos.findIndex(x=>x&&x.semId===s.ini);
+  if(t.tot<=0){                      // semana vaciada: se retira el registro
+    if(ix>=0)c.gastos.splice(ix,1);
+    s.cerrada=false;delete s.pagada;
+    return;
+  }
+  const resumen=s.filas.filter(f=>jornadasFila(f)>0)
+    .map(f=>`${f.nombre} ${jorTexto(jornadasFila(f))}`).join(" · ");
+  const g={
+    // El viernes de la semana que cubre, no el día en que se cerró la planilla:
+    // así el gasto cae en la semana a la que corresponde el trabajo.
+    fecha:sumarDias(s.ini,4),
+    monto:t.tot, cat:"mano_obra", part:s.part||"", prov:"",
+    jor:{m1:t.jm1, m2:t.jm2}, semId:s.ini,
+    nota:`Maestros semana del ${rotuloSemana(s.ini)}${resumen?" — "+resumen:""}`
+  };
+  if(ix>=0)c.gastos[ix]=g;else c.gastos.push(g);
+}
+/* "1", "½", "4½" — para no escribir 4.5 en una planilla de jornadas */
+function jorTexto(n){
+  n=+n||0;
+  const ent=Math.floor(n), med=(n-ent)>=0.5;
+  if(!n)return "—";
+  if(!ent)return "½";
+  return ent+(med?"½":"");
+}
 const CATNOMBRE=id=>{const c=CATGASTO.find(x=>x[0]===id);return c?c[1]:"—";};
 const CATCOLOR={material:"#e8a33d",mano_obra:"#fc4c02",arr_herr:"#9b7fd4",comp_herr:"#7a68b8",ins_herr:"#5d4e96",gasto_general:"#4f9dc4",otro:"#6b7280"};
 function opcionesCategoria(sel){
@@ -2665,6 +2797,12 @@ function controlTotales(){
    CLIENTE — balance consolidado de todas sus obras (interno)
    ============================================================ */
 let cliSel=null;
+/* Lunes de la semana que se está mirando en la planilla de maestros */
+let semIni=null;
+/* Cuadrilla desplegada o no (se parte cerrada: lo que se usa a diario es la grilla) */
+let cuadAbierta=false;
+/* Sábado y domingo solo se muestran si se trabajaron, o si se piden a mano */
+let semFinde=false;
 function htmlCliente(){
   const grupos=proyPorCliente().filter(([c])=>c!==SIN_CLIENTE);
   if(!grupos.length)
@@ -2870,6 +3008,118 @@ function htmlPanol(){
   <div class="card">${comprasHtml}</div>`;
 }
 
+/* ---------------------------------------------------------------------------
+   Planilla semanal de maestros: una fila por maestro, siete casillas.
+   Se toca la casilla y cicla — → ½ → 1. El viernes se cierra la semana y queda
+   registrada como un gasto de mano de obra de esta obra.
+--------------------------------------------------------------------------- */
+function htmlSemana(){
+  const c=state.control;
+  if(!semIni)semIni=lunesDe(hoyISO());
+  const s=semanaDe(semIni);
+  const t=totalSemana(s);
+  const hoy=hoyISO(), estaSem=(semIni===lunesDe(hoy));
+  const cua=cuadrilla();
+  // La semana de obra es de lunes a viernes. Sábado y domingo aparecen solo si
+  // alguien trabajó, o si se despliegan a mano para poder marcarlos.
+  const hayFinde=s.filas.some(f=>(+f.d[5]||0)>0||(+f.d[6]||0)>0);
+  const verFinde=hayFinde||semFinde;
+  const nDias=verFinde?7:5;
+
+  let h=`<div class="card" style="border-left:3px solid var(--naranja)">
+    <div class="row">
+      <b class="small" style="letter-spacing:1px;color:var(--txt2)">SEMANA DE MAESTROS</b>
+      <span class="grow"></span>
+      ${s.cerrada?`<span class="small" style="color:var(--ok);font-weight:700">● PAGADA</span>`:""}
+    </div>
+    <div class="row">
+      <button class="btn" id="semAnt" title="semana anterior">◀</button>
+      <span class="grow" style="text-align:center;font-size:12px;color:var(--txt)">
+        <b>${rotuloSemana(semIni)}</b>${estaSem?` <span class="small" style="color:var(--naranja2)">· esta semana</span>`:""}
+      </span>
+      <button class="btn" id="semSig" title="semana siguiente">▶</button>
+      ${estaSem?"":`<button class="btn" id="semHoy" title="volver a la semana actual">hoy</button>`}
+    </div>`;
+
+  if(!cua.length && !s.filas.length){
+    h+=`<div class="small" style="color:var(--muted);padding:8px 2px">
+      Todavía no hay maestros en esta obra. Agrégalos abajo con su nombre y su tarifa por día;
+      después solo marcas los días que vino cada uno.
+    </div>`;
+  }else{
+    h+=`<div style="overflow-x:auto;margin:4px 0">
+      <table class="semtab"><tr>
+        <th style="text-align:left">Maestro</th>
+        ${DIASEM.slice(0,nDias).map((d,i)=>`<th class="${sumarDias(semIni,i)===hoy?"hoy":""}">${d}</th>`).join("")}
+        <th class="semplata">Jorn.</th>
+        ${s.cerrada?"":`<th style="width:18px"></th>`}
+      </tr>`;
+    s.filas.forEach((f,fi)=>{
+      const j=jornadasFila(f);
+      h+=`<tr>
+        <td class="semnom" title="${esc(f.nombre)} · ${f.tipo==="m2"?"M2":"M1"} · ${CLP(f.tarifa)} por jornada">
+          <div class="semnombre">${esc(f.nombre)}</div>
+          <div class="sempaga"><span class="semtipo ${f.tipo==="m2"?"m2":"m1"}">${f.tipo==="m2"?"M2":"M1"}</span>${j>0?CLP(j*(+f.tarifa||0)):"—"}</div>
+        </td>
+        ${(f.d||[]).slice(0,nDias).map((v,di)=>`<td class="semcel"><button class="semd ${(+v)===1?"lleno":((+v)===0.5?"medio":"")}"
+            data-semd="${fi},${di}" ${s.cerrada?"disabled":""}
+            title="${DIASEM[di]} ${sumarDias(semIni,di).slice(8,10)}">${(+v)===1?"1":((+v)===0.5?"½":"·")}</button></td>`).join("")}
+        <td class="semplata" style="color:var(--txt2)">${jorTexto(j)}</td>
+        ${s.cerrada?"":`<td><span class="tdel" data-semquita="${fi}" title="sacar de esta semana">✕</span></td>`}
+      </tr>`;
+    });
+    h+=`</table></div>
+    <div class="tot big"><span>Total de la semana</span><span>${CLP(t.tot)}</span></div>
+    <div class="row">
+      <span class="small" style="color:var(--muted)">Jornadas: ${jorTexto(t.jm1)} de M1 · ${jorTexto(t.jm2)} de M2</span>
+      <span class="grow"></span>
+      ${s.cerrada?"":`<button class="btn" id="semFinde" title="${verFinde?"ocultar sábado y domingo":"marcar sábado o domingo"}">${verFinde?"− finde":"+ finde"}</button>`}
+      <label style="width:auto" class="small">partida</label>
+      <select id="semPart" style="width:130px" ${s.cerrada?"disabled":""}>${opcionesPartida(s.part||"")}</select>
+    </div>`;
+    if(s.cerrada){
+      h+=`<div class="row">
+        <span class="small grow" style="color:var(--ok)">Registrada como gasto de mano de obra el ${s.pagada||""}.</span>
+        <button class="btn" id="semReabrir">reabrir para corregir</button>
+      </div>`;
+    }else{
+      h+=`<div class="row"><button class="btn primary grow" id="semCerrar" ${t.tot<=0?"disabled":""}>cerrar la semana y registrar el pago</button></div>`;
+    }
+  }
+
+  // ---- cuadrilla ----
+  h+=`<div style="border-top:1px solid var(--line);margin-top:8px;padding-top:6px">
+    <div class="row">
+      <span class="small" style="cursor:pointer;color:var(--txt2)" id="cuadTog">${cuadAbierta?"▾":"▸"} CUADRILLA (${cua.length})</span>
+      <span class="grow"></span>
+      <span class="small" style="color:var(--muted)">M1 ${CLP(c.tarM1)}/día · M2 ${CLP(c.tarM2)}/día</span>
+    </div>`;
+  if(cuadAbierta){
+    cua.forEach((m,i)=>{
+      h+=`<div class="row">
+        <input type="text" class="grow" value="${esc(m.nombre)}" data-cua="nombre" data-ci="${i}" placeholder="nombre">
+        <select style="width:62px" data-cua="tipo" data-ci="${i}">
+          <option value="m1" ${m.tipo!=="m2"?"selected":""}>M1</option>
+          <option value="m2" ${m.tipo==="m2"?"selected":""}>M2</option>
+        </select>
+        <input type="number" style="width:90px" value="${+m.tarifa||0}" data-cua="tarifa" data-ci="${i}" title="$ por jornada completa">
+        <span class="tdel" data-cuaquita="${i}" title="quitar de la cuadrilla">✕</span>
+      </div>`;
+    });
+    h+=`<div class="row">
+      <input type="text" id="cuadNom" class="grow" placeholder="nombre del maestro">
+      <select id="cuadTipo" style="width:62px"><option value="m1">M1</option><option value="m2">M2</option></select>
+      <button class="btn primary" id="cuadAdd">+ agregar</button>
+    </div>
+    <div class="small" style="color:var(--muted);padding:2px">
+      La tarifa se toma de M1/M2 y se puede ajustar por persona. Lo que cambies acá
+      vale para las semanas nuevas: las ya cerradas conservan la tarifa con que se pagaron.
+    </div>`;
+  }
+  h+=`</div></div>`;
+  return h;
+}
+
 function htmlControl(){
   if(!state.control)state.control={contrato:"",gastos:[]};
   if(state.control.tarM1===undefined)state.control.tarM1=55000;
@@ -2913,25 +3163,7 @@ function htmlControl(){
     </div>
     <div class="row"><input type="text" id="ctrlNota" class="grow" placeholder="nota (ej: fierro y cemento Sodimac)"><button class="btn primary" id="ctrlAdd">+ agregar</button></div>
   </div>
-  <div class="card" style="border-left:3px solid var(--naranja)">
-    <div class="row"><b class="small" style="letter-spacing:1px;color:var(--txt2)">CÁLCULO SEMANAL DE MAESTROS</b></div>
-    <div class="row"><label style="width:auto;font-size:11px;color:var(--txt);cursor:pointer"><input type="checkbox" style="width:auto" id="ctrlUsaM2" ${c.usaM2?"checked":""}> Incluir maestro de 2ª (M2) esta semana</label></div>
-    <div class="row">
-      <label style="width:auto">M1 $/día</label><input type="number" style="width:80px" value="${c.tarM1}" data-ctrltar="tarM1">
-      <label style="width:auto">× </label><input type="number" id="ctrlDiasM1" style="width:44px" value="5" min="0" max="7"><label style="width:auto">días</label>
-    </div>
-    ${c.usaM2?`<div class="row">
-      <label style="width:auto">M2 $/día</label><input type="number" style="width:80px" value="${c.tarM2}" data-ctrltar="tarM2">
-      <label style="width:auto">× </label><input type="number" id="ctrlDiasM2" style="width:44px" value="5" min="0" max="7"><label style="width:auto">días</label>
-    </div>`:""}
-    <div class="row">
-      <label style="width:auto"># M1</label><input type="number" id="ctrlNM1" style="width:44px" value="1" min="0">
-      ${c.usaM2?`<label style="width:auto"># M2</label><input type="number" id="ctrlNM2" style="width:44px" value="1" min="0">`:`<span class="small" style="color:var(--muted)">semana solo con M1</span>`}
-      <label style="width:auto">partida</label><select id="ctrlSemPart" style="width:130px">${opcionesPartida("")}</select>
-      <span class="small grow" style="text-align:right;color:var(--muted)" id="ctrlSemPrev">—</span>
-    </div>
-    <div class="row"><button class="btn primary grow" id="ctrlSemAdd">+ agregar semana de maestros</button></div>
-  </div>`;
+  ${htmlSemana()}`;
   // lista de gastos (más reciente primero)
   const g=(c.gastos||[]).map((x,i)=>({...x,_i:i})).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
   if(g.length){
@@ -3634,6 +3866,13 @@ function bindTab(){
     renderTab();autosave();hint("Gasto registrado.");
   };
   $$("#tabContent [data-ctrldel]").forEach(x=>x.onclick=()=>{
+    const g=state.control.gastos[+x.dataset.ctrldel];
+    // Si el gasto venía de una semana de maestros, esa semana vuelve a quedar
+    // abierta: si no, seguiría diciendo PAGADA sin registro que la respalde.
+    if(g&&g.semId){
+      const s=(state.control.semanas||[]).find(w=>w.ini===g.semId);
+      if(s){s.cerrada=false;delete s.pagada;}
+    }
     state.control.gastos.splice(+x.dataset.ctrldel,1);renderTab();autosave();
   });
   $$("#tabContent [data-ctrledit]").forEach(i=>i.addEventListener("change",()=>{
@@ -3643,37 +3882,94 @@ function bindTab(){
     if(k==="prov")recordarProveedor(i.value);
     renderTab();autosave();
   }));
-  // Calculadora semanal de maestros
-  $$('#tabContent [data-ctrltar]').forEach(i=>i.addEventListener("change",()=>{
-    state.control[i.dataset.ctrltar]=parseFloat(i.value)||0;actualizarSemPrev();autosave();
+  // ---------- PLANILLA SEMANAL DE MAESTROS ----------
+  const semAnt=$("#semAnt");if(semAnt)semAnt.onclick=()=>{semIni=sumarDias(semIni,-7);renderTab();};
+  const semSig=$("#semSig");if(semSig)semSig.onclick=()=>{semIni=sumarDias(semIni,7);renderTab();};
+  const semHoy=$("#semHoy");if(semHoy)semHoy.onclick=()=>{semIni=lunesDe(hoyISO());renderTab();};
+  const sfEl=$("#semFinde");if(sfEl)sfEl.onclick=()=>{
+    const s=semanaDe(semIni);
+    // Si se oculta el fin de semana, lo marcado ahí se borra: dejarlo sumando
+    // sin estar a la vista sería la forma más tonta de descuadrar el viernes.
+    if(semFinde&&s.filas.some(f=>(+f.d[5]||0)>0||(+f.d[6]||0)>0)){
+      if(!confirm("Hay días marcados en sábado o domingo. ¿Borrarlos y ocultar el fin de semana?"))return;
+      s.filas.forEach(f=>{f.d[5]=0;f.d[6]=0;});
+    }
+    semFinde=!semFinde;renderTab();autosave();
+  };
+  const cuadTog=$("#cuadTog");if(cuadTog)cuadTog.onclick=()=>{cuadAbierta=!cuadAbierta;renderTab();};
+
+  // Cada toque cicla la casilla: — → ½ → 1 → —
+  $$("#tabContent [data-semd]").forEach(b=>b.onclick=()=>{
+    const [fi,di]=b.dataset.semd.split(",").map(Number);
+    const s=semanaDe(semIni), f=s.filas[fi];
+    if(!f||s.cerrada)return;
+    const v=+f.d[di]||0;
+    f.d[di]= v===0 ? 0.5 : (v===0.5 ? 1 : 0);
+    renderTab();autosave();
+  });
+  // Sacar a un maestro de ESTA semana (no lo borra de la cuadrilla)
+  $$("#tabContent [data-semquita]").forEach(x=>x.onclick=()=>{
+    const s=semanaDe(semIni);
+    if(s.cerrada)return;
+    s.filas.splice(+x.dataset.semquita,1);
+    renderTab();autosave();
+  });
+  const semPart=$("#semPart");if(semPart)semPart.onchange=()=>{
+    const s=semanaDe(semIni);s.part=semPart.value;
+    if(s.cerrada&&s.gastoId)sincronizarGastoSemana(s);
+    autosave();
+  };
+
+  // Cuadrilla
+  $$("#tabContent [data-cua]").forEach(i=>i.addEventListener("change",()=>{
+    const m=cuadrilla()[+i.dataset.ci];if(!m)return;
+    const campo=i.dataset.cua;
+    m[campo]= campo==="tarifa" ? (parseFloat(i.value)||0) : i.value;
+    // semanaDe() se encarga de propagar; acá solo se avisa qué NO se movió
+    if(campo==="tarifa"){
+      const f=semanaDe(semIni).filas.find(x=>x.mid===m.id);
+      if(f&&jornadasFila(f)>0)
+        hint("Tarifa guardada. Esta semana conserva "+CLP(f.tarifa)+": ya tiene días marcados.");
+    }
+    renderTab();autosave();
   }));
-  // lee la calculadora; si M2 está desactivado (o sus campos no existen) cuenta 0 para M2
-  function leerSemana(){
-    const val=id=>{const e=$("#"+id);return e?(parseFloat(e.value)||0):0;};
-    const usaM2=!!state.control.usaM2;
-    const m1=state.control.tarM1, m2=state.control.tarM2;
-    const dM1=val("ctrlDiasM1"), nM1=val("ctrlNM1");
-    const dM2=usaM2?val("ctrlDiasM2"):0, nM2=usaM2?val("ctrlNM2"):0;
-    return {usaM2,dM1,nM1,dM2,nM2,tot:nM1*m1*dM1 + nM2*m2*dM2};
-  }
-  function actualizarSemPrev(){
-    const prev=$("#ctrlSemPrev");if(!prev)return;
-    prev.textContent="= "+CLP(leerSemana().tot);
-  }
-  const usaM2El=$("#ctrlUsaM2");if(usaM2El)usaM2El.onchange=()=>{state.control.usaM2=usaM2El.checked;renderTab();autosave();};
-  ["ctrlDiasM1","ctrlDiasM2","ctrlNM1","ctrlNM2"].forEach(id=>{const e=$("#"+id);if(e)e.addEventListener("input",actualizarSemPrev);});
-  actualizarSemPrev();
-  const semAdd=$("#ctrlSemAdd");if(semAdd)semAdd.onclick=()=>{
-    const {usaM2,dM1,nM1,dM2,nM2,tot}=leerSemana();
-    if(tot<=0){hint("Revisa días y cantidad de maestros.");return;}
-    // numerar la semana consecutivamente contando las notas que empiezan con "Maestros semana"
-    const nSem=(state.control.gastos.filter(x=>/^Maestros semana/i.test(x.nota||"")).length)+1;
-    const detalle=`Maestros semana ${nSem} (${nM1}×M1 ${dM1}d${(usaM2&&nM2>0)?` + ${nM2}×M2 ${dM2}d`:""})`;
-    // Las jornadas quedan guardadas como dato, no solo dentro del texto de la nota:
-    // así el balance por cliente puede sumarlas sin depender de cómo esté escrita.
-    state.control.gastos.push({fecha:new Date().toISOString().slice(0,10),monto:tot,cat:"mano_obra",part:$("#ctrlSemPart")?$("#ctrlSemPart").value:"",prov:"",
-      jor:{m1:nM1*dM1, m2:(usaM2?nM2*dM2:0)},nota:detalle});
-    renderTab();autosave();hint("Semana "+nSem+" de maestros agregada: "+CLP(tot));
+  $$("#tabContent [data-cuaquita]").forEach(x=>x.onclick=()=>{
+    const cua=cuadrilla(), m=cua[+x.dataset.cuaquita];if(!m)return;
+    if(!confirm("¿Sacar a "+(m.nombre||"este maestro")+" de la cuadrilla?\n\nLas semanas ya cerradas no se tocan: lo que se le pagó queda registrado."))return;
+    cua.splice(+x.dataset.cuaquita,1);
+    const s=semanaDe(semIni);
+    if(!s.cerrada)s.filas=s.filas.filter(f=>f.mid!==m.id||jornadasFila(f)>0);
+    renderTab();autosave();
+  });
+  const cuadAdd=$("#cuadAdd");if(cuadAdd)cuadAdd.onclick=()=>{
+    const nom=($("#cuadNom").value||"").trim();
+    if(!nom){hint("Escribe el nombre del maestro.");return;}
+    const tipo=$("#cuadTipo").value==="m2"?"m2":"m1";
+    cuadrilla().push({
+      id:"m"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+      nombre:nom, tipo:tipo, tarifa: tipo==="m2"?(+state.control.tarM2||0):(+state.control.tarM1||0), activo:true
+    });
+    renderTab();autosave();hint(nom+" agregado a la cuadrilla.");
+  };
+
+  // Cierre del viernes: deja la semana registrada como gasto de mano de obra
+  const semCerrar=$("#semCerrar");if(semCerrar)semCerrar.onclick=()=>{
+    const s=semanaDe(semIni), t=totalSemana(s);
+    if(t.tot<=0){hint("No hay días marcados en esta semana.");return;}
+    const detalle=s.filas.filter(f=>jornadasFila(f)>0)
+      .map(f=>`  ${f.nombre}  ${jorTexto(jornadasFila(f))} jornada(s) × ${CLP(f.tarifa)}  =  ${CLP(jornadasFila(f)*f.tarifa)}`).join("\n");
+    if(!confirm(`Semana del ${rotuloSemana(s.ini)}\n\n${detalle}\n\nTOTAL A PAGAR: ${CLP(t.tot)}\n\nSe registra como gasto de mano de obra en esta obra.`))return;
+    s.cerrada=true;
+    s.pagada=hoyISO();
+    s.part=$("#semPart")?$("#semPart").value:(s.part||"");
+    sincronizarGastoSemana(s);
+    renderTab();autosave();hint("Semana cerrada: "+CLP(t.tot));
+  };
+  const semReabrir=$("#semReabrir");if(semReabrir)semReabrir.onclick=()=>{
+    const s=semanaDe(semIni);
+    if(!confirm("¿Reabrir esta semana para corregirla?\n\nEl gasto registrado se va a actualizar con lo que dejes, no se duplica."))return;
+    s.cerrada=false;
+    renderTab();autosave();hint("Semana reabierta. Al cerrarla de nuevo se corrige el mismo gasto.");
   };
   // Meta de rentabilidad
   const metaOn=$("#metaOn");if(metaOn)metaOn.onchange=()=>{state.control.meta.on=metaOn.checked;renderTab();autosave();};
@@ -3837,6 +4133,9 @@ function loadState(s){
   if(state.control.tarM1===undefined)state.control.tarM1=55000;
   if(state.control.tarM2===undefined)state.control.tarM2=40000;
   if(state.control.usaM2===undefined)state.control.usaM2=true;
+  // Cuadrilla y planilla semanal: obras anteriores a v3.33 no las traen
+  if(!Array.isArray(state.control.cuadrilla))state.control.cuadrilla=[];
+  if(!Array.isArray(state.control.semanas))state.control.semanas=[];
   if(!state.control.meta)state.control.meta={on:false, utilPct:20, pctMat:45, pctMo:35, pctGG:0};
   if(state.incluirTE1===undefined)state.incluirTE1=true;
   if(state.costos.utilModo===undefined)state.costos.utilModo="dia";
