@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.33</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.34</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -313,7 +313,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.33</span></span></a>
+    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.34</span></span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <select id="selProyecto" title="Cambiar de proyecto"></select>
   <span id="nubeDot" class="nube-dot off" title="Sin nube"></span>
@@ -436,11 +436,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.33 =================
+/* ================= GESTOR AVERARQ v3.34 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.33";
+const GESTOR_VERSION="v3.34";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -2411,9 +2411,12 @@ function selectorProyectoHTML(origen){
   return `<h3>PROYECTO</h3>
   <div class="card" style="border-left:3px solid var(--naranja)">
     <div class="row">
-      <select class="grow" data-proysel="${origen}" title="Cambiar de proyecto">${opciones}</select>
+      ${(proyActivo&&proyRenomId===proyActivo)
+        ? campoRenombrar(proyActivo,state.proyecto||(act&&act.nombre)||"")
+        : `<select class="grow" data-proysel="${origen}" title="Cambiar de proyecto">${opciones}</select>
+      ${proyActivo?`<button class="btn mini" data-proyrenom="${proyActivo}" title="Cambiar el nombre de este proyecto">✎</button>`:""}
       <button class="btn mini" data-proynuevo="1" title="Crear un proyecto nuevo">＋ Nuevo</button>
-      <button class="btn mini" data-proygest="1" title="Ver todos los proyectos, duplicar, exportar o eliminar">🗂 Gestionar</button>
+      <button class="btn mini" data-proygest="1" title="Ver todos los proyectos, duplicar, exportar o eliminar">🗂 Gestionar</button>`}
     </div>
     <div class="row"><label style="width:70px">Cliente</label>
       <input type="text" class="grow" list="listaCli" value="${esc(cliAct)}" data-obrainfo="cliente" placeholder="elige un cliente guardado o escribe uno nuevo" title="Mismo dato que el mandante de OBRA. La lista muestra los clientes que ya tienes.">
@@ -3796,6 +3799,7 @@ function bindTab(){
   $$("#tabContent [data-proysel]").forEach(sel=>sel.onchange=()=>proyAbrir(sel.value));
   $$("#tabContent [data-proynuevo]").forEach(b=>b.onclick=proyNuevoCmd);
   $$("#tabContent [data-proygest]").forEach(b=>b.onclick=()=>$("#btnProyGest").click());
+  enlazarRenombrar("#tabContent",renderTab);
   $$("#tabContent [data-clienteCta]").forEach(b=>b.onclick=emitirEstadoCuentaCliente);
   // ---- CLIENTE ----
   const cs=$("#cliSel");if(cs)cs.onchange=()=>{cliSel=cs.value;renderTab();};
@@ -4185,6 +4189,69 @@ function proyTocar(id,nombre,cliente,terminada){
   else idx.push({id,nombre,fecha,cliente:cliente||"",fin:!!terminada});
   proyGuardarIndice(idx);
 }
+/* ---------- RENOMBRAR UN PROYECTO ----------
+   El id es la llave de todo —biblioteca, nube, enlace con el ORGANIZADOR (que va
+   por mandante, no por nombre)—, así que cambiar el nombre no rompe nada: solo
+   cambia lo que se lee. Sirve para el proyecto abierto y para cualquiera de la
+   lista de Gestionar. */
+let proyRenomId=null;   // proyecto que se está renombrando en pantalla, o null
+function proyRenombrar(id,nuevo,yaConfirmado){
+  nuevo=String(nuevo||"").replace(/\s+/g," ").trim();
+  if(!id)return false;
+  if(!nuevo){hint("El nombre no puede quedar vacío.");return false;}
+  const it=proyIndice().find(x=>x.id===id);
+  if(it&&it.nombre===nuevo&&id!==proyActivo)return true;
+  if(id===proyActivo&&(state.proyecto||"")===nuevo)return true;
+  const repetido=proyIndice().some(x=>x.id!==id&&String(x.nombre||"").trim().toLowerCase()===nuevo.toLowerCase());
+  if(repetido&&!yaConfirmado&&!confirm('Ya hay otro proyecto llamado "'+nuevo+'".\n\n¿Usar el mismo nombre igual?'))return false;
+  if(id===proyActivo){
+    state.proyecto=nuevo;
+    const nom=$("#nomProyecto");if(nom)nom.value=nuevo;
+    autosave();                      // guarda, actualiza el índice y lo sube a la nube
+  }else{
+    const sn=proyLeer(id);
+    if(!sn){
+      // Proyecto que solo está en la nube: se baja primero y después se renombra
+      if(it&&it.soloNube&&nubeCfg){
+        nubeBajar(id).then(()=>{proyRenombrar(id,nuevo,true);renderProyLista();})
+          .catch(e=>alert("No se pudo bajar el proyecto de la nube: "+e.message));
+        return true;
+      }
+      alert("No se pudo leer ese proyecto.");return false;
+    }
+    sn.proyecto=nuevo;
+    if(!proyEscribir(id,sn))return false;
+    proyTocar(id,nuevo);             // sin cliente ni estado: los deja como estaban
+    nubeSubir(id,sn);
+  }
+  proyFirma="";renderProySelect();
+  hint("Proyecto renombrado: "+nuevo);
+  return true;
+}
+/* Campo de edición del nombre: Enter guarda, Esc cancela. Mismo comportamiento
+   en la tarjeta PROYECTO y en la lista de Gestionar. */
+function campoRenombrar(id,nombre){
+  return `<input type="text" class="grow" maxlength="120" value="${esc(nombre||"")}" data-proyrenominp="${id}" title="Enter guarda · Esc cancela">
+    <button class="btn mini primary" data-proyrenomok="${id}" title="Guardar el nombre">✓</button>
+    <button class="btn mini" data-proyrenomno="1" title="Cancelar">✕</button>`;
+}
+function enlazarRenombrar(raiz,repintar){
+  const terminar=()=>{proyRenomId=null;repintar();};
+  $$(raiz+" [data-proyrenom]").forEach(b=>b.onclick=()=>{proyRenomId=b.dataset.proyrenom;repintar();});
+  $$(raiz+" [data-proyrenomok]").forEach(b=>b.onclick=()=>{
+    const inp=$(raiz+" [data-proyrenominp]");
+    if(inp&&proyRenombrar(b.dataset.proyrenomok,inp.value))terminar();
+  });
+  $$(raiz+" [data-proyrenomno]").forEach(b=>b.onclick=terminar);
+  $$(raiz+" [data-proyrenominp]").forEach(inp=>{
+    inp.onkeydown=e=>{
+      if(e.key==="Enter"){e.preventDefault();if(proyRenombrar(inp.dataset.proyrenominp,inp.value))terminar();}
+      // Esc cancela la edición, no cierra la ventana de Gestionar
+      else if(e.key==="Escape"){e.preventDefault();e.stopPropagation();terminar();}
+    };
+    setTimeout(()=>{inp.focus();inp.select();},0);
+  });
+}
 /* Datos de cabecera de un proyecto (mandante y si está terminada): ya viven dentro
    del propio proyecto. Para los antiguos se leen una vez y quedan en el índice. */
 function proyMeta(entrada){
@@ -4279,10 +4346,13 @@ function renderProyLista(){
   const cont=$("#proyLista"); if(!cont)return;
   const lista=proyOrdenados();
   const filaProy=x=>`<tr style="border-bottom:1px solid var(--line)">
-      <td><b style="color:${x.id===proyActivo?'var(--naranja2)':'var(--txt)'}">${x.id===proyActivo?"● ":""}${esc(x.nombre||"Sin título")}</b> ${proyTerminada(x)?SELLO_FIN:""}
+      <td>${proyRenomId===x.id
+          ? `<div class="row" style="margin:0">${campoRenombrar(x.id,x.nombre)}</div>`
+          : `<b style="color:${x.id===proyActivo?'var(--naranja2)':'var(--txt)'}">${x.id===proyActivo?"● ":""}${esc(x.nombre||"Sin título")}</b> ${proyTerminada(x)?SELLO_FIN:""}`}
         <div class="small" style="color:var(--muted)">modificado ${proyFecha(x.fecha)} ${x.soloNube?"· ☁ solo en la nube":(x.nube?"· ☁ sincronizado":"")}</div></td>
       <td style="text-align:right;white-space:nowrap">
         ${x.id===proyActivo?`<span class="small" style="color:var(--muted)">abierto</span>`:`<button class="btn mini" data-proyabrir="${x.id}">abrir</button>`}
+        <button class="btn mini" data-proyrenom="${x.id}" title="Cambiar el nombre">✎</button>
         <button class="btn mini" data-proydup="${x.id}" title="Duplicar">⧉</button>
         <button class="btn mini" data-proyexp="${x.id}" title="Exportar .avproj">💾</button>
         <button class="btn mini" data-proydel="${x.id}" title="Eliminar">✕</button></td></tr>`;
@@ -4296,6 +4366,8 @@ function renderProyLista(){
   $$("#proyLista [data-proydup]").forEach(b=>b.onclick=()=>{proyDuplicar(b.dataset.proydup);renderProyLista();});
   $$("#proyLista [data-proyexp]").forEach(b=>b.onclick=()=>{const sn=proyLeer(b.dataset.proyexp);if(sn)exportarProyecto(sn);});
   $$("#proyLista [data-proydel]").forEach(b=>b.onclick=()=>{proyEliminar(b.dataset.proydel);renderProyLista();});
+  // Si se renombra el proyecto abierto, la pestaña de atrás también se actualiza
+  enlazarRenombrar("#proyLista",()=>{renderProyLista();renderTab();});
 }
 function proyAbrir(id,guardarActual){
   if(!id||id===proyActivo)return;
@@ -4648,6 +4720,7 @@ $("#btnProyGest").onclick=()=>{
   $("#nubeUrl").value=nubeUrlSugerida();
   $("#nubeToken").value=nubeCfg?nubeCfg.token:"";
   nubeDot(nubeCfg?"ok":"off",nubeCfg?"Conectado a la nube":"Sin nube: los proyectos viven solo en este navegador");
+  proyRenomId=null;          // una edición que quedó a medias no reaparece al volver
   renderProyLista();respPintar();respCargar();$("#dlgProy").showModal();
 };
 $("#proyNuevo").onclick=()=>{proyNuevoCmd();renderProyLista();};
