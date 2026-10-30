@@ -301,32 +301,57 @@ window.ready = (async () => {
     pie('OGUC ART. 4.1.7 N°1 Y N°4 · VERSIÓN MARZO 2026');
   }
 
-  if (SL === 5) { // 4 · puertas
-    cabecera(4, 'PUERTAS', 'OGUC ART. 4.1.7 N°4');
-    vista([M + 30, 280, 520, 440], [-1.0, -.9, 1.9, 1.5]);
-    muro(-1.0, 0, .94, .15); muro(1.06, 0, .84, .15);
-    poli(rect(-.06, 0, .06, .15), cr(.9)); poli(rect(.94, 0, .12, .15), cr(.9));
-    poli(rect(.9, .15, .04, .9), cr(.95)); arco(.94, .15, .94, Math.PI / 2, Math.PI);
-    cota([0, .15], [.9, .15], -1.2, '0,90 LIBRE', { d: -18 });
-    trazo([[0, .2], [0, 1.4]], OR, 1.1, [4, 5]);
-    cota([-.06, 0], [1.06, 0], .45, 'VANO (NO SE MIDE AQUÍ)', { d: 18, tam: 14 });
-    rotulo('PLANTA', .45, -.85, 'center', cr(.6));
-    vista([M + 590, 280, W - 2 * M - 620, 440], [-.5, -.35, 1.6, 2.45]);
-    trazo([[-.5, 0], [1.6, 0]], cr(.9), 2.4);
-    poli([[0, 0], [0, 2.1], [1.0, 2.1], [1.0, 0], [.94, 0], [.94, 2.04], [.06, 2.04], [.06, 0]], cr(.85));
-    poli(rect(.08, 0, .84, 2.02), 'rgba(242,240,235,0.06)', cr(.5), 1.2);
-    poli(rect(.74, .9, .05, .1), cr(.95)); trazo([[.765, .95], [.5, .95]], OR, 6);
-    cota([1.0, 0], [1.0, .95], -.35, '0,95', { d: 22 });
-    trazo([[.5, .95], [1.4, .95]], OR, 1.1, [4, 5]);
-    rotulo('PALANCA', .52, 1.15, 'center', OR, 14);
-    rotulo('ELEVACIÓN', .5, -.22, 'center', cr(.6));
-    cifra(776, '0,90 m', 'LIBRE DE PASO', 'ES EL ANCHO LIBRE, NO EL DEL MARCO');
+  if (SL === 5) { // 4 · puertas según su uso
+    cabecera(4, 'PUERTAS SEGÚN SU USO', 'OGUC ART. 4.1.7 N°4 Y N°6 b)');
+    // puerta en planta: xl = borde del paso libre, y = base del muro (e = 0,15), L = ancho libre; abre hacia arriba o abajo
+    const e = .15;
+    const puerta = (xl, y, L, arriba, x0, x1) => {
+      const f = arriba ? y + e : y, xh = xl + L + .04, R = L + .04;
+      muro(x0, y, xl - .03 - x0, e); muro(xh + .03, y, x1 - xh - .03, e);
+      poli(rect(xl - .03, y, .03, e), cr(.9)); poli(rect(xh, y, .03, e), cr(.9));
+      poli(arriba ? rect(xl + L, f, .04, R) : rect(xl + L, f - R, .04, R), cr(.95));
+      arriba ? arco(xh, f, R, Math.PI / 2, Math.PI) : arco(xh, f, R, -Math.PI / 2, -Math.PI);
+      return f + (arriba ? R : -R);
+    };
+    const panel = (k, tit, sub) => {
+      const x = M + 30 + k * 324;
+      if (k) { g.strokeStyle = cr(.25); g.lineWidth = 1; g.beginPath(); g.moveTo(x - 12, 272); g.lineTo(x - 12, 748); g.stroke(); }
+      texto(tit, x + 150, 290, '600 16px "IBM Plex Mono"', OR, 'center');
+      texto(sub, x + 150, 312, '400 14px "IBM Plex Mono"', cr(.6), 'center');
+      return [x, 345, 300, 390];
+    };
+    // A · ingreso / atención de público, con doble puerta
+    vista(panel(0, 'INGRESO · PÚBLICO', 'DOBLE PUERTA'), [-.55, -.65, 1.65, 3.6]);
+    poli(rect(-.05, .15, 1.4, 3.08), 'rgba(242,240,235,0.04)');
+    const r1 = puerta(.2, 0, .9, true, -.55, 1.65);
+    const yw = r1 + 1.2 + .94; const r2 = puerta(.2, yw, .9, false, -.55, 1.65);
+    muro(-.2, .15, .15, yw - .15); muro(1.35, .15, .15, yw - .15);
+    cota([.2, 0], [1.1, 0], .32, '0,90', { d: 16, tam: 15 });
+    trazo([[-.05, r1], [1.35, r1]], OR, 1.1, [4, 5]); trazo([[-.05, r2], [1.35, r2]], OR, 1.1, [4, 5]);
+    cota([.55, r1], [.55, r2], 0, '1,20', { d: -18, tam: 15 });
+    rotulo('CALLE', -.5, -.32, 'left', cr(.55), 13); rotulo('INTERIOR', -.5, yw + .42, 'left', cr(.55), 13);
+    // B · interior residencial colectiva
+    vista(panel(1, 'INTERIOR RESIDENCIAL', 'EDIFICACIÓN COLECTIVA'), [-.6, -1.6, 1.6, 2.65]);
+    poli(rect(-.6, .15, 2.2, 2.3), 'rgba(242,240,235,0.04)');
+    puerta(.1, 0, .9, true, -.6, 1.6);
+    cota([.1, 0], [1.0, 0], .32, '0,90', { d: 16, tam: 15 });
+    rotulo('UNIDAD', .5, 1.75, 'center', cr(.7), 13); rotulo('PASILLO COMÚN', .5, -.95, 'center', cr(.55), 13);
+    // C · baño accesible: vano 0,90, libre 0,80, abre hacia afuera
+    vista(panel(2, 'BAÑO ACCESIBLE', 'ABRE HACIA AFUERA'), [-.6, -1.6, 1.6, 2.65]);
+    poli(rect(-.45, .15, 1.9, 2.3), 'rgba(242,240,235,0.04)');
+    muro(-.6, 0, .15, 2.45); muro(1.45, 0, .15, 2.45);
+    puerta(.13, 0, .8, false, -.45, 1.45);
+    circulo(.5, .92, .75); isa(.5, .92, .75);
+    cota([.13, 0], [.93, 0], .98, '0,80', { d: 15, tam: 15 }); rotulo('LIBRE', 1.08, -1.1, 'left', OR, 12);
+    cota([.1, 0], [1.0, 0], 1.38, '0,90', { d: 15, tam: 15 }); rotulo('VANO', 1.08, -1.5, 'left', OR, 12);
+    rotulo('Ø 1,50', .5, 1.8, 'center', OR, 13);
+    cifra(776, '0,90 m', 'LIBRE DE PASO', 'INGRESO, ATENCIÓN DE PÚBLICO E INTERIOR RESIDENCIAL');
     vinetas(950, [
-      'Acceso y recintos con atención de público: **0,90 m libres** de paso.',
-      'Manillas tipo **palanca**, a **0,95 m** de altura.',
-      'Doble puerta: **1,20 m** libres además del barrido de ambas hojas.',
-      'Puerta giratoria: siempre con una **puerta de abatir** contigua.']);
-    pie('OGUC ART. 4.1.7 N°4 · VERSIÓN MARZO 2026');
+      'Ingreso y atención de público: **0,90 m libres**, hoja **resistente al impacto**, manilla **palanca a 0,95 m**.',
+      'Doble puerta: **1,20 m** libres más el barrido de ambas. Giratoria: suma **puerta de abatir**.',
+      'Correderas y de escape: mismas medidas y sistema de apertura.',
+      'Baño accesible: vano **0,90 m**, libre **0,80 m**; el barrido no invade el giro.'], 24, 31, 12);
+    pie('OGUC ART. 4.1.7 N°4 Y N°6 b) · VERSIÓN MARZO 2026');
   }
 
   if (SL === 6) { // 5 · ascensor

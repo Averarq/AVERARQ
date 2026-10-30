@@ -20,6 +20,9 @@ Fuente: OGUC, versión marzo 2026 (corpus normativo AVERARQ). Cada cifra del car
 | 05 · Puertas | Manillas palanca a 0,95 m | 4.1.7 n°4 |
 | 05 · Puertas | Doble puerta: 1,20 m libres además del barrido | 4.1.7 n°4 |
 | 05 · Puertas | Puerta giratoria + puerta de abatir contigua | 4.1.7 n°4 |
+| 05 · Puertas | Hoja resistente al impacto; correderas y de escape con iguales medidas y apertura | 4.1.7 n°4 |
+| 05 · Puertas | Puertas interiores de acceso a unidades residenciales colectivas: 0,90 m libre de paso | 4.1.7 n°4 |
+| 05 · Puertas | Baño accesible: vano 0,90 m, libre 0,80 m, abre preferentemente hacia el exterior; si abre hacia adentro, el barrido no interfiere con el giro | 4.1.7 n°6 b) |
 | 06 · Ascensor | Obligatorio: vivienda ≥ 6 pisos; otros usos ≥ 5 pisos | 4.1.11 n°1 a) |
 | 06 · Ascensor | Cabina 1,10 × 1,40 × 2,20 m; puerta 0,90 m; pasamanos 0,90 m | 4.1.7 n°3 |
 | 06 · Ascensor | Botonera 0,90–1,20 m, ≥ 0,40 m del vértice; relieve, braille, señal audible | 4.1.7 n°3 |
@@ -40,4 +43,4 @@ Fuente: OGUC, versión marzo 2026 (corpus normativo AVERARQ). Cada cifra del car
 ## Pendientes antes de publicar
 - **Diámetro de las barras (4.1.7 n°6 c):** el texto extraído viene cortado, así que no se acotó. Confirmar en el PDF si se quiere incluir.
 - **Podotáctil frente a rampas:** el ITRAU Valparaíso indica un máximo de 0,8 m; se usó la cifra de la OGUC 2.2.8 (0,40–0,60 m).
-- **No incluido en las láminas:** el espesor máximo de alfombras (4.1.7 n°4). La cifra del encargo (0,13 cm) conviene confirmarla en el PDF.
+- **Alfombras (no incluido en las láminas):** el corpus confirma el texto literal «su espesor no podrá ser superior a 0,13 cm» (4.1.7 n°1, pág. 241).
