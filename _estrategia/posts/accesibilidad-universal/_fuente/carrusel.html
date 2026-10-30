@@ -8,6 +8,8 @@
 </head>
 <body>
 <canvas id="c"></canvas>
+<script src="../../_bloques/bloques.js"></script>
+<script src="../../_bloques/bloques-dibujo.js"></script>
 <script>
 /*
   Carrusel «7 requisitos de accesibilidad universal en Chile» (OGUC marzo 2026). 9 láminas 4:5.
@@ -90,6 +92,24 @@ function silla(x, y, ang = 0, col = cr(.85)) {
   const [X, Y] = P(...T(.13, 1.3)); g.fillStyle = col; g.beginPath(); g.arc(X, Y, .1 * V.k, 0, 7); g.fill();
 }
 
+// bloques extraídos de láminas AVERARQ (lámina a 1:50 → 56,7 pt por metro), centrados en (x, y) metros
+const PTM = 56.7;
+function blq(nom, x, y, rot = 0, opt = {}) {
+  const B = BLOQUES[nom], e = (opt.esc || 1) * V.k / PTM, c = Math.abs(Math.cos(rot)), s = Math.abs(Math.sin(rot));
+  const w = (B.w * c + B.h * s) * e, h = (B.w * s + B.h * c) * e, [X, Y] = P(x, y);
+  bloque(g, nom, X - w / 2, Y - h / 2, w, h, { rot, fondo: BG, ...opt });
+}
+function isa(x, y, alto, rot = 0, col = OR) { blq('isa', x, y, rot, { esc: alto * PTM / BLOQUES.isa.h, lin: col, acc: col, grosor: 1.4 }); }
+// franjas de continuidad de la ruta accesible (como en la planta de accesibilidad)
+function franjas(x0, y0, x1, y1, vertical, paso = .7, ancho = .4) {
+  const L = vertical ? y1 - y0 : x1 - x0, n = Math.floor((L + paso - ancho) / paso), m = (L - (n - 1) * paso - ancho) / 2;
+  for (let i = 0; i < n; i++) {
+    const a = (vertical ? y0 : x0) + m + i * paso;
+    poli(vertical ? rect(x0, a, x1 - x0, ancho) : rect(a, y0, ancho, y1 - y0), RAYA_OR, OR, 2);
+  }
+}
+let RAYA_OR;
+
 /* ---------- sistema de lámina ---------- */
 function marco(logo, n) {
   g.fillStyle = BG; g.fillRect(0, 0, W, H);
@@ -140,30 +160,29 @@ function bano(r, cotas) {
   // transferencia lateral 0,80 × 1,20
   poli(rect(.65, 1.0, .8, 1.2), orA(.16), orA(.6), 1.5);
   // inodoro: estanque + taza, eje a 0,40 m
-  poli(rect(.2, 1.98, .4, .22), BG, cr(.9));
-  const [X, Y] = P(.4, 1.66); g.beginPath(); g.ellipse(X, Y, .18 * V.k, .3 * V.k, 0, 0, 7); g.fillStyle = BG; g.fill(); g.strokeStyle = cr(.9); g.lineWidth = 2; g.stroke();
+  blq('inodoro', .4, 2.2 - .38, Math.PI / 2, { sinAcc: true, grosor: 1.6 });
   // barras: fija en el muro, abatible junto a la transferencia
   trazo([[.04, 1.25], [.04, 2.1]], OR, 5);
   trazo([[.7, 2.18], [.7, 1.45]], OR, 4, [8, 6]);
   // lavamanos sin pedestal
-  poli(rect(1.88, 1.15, .52, .6), BG, cr(.9));
-  { const [x, y] = P(2.17, 1.45); g.beginPath(); g.ellipse(x, y, .17 * V.k, .2 * V.k, 0, 0, 7); g.strokeStyle = cr(.7); g.lineWidth = 1.6; g.stroke(); }
+  poli(rect(1.88, 1.12, .52, .66), BG, cr(.9));
+  blq('lavamanos_redondo', 2.16, 1.45, Math.PI / 2, { grosor: 1.4 });
   // puerta 0,90 abriendo hacia afuera
   trazo([[2.3, 0], [2.3, -.9]], cr(.9), 4); arco(2.3, 0, .9, Math.PI, 1.5 * Math.PI);
-  circulo(1.5, .85, .75);
+  circulo(1.5, .85, .75); isa(1.5, .95, .8);
   if (cotas) {
     cota([-.0, 2.35], [.4, 2.35], -.0, '0,40', { d: -18 });
     trazo([[.4, 2.42], [.4, 1.3]], OR, 1.2, [4, 5]);
     cota([.65, 2.06], [1.45, 2.06], 0, '0,80', { d: 16, tam: 16 });
     cota([1.45, 1.0], [1.45, 2.2], 0, '1,20', { d: 18, t: .78, tam: 16 });
     cota([1.4, -.15], [2.3, -.15], .55, '0,90', { d: 18 });
-    trazo([[.75, .85], [2.25, .85]], OR, 1.5); rotulo('Ø 1,50', 1.5, .62, 'center', OR, 20);
+    rotulo('Ø 1,50', 1.5, .3, 'center', OR, 18);
     rotulo('TRANSFERENCIA', 1.05, 1.5, 'center', cr(.85), 11);
     rotulo('BARRA FIJA', -.22, 1.68, 'right', cr(.7), 13);
     rotulo('LAVAMANOS', 2.6, 1.45, 'left', cr(.7), 13);
     rotulo('SIA', 1.85, -.42, 'center', cr(.8), 14);
   } else {
-    trazo([[.75, .85], [2.25, .85]], OR, 1.5); rotulo('Ø 1,50 m', 1.5, .66, 'center', OR, 22);
+    rotulo('Ø 1,50 m', 1.5, .28, 'center', OR, 20);
   }
 }
 
@@ -172,6 +191,7 @@ window.ready = (async () => {
   const [logo] = await Promise.all(['../../../animaciones/_fuente/img/logotipo-averarq-blanco.png'].map(carga));
   g.setTransform(SS, 0, 0, SS, 0, 0);
   RAYA = patron((x, s) => { x.fillStyle = 'rgba(242,240,235,0.10)'; x.fillRect(0, 0, s, s); x.strokeStyle = 'rgba(242,240,235,0.38)'; x.lineWidth = 1; x.beginPath(); x.moveTo(0, s); x.lineTo(s, 0); x.moveTo(-1, 1); x.lineTo(1, -1); x.moveTo(s - 1, s + 1); x.lineTo(s + 1, s - 1); x.stroke(); }, 9);
+  RAYA_OR = patron((x, s) => { x.fillStyle = 'rgba(252,76,2,0.12)'; x.fillRect(0, 0, s, s); x.strokeStyle = 'rgba(252,76,2,0.9)'; x.lineWidth = 1.3; x.beginPath(); x.moveTo(0, 0); x.lineTo(s, s); x.moveTo(-1, s - 1); x.lineTo(1, s + 1); x.moveTo(s - 1, -1); x.lineTo(s + 1, 1); x.stroke(); }, 8);
   PUNTOS = patron((x, s) => { x.fillStyle = 'rgba(252,76,2,0.18)'; x.fillRect(0, 0, s, s); x.fillStyle = OR; x.beginPath(); x.arc(s / 2, s / 2, 1.9, 0, 7); x.fill(); }, 10);
   marco(logo, SL);
 
@@ -196,17 +216,18 @@ window.ready = (async () => {
     const e = .18;
     muro(2, 4, 1, e); muro(4.2, 4, 6.8, e); muro(2, 4, e, 4.8); muro(10.82, 4, e, 4.8); muro(2, 8.62, 9, e);
     muro(2.18, 5.68, 1.42, .12); muro(4.5, 5.68, 1.6, .12); muro(7.0, 5.68, 1.3, .12); muro(5.0, 5.8, .12, 2.82); muro(8.3, 5.8, .12, 2.82);
-    poli([[3.0, .15], [4.2, .15], [4.2, 5.68], [8.42, 5.68], [8.42, 4.18], [3.0, 4.18]], orA(.15));
-    poli(rect(3.0, .15, 1.2, 3.85), orA(.15));
+    franjas(3.0, 2.05, 4.2, 4.0, true); franjas(4.55, 4.18, 8.42, 5.68, false);
     rotulo('BAÑO', 3.6, 7.3, 'center', cr(.8)); rotulo('ACCESIBLE', 3.6, 6.95, 'center', cr(.8));
     poli(rect(5.6, 6.6, 1.6, 1.6), null, cr(.8), 1.6); trazo([[5.6, 6.6], [7.2, 8.2]], cr(.5), 1); trazo([[7.2, 6.6], [5.6, 8.2]], cr(.5), 1); rotulo('ASCENSOR', 6.4, 6.25, 'center', cr(.8));
-    rotulo('ATENCIÓN', 9.6, 6.9, 'center', cr(.8)); rotulo('DE PÚBLICO', 9.6, 6.55, 'center', cr(.8));
+    rotulo('ATENCIÓN', 9.3, 6.9, 'center', cr(.8)); rotulo('DE PÚBLICO', 9.3, 6.55, 'center', cr(.8));
     poli(rect(8.9, 4.9, 1.6, .5), null, cr(.7), 1.4);
-    flecha([[3.6, .55], [3.6, 4.95], [8.0, 4.95]]);
-    flecha([[3.95, 4.95], [3.95, 6.4]]); flecha([[6.55, 4.95], [6.55, 5.95]]); flecha([[8.0, 4.95], [8.75, 6.1]]);
-    cota([3.0, 2.6], [4.2, 2.6], 0, '1,10', { d: -18, t: -.45 });
+    for (const [x, y] of [[3.6, .75], [3.6, 4.93]]) { circulo(x, y, .75, OR, 2.2, [9, 6]); isa(x, y, .95); }
+    flecha([[3.95, 5.6], [3.95, 6.4]]); flecha([[6.55, 5.6], [6.55, 6.05]]); flecha([[8.42, 5.3], [8.9, 6.0]]);
+    blq('sillas_espera', 10.5, 6.95, Math.PI / 2, { grosor: 1.2 });
+    blq('inodoro', 2.6, 8.62 - .38, Math.PI / 2, { sinAcc: true, grosor: 1.2 });
+    cota([3.0, 1.8], [4.2, 1.8], 0, '1,10', { d: -18, t: -.45 });
     cota([2.6, 4.18], [2.6, 5.68], 0, '1,50', { d: -18 });
-    rotulo('RUTA ACCESIBLE', 4.5, 2.9, 'left', OR, 16);
+    rotulo('RUTA ACCESIBLE', 4.5, 3.0, 'left', OR, 16);
     cifra(776, '1,10 m', 'ANCHO MÍNIMO', 'ALTURA LIBRE MÍNIMA 2,10 m');
     vinetas(950, [
       'Une la vereda con accesos, **atención de público**, evacuación, baños, estacionamientos y ascensores.',
@@ -224,7 +245,7 @@ window.ready = (async () => {
     const y = x => x < 1.5 ? 0 : x > 10.5 ? h : (x - 1.5) * .08;
     for (const [o, col] of [[.95, cr(.9)], [.7, cr(.9)]]) trazo([[1.3, o], [1.5, o], [10.5, h + o], [10.7, h + o]], col, 3);
     for (const x of [1.5, 4.5, 7.5, 10.5]) trazo([[x, y(x)], [x, y(x) + .95]], cr(.5), 1.6);
-    silla(5.0, y(5.0), Math.atan(.08));
+    isa(5.0, y(5.0) + .52, 1.0, -Math.atan(.08), CR);
     cota([-.0, -.3], [1.5, -.3], .3, '1,50', { d: 18 });
     cota([1.5, -.3], [10.5, -.3], .3, '9,00 m', { d: 18 });
     cota([10.5, -.3], [12.0, -.3], .3, '1,50', { d: 18 });
@@ -255,9 +276,9 @@ window.ready = (async () => {
     muro(-.3, 1.5, 4.6, .15); muro(-.3, -.15, 4.6, .15); muro(4.15, -.15, .15, 1.8);
     poli(rect(-.3, 0, 4.45, 1.5), 'rgba(242,240,235,0.03)');
     for (let x = .2; x < 4.1; x += .6) trazo([[x, 0], [x, 1.5]], cr(.18), 1);
-    circulo(3.4, .75, .75); trazo([[2.65, .75], [4.15, .75]], OR, 1.5); rotulo('Ø 1,50', 3.4, .55, 'center', OR, 18);
+    circulo(3.4, .75, .75); isa(3.4, .78, .85); rotulo('Ø 1,50', 3.4, -.42, 'center', OR, 18);
     flecha([[-.2, .75], [2.4, .75]], cr(.6), 2.5);
-    rotulo('FONDO DE SACO · PLANTA', 2.0, -.6, 'center', cr(.6));
+    rotulo('FONDO DE SACO · PLANTA', 1.2, -.42, 'center', cr(.6));
     vista([M + 530, 280, W - 2 * M - 560, 440], [-.6, -.7, 3.6, 3.2]);
     trazo([[-.6, 0], [3.6, 0]], cr(.9), 2.4);
     const st = [[.0, 0]]; for (let i = 0; i < 10; i++) { st.push([i * .3, (i + 1) * .28]); st.push([(i + 1) * .3, (i + 1) * .28]); }
@@ -268,7 +289,7 @@ window.ready = (async () => {
     poli(rect(xr - .03, 0, .06, .95), OR);
     cota([xr + .02, 0], [xr + .02, 2.1], .45, '2,10', { d: 20 });
     cota([xr - .05, 0], [xr - .05, .95], -.35, '0,95', { d: -20 });
-    rotulo('ALTURA < 2,10', 1.75, .28, 'center', OR, 14);
+    rotulo('ALTURA < 2,10', 1.4, .28, 'center', OR, 14);
     rotulo('RESGUARDO', xr + .1, -.3, 'center', cr(.8), 14);
     rotulo('BAJO ESCALERA · CORTE', 1.5, 3.05, 'center', cr(.6));
     cifra(776, 'Ø 1,50 m', 'GIRO LIBRE', 'PASILLOS EN FONDO DE SACO DE LA RUTA');
@@ -322,7 +343,7 @@ window.ready = (async () => {
     cota([-.2, -1.65], [1.3, -1.65], .18, '1,50', { d: 18 });
     cota([-.2, -1.65], [-.2, -.15], -.18, '1,50', { d: -18 });
     rotulo('CABINA', .55, .78, 'center', cr(.85)); rotulo('BOTONERA', .98, .58, 'right', OR, 13);
-    rotulo('ÁREA LIBRE', .55, -.9, 'center', OR, 15);
+    isa(.55, -.82, .85); rotulo('ÁREA LIBRE', .55, -1.5, 'center', OR, 13);
     vista([M + 620, 268, W - 2 * M - 650, 470], [-.45, -.3, 1.4, 1.75]);
     trazo([[-.45, 0], [1.4, 0]], cr(.9), 2.4); trazo([[0, 0], [0, 1.6]], cr(.9), 2.4);
     poli(rect(0, 0, 1.0, 1.6), 'rgba(242,240,235,0.04)');
@@ -407,7 +428,7 @@ window.ready = (async () => {
     texto('Se revisa antes de ingresar,', M + 30, 440, '400 34px Barlow', cr(.9));
     texto('no después de la observación.', M + 30, 484, '400 34px Barlow', cr(.9));
     vista([W - M - 330, 150, 280, 330], [-.85, -.1, .85, 1.75]);
-    circulo(0, .75, .78, OR, 2.5); silla(-.2, 0, 0, CR);
+    circulo(0, .82, .8, OR, 2.5); isa(0, .84, 1.05, 0, CR);
     const bloque = (y, tit, s) => {
       g.strokeStyle = cr(.5); g.lineWidth = 1.2; g.beginPath(); g.moveTo(M, y); g.lineTo(W - M, y); g.stroke();
       texto(tit, M + 30, y + 44, '600 18px "IBM Plex Mono"', OR);

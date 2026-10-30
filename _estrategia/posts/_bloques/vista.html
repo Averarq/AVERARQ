@@ -1,0 +1,6 @@
+<!doctype html><meta charset="utf-8"><style>body{margin:0;background:#111110}</style><canvas id="c"></canvas>
+<script src="bloques.js"></script><script src="bloques-dibujo.js"></script>
+<script>
+const cv=document.getElementById('c'),g=cv.getContext('2d');cv.width=1400;cv.height=900;g.fillStyle='#111110';g.fillRect(0,0,1400,900);
+const n=Object.keys(BLOQUES);n.forEach((k,i)=>{const x=20+(i%4)*345,y=20+Math.floor(i/4)*440;g.strokeStyle='#333';g.strokeRect(x,y,330,400);bloque(g,k,x+10,y+10,310,360);g.fillStyle='#FC4C02';g.font='14px monospace';g.fillText(k,x+10,y+392);});
+</script>
