@@ -95,11 +95,11 @@ function silla(x, y, ang = 0, col = cr(.85)) {
 // bloques extraídos de láminas AVERARQ (lámina a 1:50 → 56,7 pt por metro), centrados en (x, y) metros
 const PTM = 56.7;
 function blq(nom, x, y, rot = 0, opt = {}) {
-  const B = BLOQUES[nom], e = (opt.esc || 1) * V.k / PTM, c = Math.abs(Math.cos(rot)), s = Math.abs(Math.sin(rot));
+  const B = caja(BLOQUES[nom], opt.sinAcc), e = (opt.esc || 1) * V.k / PTM, c = Math.abs(Math.cos(rot)), s = Math.abs(Math.sin(rot));
   const w = (B.w * c + B.h * s) * e, h = (B.w * s + B.h * c) * e, [X, Y] = P(x, y);
   bloque(g, nom, X - w / 2, Y - h / 2, w, h, { rot, fondo: BG, ...opt });
 }
-function isa(x, y, alto, rot = 0, col = OR) { blq('isa', x, y, rot, { esc: alto * PTM / BLOQUES.isa.h, lin: col, acc: col, grosor: 1.4 }); }
+function isa(x, y, alto, rot = 0, col = OR) { blq('isa', x, y, rot, { esc: alto * PTM / caja(BLOQUES.isa).h, lin: col, acc: col, grosor: 1.4 }); }
 // franjas de continuidad de la ruta accesible (como en la planta de accesibilidad)
 function franjas(x0, y0, x1, y1, vertical, paso = .7, ancho = .4) {
   const L = vertical ? y1 - y0 : x1 - x0, n = Math.floor((L + paso - ancho) / paso), m = (L - (n - 1) * paso - ancho) / 2;
@@ -166,23 +166,23 @@ function bano(r, cotas) {
   trazo([[.7, 2.18], [.7, 1.45]], OR, 4, [8, 6]);
   // lavamanos sin pedestal
   poli(rect(1.88, 1.12, .52, .66), BG, cr(.9));
-  blq('lavamanos_redondo', 2.16, 1.45, Math.PI / 2, { grosor: 1.4 });
+  blq('lavamanos_redondo', 2.16, 1.45, 0, { grosor: 1.4 });
   // puerta 0,90 abriendo hacia afuera
   trazo([[2.3, 0], [2.3, -.9]], cr(.9), 4); arco(2.3, 0, .9, Math.PI, 1.5 * Math.PI);
-  circulo(1.5, .85, .75); isa(1.5, .95, .8);
+  circulo(1.5, .85, .75); isa(1.5, .85, .8);
   if (cotas) {
     cota([-.0, 2.35], [.4, 2.35], -.0, '0,40', { d: -18 });
     trazo([[.4, 2.42], [.4, 1.3]], OR, 1.2, [4, 5]);
     cota([.65, 2.06], [1.45, 2.06], 0, '0,80', { d: 16, tam: 16 });
     cota([1.45, 1.0], [1.45, 2.2], 0, '1,20', { d: 18, t: .78, tam: 16 });
     cota([1.4, -.15], [2.3, -.15], .55, '0,90', { d: 18 });
-    rotulo('Ø 1,50', 1.5, .3, 'center', OR, 18);
+    rotulo('Ø 1,50', 1.5, .22, 'center', OR, 17);
     rotulo('TRANSFERENCIA', 1.05, 1.5, 'center', cr(.85), 11);
     rotulo('BARRA FIJA', -.22, 1.68, 'right', cr(.7), 13);
     rotulo('LAVAMANOS', 2.6, 1.45, 'left', cr(.7), 13);
     rotulo('SIA', 1.85, -.42, 'center', cr(.8), 14);
   } else {
-    rotulo('Ø 1,50 m', 1.5, .28, 'center', OR, 20);
+    rotulo('Ø 1,50 m', 1.5, .22, 'center', OR, 18);
   }
 }
 
@@ -276,7 +276,7 @@ window.ready = (async () => {
     muro(-.3, 1.5, 4.6, .15); muro(-.3, -.15, 4.6, .15); muro(4.15, -.15, .15, 1.8);
     poli(rect(-.3, 0, 4.45, 1.5), 'rgba(242,240,235,0.03)');
     for (let x = .2; x < 4.1; x += .6) trazo([[x, 0], [x, 1.5]], cr(.18), 1);
-    circulo(3.4, .75, .75); isa(3.4, .78, .85); rotulo('Ø 1,50', 3.4, -.42, 'center', OR, 18);
+    circulo(3.4, .75, .75); isa(3.4, .75, .85); rotulo('Ø 1,50', 3.4, -.42, 'center', OR, 18);
     flecha([[-.2, .75], [2.4, .75]], cr(.6), 2.5);
     rotulo('FONDO DE SACO · PLANTA', 1.2, -.42, 'center', cr(.6));
     vista([M + 530, 280, W - 2 * M - 560, 440], [-.6, -.7, 3.6, 3.2]);
@@ -343,7 +343,7 @@ window.ready = (async () => {
     cota([-.2, -1.65], [1.3, -1.65], .18, '1,50', { d: 18 });
     cota([-.2, -1.65], [-.2, -.15], -.18, '1,50', { d: -18 });
     rotulo('CABINA', .55, .78, 'center', cr(.85)); rotulo('BOTONERA', .98, .58, 'right', OR, 13);
-    isa(.55, -.82, .85); rotulo('ÁREA LIBRE', .55, -1.5, 'center', OR, 13);
+    isa(.55, -.9, .85); rotulo('ÁREA LIBRE', .55, -1.5, 'center', OR, 13);
     vista([M + 620, 268, W - 2 * M - 650, 470], [-.45, -.3, 1.4, 1.75]);
     trazo([[-.45, 0], [1.4, 0]], cr(.9), 2.4); trazo([[0, 0], [0, 1.6]], cr(.9), 2.4);
     poli(rect(0, 0, 1.0, 1.6), 'rgba(242,240,235,0.04)');
@@ -428,7 +428,7 @@ window.ready = (async () => {
     texto('Se revisa antes de ingresar,', M + 30, 440, '400 34px Barlow', cr(.9));
     texto('no después de la observación.', M + 30, 484, '400 34px Barlow', cr(.9));
     vista([W - M - 330, 150, 280, 330], [-.85, -.1, .85, 1.75]);
-    circulo(0, .82, .8, OR, 2.5); isa(0, .84, 1.05, 0, CR);
+    circulo(0, .82, .8, OR, 2.5); isa(0, .82, 1.05, 0, CR);
     const bloque = (y, tit, s) => {
       g.strokeStyle = cr(.5); g.lineWidth = 1.2; g.beginPath(); g.moveTo(M, y); g.lineTo(W - M, y); g.stroke();
       texto(tit, M + 30, y + 44, '600 18px "IBM Plex Mono"', OR);
