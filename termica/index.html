@@ -322,6 +322,30 @@ input.dec{text-align:left}
 #doc th{letter-spacing:0;font-size:7pt}
 #doc td.n{white-space:nowrap}
 
+/* barra de pasos con íconos y estado normativo */
+#pasos{position:sticky;top:calc(var(--hdr,62px) + 6px);z-index:15;background:var(--grafito);border:1px solid var(--borde);border-radius:10px;
+  padding:10px 12px 8px;margin:0 0 18px}
+.pasos-cab{font-size:10.5px;letter-spacing:.8px;color:var(--gris);margin-bottom:8px;text-transform:uppercase}
+.pasos-cab b{color:var(--crema);letter-spacing:1px}
+.pasos-cab .ok{color:var(--ok)}.pasos-cab .na{color:var(--warn)}
+.pasos-fila{display:flex;align-items:flex-start;overflow-x:auto;scrollbar-width:thin}
+.paso{flex:1 0 64px;display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:0;color:var(--neutro);
+  cursor:pointer;padding:5px 2px;border-radius:8px;font-family:inherit}
+.paso:hover{background:var(--grafito-2)}
+.paso:hover .pic{border-color:var(--naranja);color:var(--naranja)}
+.pic{width:38px;height:38px;border:1px solid var(--borde);border-radius:10px;display:flex;align-items:center;justify-content:center;position:relative}
+.pic svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.pdot{position:absolute;right:-5px;top:-5px;width:15px;height:15px;border-radius:50%;font-size:9px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;color:var(--grafito)}
+.pdot.ok{background:var(--ok)}.pdot.bad{background:var(--bad);color:#fff}.pdot.na{background:var(--warn)}
+.pdot.dif{background:#7aa7d9}.pdot.nr{background:var(--borde);color:var(--gris)}
+.plb{font-size:10px;line-height:1.15;text-align:center}
+.pln{flex:0 0 8px;height:1px;background:var(--borde);margin-top:24px}
+.pprog{height:3px;background:var(--borde);border-radius:2px;margin-top:8px;overflow:hidden}
+.pprog div{height:100%;background:var(--naranja);transition:width .3s}
+.resalta{outline:2px solid var(--naranja);outline-offset:3px;transition:outline-color .3s}
+@media print{#pasos{display:none!important}}
+
 </style>
 </head>
 <body>
@@ -426,9 +450,10 @@ input.dec{text-align:left}
   </aside>
 
   <section id="work">
+    <nav id="pasos" aria-label="Estado por exigencia"></nav>
     <div id="alertas"></div>
 
-    <div class="seccion">
+    <div class="seccion" id="sec-op">
       <div class="cab"><h3><span class="num">1</span> Envolvente opaca</h3><span class="sp"></span>
         <button class="btn sm" onclick="addEl('techo')">+ Techumbre</button>
         <button class="btn sm" onclick="addEl('muro')">+ Muro</button>
@@ -439,7 +464,7 @@ input.dec{text-align:left}
       <div id="listaOp"></div>
     </div>
 
-    <div class="seccion">
+    <div class="seccion" id="sec-va">
       <div class="cab"><h3><span class="num">2</span> Vanos y superficie vidriada</h3><span class="sp"></span>
         <button class="btn sm" onclick="addEl('ventana')">+ Ventana</button>
         <button class="btn sm" onclick="addEl('puerta_vidriada')">+ Puerta vidriada</button>
@@ -451,7 +476,7 @@ input.dec{text-align:left}
       <div id="listaVa"></div>
     </div>
 
-    <div class="seccion">
+    <div class="seccion" id="sec-co">
       <div class="cab"><h3><span class="num">3</span> Exigencias complementarias</h3></div>
       <div id="compl"></div>
     </div>
@@ -1042,8 +1067,10 @@ function normalizar(j){
 }
 
 /* ------------------------------------------------------------- arranque */
+function fijarHdr(){const h=document.getElementById('top');if(h)document.documentElement.style.setProperty('--hdr',h.offsetHeight+'px')}
+window.addEventListener('resize',fijarHdr);
 function initUI(){
-  indexar();
+  indexar();fijarHdr();
   document.getElementById('vEd').textContent=D.edicion;
   document.getElementById('vApp').textContent=APP_VER;
   document.getElementById('mEd').textContent='· '+D.edicion;
@@ -1235,6 +1262,7 @@ function pintarResultados(E){
   pintarVidriado(E);
   pintarComplRes(E);
   pintarResumen(E);
+  pintarPasos(E);
 }
 
 /* ---------------------------------------------------------- vanos */
@@ -1511,6 +1539,65 @@ function cargarEjemplo(){
    Sin portal de acceso: la app abre directo, en local o publicada en la web. */
 function _arranque(){initUI()}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){cerrarCat();cerrarM2();cerrarPrev()}});
+
+/* ---------------------------------------------------------- barra de pasos
+   Cada ícono muestra el ESTADO NORMATIVO real de esa exigencia (no si se
+   "visitó"): lo calcula el motor. Clic = ir a la sección o al elemento.      */
+const ICO={
+  proy:'<path d="M5 3h10l4 4v14H5z"/><path d="M15 3v4h4M8 12h8M8 16h6"/>',
+  techo:'<path d="M2 12 12 4l10 8"/><path d="M5 10v9h14v-9"/><path d="M5 14h14" stroke-dasharray="2 2"/>',
+  muro:'<rect x="3" y="5" width="18" height="14"/><path d="M3 10h18M3 15h18M9 5v5M15 10v5M9 15v4"/>',
+  piso:'<path d="M3 9h18v4H3z"/><path d="M5 13v5M19 13v5M12 13v5"/><path d="M3 9l2-3h14l2 3"/>',
+  sob:'<path d="M7 4v10h10V4"/><path d="M4 14h16v6H4z"/><path d="M17 5v9" stroke-width="2.6"/>',
+  vano:'<rect x="5" y="3" width="14" height="18" rx="1"/><path d="M12 3v18M5 12h14"/>',
+  herm:'<path d="M4 12h6M4 8h4M4 16h4"/><path d="M14 5l5 7-5 7"/><path d="M10 12h9"/>',
+  vent:'<path d="M3 8h11a3 3 0 1 0-3-3"/><path d="M3 12h16a3 3 0 1 1-3 3"/><path d="M3 16h7"/>',
+  cond:'<path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/><path d="M9 15a3 3 0 0 0 3 3"/>',
+  pda:'<path d="M4 18c2-6 6-9 12-10"/><circle cx="17" cy="7" r="3"/><path d="M4 21h16"/>',
+  inf:'<path d="M6 3h9l4 4v14H6z"/><path d="M9 13l2 2 4-4"/>'};
+const PRIO=['bad','na','dif','ok','nr'];
+const peor=L=>{L=L.filter(Boolean);if(!L.length)return'nr';for(const p of PRIO)if(L.includes(p))return p;return'nr'};
+const MARCA={ok:'✓',bad:'!',na:'·',dif:'R',nr:'–'};
+function pasosDe(E){
+  const de=t=>E.els.filter(x=>x.e.tipo===t), est=t=>de(t).map(x=>x.r.estado), c=id=>E.comp.find(x=>x.id===id);
+  const proy=E.z&&!E.glob.faltas.some(f=>/Zona|Destino/.test(f))?'ok':'na';
+  const obl=t=>de(t).length?peor(est(t)):'na';
+  const vanos=peor([...est('ventana'),...est('puerta_vidriada'),...est('claraboya'),E.vid.estado]);
+  const L=[
+    ['proy','Proyecto',proy,'side'],
+    ['techo','Techumbre',obl('techo'),'techo'],
+    ['muro','Muros',obl('muro'),'muro'],
+    ['piso','Piso vent.',peor(est('piso_ventilado')),'piso_ventilado'],
+    ['sob','Sobrecim.',peor(est('sobrecimiento')),'sobrecimiento'],
+    ['vano','Vanos',vanos,'sec-va'],
+    ['herm','Hermeticidad',c('herm')?c('herm').estado:'na','c-herm'],
+    ['vent','Ventilación',c('vent')?c('vent').estado:'na','c-vent'],
+    ['cond','Condensación',c('cond')?c('cond').estado:'na','c-cond']];
+  if(c('pda')&&c('pda').estado!=='nr')L.push(['pda','Plan descont.',c('pda').estado,'c-pda']);
+  L.push(['inf','Informe',E.estado,'resumen']);
+  return L;
+}
+function pintarPasos(E){
+  const N=document.getElementById('pasos'); if(!N)return;
+  const L=pasosDe(E), cuenta=L.slice(0,-1), res=cuenta.filter(x=>x[2]==='ok'||x[2]==='nr'||x[2]==='dif').length;
+  N.innerHTML=`<div class="pasos-cab"><b>${esc(P.proyecto||'Proyecto sin nombre')}</b> · zona ${E.z||'—'} ·
+      <span class="${res===cuenta.length?'ok':'na'}">${res} de ${cuenta.length} resueltos</span></div>
+    <div class="pasos-fila">${L.map(([k,l,e,dest],j)=>`${j?'<span class="pln"></span>':''}
+      <button class="paso" onclick="irA('${dest}')" title="${esc(l)}: ${ESTXT[e]}">
+        <span class="pic"><svg viewBox="0 0 24 24" aria-hidden="true">${ICO[k]}</svg><span class="pdot ${e}">${MARCA[e]}</span></span>
+        <span class="plb">${esc(l)}</span></button>`).join('')}</div>
+    <div class="pprog"><div style="width:${Math.round(res/cuenta.length*100)}%"></div></div>`;
+}
+function irA(dest){
+  let n=document.getElementById(dest);
+  if(!n){const e=P.elementos.find(x=>x.tipo===dest);
+    if(e)n=document.getElementById('el-'+e.id);
+    else{addEl(dest);return}}
+  if(dest==='side'&&window.innerWidth>980){n.scrollTop=0;window.scrollTo({top:0,behavior:'smooth'});return}
+  const y=n.getBoundingClientRect().top+window.scrollY-(document.getElementById('top').offsetHeight+document.getElementById('pasos').offsetHeight+12);
+  window.scrollTo({top:y,behavior:'smooth'});
+  n.classList.add('resalta');setTimeout(()=>n.classList.remove('resalta'),1200);
+}
 
 /* ============================================================================
    AVERARQ · Acreditación térmica — INFORME A4 PARA LA DOM
