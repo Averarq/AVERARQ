@@ -346,6 +346,119 @@ input.dec{text-align:left}
 .resalta{outline:2px solid var(--naranja);outline-offset:3px;transition:outline-color .3s}
 @media print{#pasos{display:none!important}}
 
+/* ===================== v2.5: hub · tipo · asistente ===================== */
+.topnav{display:flex;gap:4px;margin-left:22px;flex-wrap:wrap}
+.topnav button{background:none;border:1px solid transparent;color:var(--neutro);border-radius:8px;padding:8px 13px;
+  font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;min-height:38px}
+.topnav button:hover{color:var(--crema)}
+.topnav button.on{background:var(--grafito-2);border-color:var(--borde);color:var(--crema)}
+.kicker{font-size:11.5px;letter-spacing:1.5px;color:var(--naranja);font-weight:700;text-transform:uppercase;display:block}
+.kicker.gris{color:var(--gris)}
+.btn.grande{padding:13px 20px;font-size:14px;min-height:48px;border-radius:10px}
+.btn.pri{color:#111311}
+.btn.pri:disabled{opacity:.4;cursor:not-allowed}
+.link{background:none;border:0;color:var(--naranja);cursor:pointer;font:inherit;padding:0;text-decoration:underline}
+.vista{min-height:calc(100vh - var(--hdr,62px))}
+
+.hub{max-width:1180px;margin:0 auto;padding:44px 28px 64px;display:flex;flex-direction:column;gap:30px}
+.hub-tit{display:flex;flex-direction:column;gap:8px}
+.hub-tit h2{font-size:36px;line-height:1.1;font-weight:800;letter-spacing:-.4px;margin:0}
+.hub-tit p{font-size:15px;color:var(--neutro);max-width:640px;line-height:1.5;margin:0}
+.hub-fila{display:flex;flex-wrap:wrap;gap:20px}
+.hub-nuevo{flex:999 1 500px;min-width:0;border:1px solid var(--naranja);border-radius:16px;padding:30px;display:flex;flex-direction:column;gap:14px}
+.hub-nuevo h3{font-size:23px;font-weight:800;margin:0}
+.hub-nuevo p{color:var(--neutro);font-size:14.5px;line-height:1.5;margin:0}
+.hub-ic{width:50px;height:50px;border-radius:14px;border:1px solid var(--naranja);display:flex;align-items:center;justify-content:center}
+.hub-ic svg,.tool svg,.tipo svg{width:26px;height:26px;fill:none;stroke:var(--naranja);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.hub-cont{flex:1 1 320px;min-width:0;border:1px solid var(--borde);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px}
+.hub-proy{text-align:left;background:var(--grafito-2);border:1px solid var(--borde);border-radius:12px;padding:16px;color:var(--crema);
+  cursor:pointer;display:flex;flex-direction:column;gap:8px;font-family:inherit}
+.hub-proy:hover,.tool:hover,.tipo:not(:disabled):hover,.opcion:not(:disabled):hover,.pend:hover{border-color:var(--naranja)}
+.hub-proy b{font-size:15px}
+.hub-bar{display:flex;align-items:center;gap:10px}.hub-bar .pprog{flex:1;margin:0}
+.hub-ir{color:var(--naranja);font-weight:700;font-size:13px}
+.hub-tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:10px}
+.tool{text-align:left;background:none;border:1px solid var(--borde);border-radius:14px;padding:18px;color:var(--crema);cursor:pointer;
+  display:flex;flex-direction:column;gap:8px;font-family:inherit}
+.tool b{font-size:14.5px}.tool span{font-size:12.5px;color:var(--gris);line-height:1.45}
+
+.tipos{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.tipo{text-align:left;background:none;border:1px solid var(--borde);border-radius:16px;padding:20px;color:var(--crema);cursor:pointer;
+  display:flex;flex-direction:column;gap:8px;font-family:inherit;min-height:150px}
+.tipo.on{border-color:var(--naranja);background:var(--grafito-2)}
+.tipo:disabled{opacity:.45;cursor:not-allowed}
+.tipo b{font-size:16px}.tipo>span:last-child{font-size:12.5px;color:var(--gris);line-height:1.45}
+.tipo-top{display:flex;justify-content:space-between;align-items:center;width:100%}
+.tick{width:22px;height:22px;border-radius:50%;background:var(--naranja);color:#111311;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.chips{display:flex;gap:10px;flex-wrap:wrap}
+.chip{background:none;border:1px solid var(--borde);color:var(--crema);border-radius:999px;padding:11px 18px;font-size:13.5px;font-weight:600;
+  cursor:pointer;font-family:inherit;min-height:44px}
+.chip.on{border-color:var(--naranja);background:var(--grafito-2)}
+.pie-nav{display:flex;gap:12px;justify-content:space-between;align-items:center;border-top:1px solid var(--borde);padding-top:18px;margin-top:8px;flex-wrap:wrap}
+
+.wiz{display:flex;flex-wrap:wrap;align-items:flex-start}
+#rail{flex:1 1 240px;max-width:280px;min-width:0;border-right:1px solid var(--borde);padding:22px 12px;position:sticky;top:var(--hdr,62px);
+  max-height:calc(100vh - var(--hdr,62px));overflow-y:auto;box-sizing:border-box}
+.rail-t{padding:0 10px 10px}
+.rpaso{display:flex;align-items:center;gap:12px;width:100%;background:none;border:1px solid transparent;border-radius:12px;padding:9px 10px;
+  color:var(--crema);cursor:pointer;font-family:inherit;min-height:56px;text-align:left}
+.rpaso:hover{background:var(--grafito-2)}
+.rpaso.on{background:var(--grafito-2);border-color:var(--naranja)}
+.rpaso.on .pic{border-color:var(--naranja);color:var(--naranja)}
+.rtx{display:flex;flex-direction:column;gap:2px}.rtx b{font-size:13.5px;font-weight:600}
+.rail-prog{margin:12px 10px 0;padding-top:12px;border-top:1px solid var(--borde)}
+#work{flex:999 1 560px;min-width:0;padding:28px 34px 40px;box-sizing:border-box}
+.paso-cab{display:flex;flex-direction:column;gap:6px;margin-bottom:20px}
+.paso-cab h2{font-size:28px;font-weight:800;margin:0;letter-spacing:-.3px}
+.paso-cab p{font-size:14.5px;color:var(--neutro);line-height:1.5;margin:0;max-width:720px}
+.panel{display:flex;flex-direction:column;gap:12px;margin-bottom:12px}
+.g2c{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.g2c .caja{margin:0}
+#vivo{flex:1 1 250px;max-width:310px;min-width:0;border-left:1px solid var(--borde);padding:22px 18px;position:sticky;top:var(--hdr,62px);
+  max-height:calc(100vh - var(--hdr,62px));overflow-y:auto;box-sizing:border-box;display:flex;flex-direction:column;gap:12px}
+.vivo-zona{display:flex;align-items:baseline;gap:10px}
+#vZona{font-size:44px;font-weight:800;color:var(--naranja);line-height:1}
+#vLugar{font-size:12.5px;color:var(--neutro)}
+.vfila{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:7px 0;border-bottom:1px solid var(--grafito-2)}
+.vfila span{flex:1;color:var(--neutro)}.vfila b{font-weight:700;text-align:right}
+.vdot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--borde)}
+.vdot.ok{background:var(--ok)}.vdot.bad{background:var(--bad)}.vdot.na{background:var(--warn)}.vdot.dif{background:#7aa7d9}
+.vivo-ex summary{cursor:pointer;font-size:11.5px;letter-spacing:1px;text-transform:uppercase;color:var(--gris);margin:6px 0}
+.opciones{display:flex;flex-direction:column;gap:10px;margin:8px 0 14px}
+.opcion{display:flex;align-items:center;gap:16px;width:100%;text-align:left;background:none;border:1px solid var(--borde);border-radius:14px;
+  padding:15px 18px;color:var(--crema);cursor:pointer;font-family:inherit;min-height:64px}
+.opcion.on{border-color:var(--naranja);background:var(--grafito-2)}
+.opcion.off{opacity:.55;cursor:not-allowed}
+.radio{width:20px;height:20px;border-radius:50%;flex:none;box-sizing:border-box;border:2px solid #6b6e6b}
+.opcion.on .radio{border:6px solid var(--naranja)}
+.otx{flex:1;display:flex;flex-direction:column;gap:3px}.otx b{font-size:15px}
+.oval{display:flex;flex-direction:column;align-items:flex-end;gap:2px}.oval b{font-size:19px;font-weight:800;white-space:nowrap}
+.pend{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:1px solid var(--borde);border-radius:12px;
+  padding:13px 16px;color:var(--crema);cursor:pointer;font-family:inherit;font-size:13.5px;margin-bottom:8px}
+.pend span:nth-child(2){flex:1}.pend b{color:var(--naranja)}
+.pend .pdot{position:static;width:22px;height:22px;font-size:11px}
+@media (max-width:980px){
+  #rail,#vivo{position:static;max-width:none;max-height:none;border:0;border-bottom:1px solid var(--borde);flex-basis:100%}
+  #rail{display:flex;overflow-x:auto;gap:4px;padding:12px}
+  #rail .rail-t,#rail .rail-prog{display:none}
+  .rpaso{flex:0 0 auto;flex-direction:column;min-width:86px;gap:6px;text-align:center}
+  .rtx b{font-size:11px}.rtx .est{display:none}
+  #vivo{order:3}
+  #work{padding:20px 16px 40px}
+  .hub{padding:28px 16px 48px}.hub-tit h2{font-size:28px}
+  .topnav{margin-left:0;order:5;width:100%}
+  .pie-nav .hint{order:3;width:100%;text-align:center}
+}
+@media print{#rail,#vivo,.topnav{display:none!important}}
+@media (max-width:980px){
+  header#top{flex-wrap:wrap;gap:10px}
+  header#top .ver,header#top .brand .tag{display:none}
+  .topnav{display:flex;width:100%;margin:0}
+  .topnav button{flex:1;padding:8px 6px;font-size:12px}
+  .rpaso{flex:0 0 92px;width:92px;min-width:0;padding:8px 4px}
+  .rtx b{white-space:normal;line-height:1.2}
+}
+
 </style>
 </head>
 <body>
@@ -358,7 +471,6 @@ input.dec{text-align:left}
   <button class="btn pri sm" onclick="window.print()">Imprimir / Guardar PDF</button>
 </div>
 
-
 <div id="app">
 <header id="top">
   <svg class="iso" viewBox="0 0 1440 1440" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AVERARQ"><circle cx="725.96" cy="726.34" r="692.43" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="30"/><polygon fill="currentColor" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>
@@ -366,129 +478,216 @@ input.dec{text-align:left}
     <h1>AVERARQ</h1>
     <div class="tag">Acreditación térmica · art. 4.1.10 OGUC</div>
   </div>
+  <nav class="topnav" aria-label="Navegación">
+    <button id="nv-hub" onclick="mostrar('hub')">Inicio</button>
+    <button id="nv-tipo" onclick="nuevoInforme()">Nuevo informe</button>
+    <button id="nv-wiz" onclick="mostrar('wiz')">Proyecto en curso</button>
+  </nav>
   <span class="sp"></span>
   <span class="ver">LOSCAT <b id="vEd"></b> · v<span id="vApp"></span></span>
 </header>
 
-<main>
-  <aside id="side">
-    <div class="sec">
-      <h2>Identificación</h2>
-      <div class="f"><label>Nombre del proyecto</label><input id="pNom" data-k="proyecto" placeholder="Vivienda unifamiliar…"></div>
-      <div class="f"><label>Propietario / mandante</label><input id="pProp" data-k="propietario"></div>
-      <div class="f"><label>Dirección</label><input id="pDir" data-k="direccion"></div>
-      <div class="f2">
-        <div class="f"><label>Rol SII</label><input id="pRol" data-k="rol" placeholder="123-45"></div>
-        <div class="f"><label>Superficie [m²]</label><input id="pSup" data-k="superficie" class="dec" inputmode="decimal"></div>
+<!-- ================================================================ HUB -->
+<section id="v-hub" class="vista">
+  <div class="hub">
+    <div class="hub-tit">
+      <span class="kicker">Hola, <span id="hubNom">Alejandro</span></span>
+      <h2>¿Qué vamos a acreditar hoy?</h2>
+      <p>Te guío paso a paso: tipo de proyecto, emplazamiento y cada elemento de la envolvente. Al final, el informe para la DOM.</p>
+    </div>
+    <div class="hub-fila">
+      <div class="hub-nuevo">
+        <div class="hub-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></div>
+        <h3>Nuevo informe térmico</h3>
+        <p>Unos 10 minutos para una vivienda tipo. Puedes dejarlo a medias: se guarda solo en este navegador.</p>
+        <div class="btnrow">
+          <button class="btn pri grande" onclick="nuevoInforme()">Empezar →</button>
+          <button class="btn grande" onclick="document.getElementById('fJson').click()">Importar JSON</button>
+          <button class="btn grande" onclick="cargarEjemplo()">Ver un ejemplo</button>
+        </div>
+        <input type="file" id="fJson" accept=".json" style="display:none" onchange="importJSON(this)">
       </div>
-      <div class="f"><label>Destino</label>
-        <select id="pDest" data-k="destino" data-r="1">
-          <option>Residencial — vivienda</option>
-          <option>Educación</option>
-          <option>Salud</option>
-        </select>
-      </div>
-      <div class="f"><label>Trámite ante la DOM</label>
-        <select id="pTram" data-k="tramite" data-r="1">
-          <option>Permiso de edificación — obra nueva</option>
-          <option>Permiso de edificación — ampliación</option>
-          <option>Regularización (Ley 20.898)</option>
-          <option>Permiso de obra menor</option>
-          <option>Anteproyecto</option>
-        </select>
-      </div>
-      <div class="f2">
-        <div class="f"><label>N° de viviendas del lote</label><input id="pUni" data-k="unidades" class="dec" inputmode="numeric"></div>
-        <div class="f"><label>Fecha del informe</label><input id="pFecha" data-k="fecha" type="date" data-r="1"></div>
+      <div class="hub-cont">
+        <span class="kicker gris">Continuar</span>
+        <div id="hubActual"></div>
       </div>
     </div>
-
-    <div class="sec">
-      <h2>Emplazamiento</h2>
-      <div class="f buscom"><label>Comuna</label>
-        <input id="qCom" placeholder="Buscar comuna…" oninput="filtrarComunas(this.value)"></div>
-      <div class="f"><select id="pCom" data-k="comuna" data-r="1"></select></div>
-      <div class="f2">
-        <div class="f"><label>Altitud [msnm]</label><input id="pAlt" data-k="altitud_msnm" class="dec" inputmode="decimal" data-r="1"></div>
-        <div class="f" id="fLon" style="display:none"><label>Longitud O [°]</label>
-          <input id="pLon" data-k="longitud" class="dec" inputmode="decimal" placeholder="71,25" data-r="1"></div>
-      </div>
-      <div class="zona">
-        <div class="l">Zona térmica</div>
-        <div class="z" id="zLetra">—</div>
-        <div class="r" id="zRegla"></div>
-      </div>
-      <div id="zDiag" style="margin-top:10px"></div>
-      <div class="hint" id="zAdv"></div>
-    </div>
-
-    <div class="sec">
-      <h2>Exigencias de la zona</h2>
-      <table class="ex" id="tabEx"></table>
-      <div class="hint" id="exExtra"></div>
-    </div>
-
-    <div class="sec">
-      <h2>Profesional</h2>
-      <div class="f"><label>Nombre</label><input id="prNom" data-k="prof_nombre"></div>
-      <div class="f2">
-        <div class="f"><label>Título</label><input id="prTit" data-k="prof_titulo"></div>
-        <div class="f"><label>Calidad</label><input id="prCal" data-k="prof_calidad"></div>
+    <div>
+      <span class="kicker gris">Herramientas</span>
+      <div class="hub-tools">
+        <button class="tool" onclick="irPaso(1)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+          <b>Consultar zona térmica</b><span>Comuna y cota → zona A–I con todas sus exigencias.</span></button>
+        <button class="tool" onclick="irPaso(2)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 9h16M9 9v10"/></svg>
+          <b>Catálogo LOSCAT</b><span>814 fichas ED14, filtradas por lo que cumple tu zona.</span></button>
+        <button class="tool" onclick="irPaso(3)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 10h16M4 14h16M4 18h16M9 6v12"/></svg>
+          <b>Calculadora por capas</b><span>NCh853 con entramado y control de error ≤ 20 %.</span></button>
+        <button class="tool" onclick="autoverificacion()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 12l2 2 4-4M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/></svg>
+          <b>Autoverificación</b><span>27 casos de control normativo antes de emitir informes.</span></button>
       </div>
     </div>
+  </div>
+</section>
 
-    <div class="sec">
-      <h2>Proyecto</h2>
-      <div class="btnrow">
-        <button class="btn sm" onclick="exportJSON()">Exportar JSON</button>
-        <button class="btn sm" onclick="document.getElementById('fJson').click()">Importar JSON</button>
-        <button class="btn sm dg" onclick="nuevoProyecto()">Nuevo</button>
+<!-- ================================================================ TIPO -->
+<section id="v-tipo" class="vista">
+  <div class="hub">
+    <div class="hub-tit">
+      <span class="kicker">Antes de empezar · 1 de 2</span>
+      <h2>¿Qué tipo de proyecto es?</h2>
+      <p>Define qué exigencias aparecen después. Puedes cambiarlo más adelante.</p>
+    </div>
+    <div class="tipos" id="tipos"></div>
+    <div class="hub-tit" style="margin-top:8px">
+      <span class="kicker">Antes de empezar · 2 de 2</span>
+      <h3 style="font-size:22px;margin:0">¿Con qué sistemas constructivos?</h3>
+      <p>Precargo sus soluciones del LOSCAT para que no busques entre 814 fichas.</p>
+    </div>
+    <div class="chips" id="sistemas"></div>
+    <div class="pie-nav">
+      <button class="btn grande" onclick="mostrar('hub')">← Volver</button>
+      <button class="btn pri grande" onclick="comenzar()">Comenzar el informe →</button>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ ASISTENTE -->
+<section id="v-wiz" class="vista">
+  <div class="wiz">
+    <aside id="rail" aria-label="Pasos"></aside>
+
+    <section id="work">
+      <div class="paso-cab">
+        <span class="kicker" id="pNum"></span>
+        <h2 id="pTit"></h2>
+        <p id="pAyuda"></p>
       </div>
-      <input type="file" id="fJson" accept=".json" style="display:none" onchange="importJSON(this)">
-      <div class="hint" id="guardado">El proyecto se guarda solo en este navegador.</div>
-    </div>
-  </aside>
+      <div id="alertas"></div>
 
-  <section id="work">
-    <nav id="pasos" aria-label="Estado por exigencia"></nav>
-    <div id="alertas"></div>
-
-    <div class="seccion" id="sec-op">
-      <div class="cab"><h3><span class="num">1</span> Envolvente opaca</h3><span class="sp"></span>
-        <button class="btn sm" onclick="addEl('techo')">+ Techumbre</button>
-        <button class="btn sm" onclick="addEl('muro')">+ Muro</button>
-        <button class="btn sm" onclick="addEl('piso_ventilado')">+ Piso vent.</button>
-        <button class="btn sm" onclick="addEl('sobrecimiento')">+ Sobrecim.</button>
-        <button class="btn sm" onclick="addEl('puerta')">+ Puerta opaca</button>
+      <!-- 1 · Proyecto y emplazamiento -->
+      <div class="panel" data-paso="1">
+        <div class="g2c">
+          <div class="caja nr">
+            <h4>Identificación</h4>
+            <div class="f"><label>Nombre del proyecto</label><input id="pNom" data-k="proyecto" placeholder="Vivienda unifamiliar…"></div>
+            <div class="f"><label>Propietario / mandante</label><input id="pProp" data-k="propietario"></div>
+            <div class="f"><label>Dirección</label><input id="pDir" data-k="direccion"></div>
+            <div class="f2">
+              <div class="f"><label>Rol SII</label><input id="pRol" data-k="rol" placeholder="123-45"></div>
+              <div class="f"><label>Superficie [m²]</label><input id="pSup" data-k="superficie" class="dec" inputmode="decimal"></div>
+            </div>
+            <div class="f2">
+              <div class="f"><label>Trámite ante la DOM</label>
+                <select id="pTram" data-k="tramite" data-r="1">
+                  <option>Permiso de edificación — obra nueva</option>
+                  <option>Permiso de edificación — ampliación</option>
+                  <option>Regularización (Ley 20.898)</option>
+                  <option>Permiso de obra menor</option>
+                  <option>Anteproyecto</option>
+                </select></div>
+              <div class="f"><label>Destino</label>
+                <select id="pDest" data-k="destino" data-r="1">
+                  <option>Residencial — vivienda</option><option>Educación</option><option>Salud</option>
+                </select></div>
+            </div>
+            <div class="f2">
+              <div class="f"><label>N° de viviendas del lote</label><input id="pUni" data-k="unidades" class="dec" inputmode="numeric"></div>
+              <div class="f"><label>Fecha del informe</label><input id="pFecha" data-k="fecha" type="date" data-r="1"></div>
+            </div>
+          </div>
+          <div class="caja nr">
+            <h4>Emplazamiento</h4>
+            <div class="f buscom"><label>Comuna</label><input id="qCom" placeholder="Buscar comuna…" oninput="filtrarComunas(this.value)"></div>
+            <div class="f"><select id="pCom" data-k="comuna" data-r="1"></select></div>
+            <div class="f2">
+              <div class="f"><label>Altitud [msnm]</label><input id="pAlt" data-k="altitud_msnm" class="dec" inputmode="decimal" data-r="1"></div>
+              <div class="f" id="fLon" style="display:none"><label>Longitud O [°]</label>
+                <input id="pLon" data-k="longitud" class="dec" inputmode="decimal" placeholder="71,25" data-r="1"></div>
+            </div>
+            <div class="zona"><div class="l">Zona térmica</div><div class="z" id="zLetra">—</div><div class="r" id="zRegla"></div></div>
+            <div id="zDiag"></div>
+            <div class="hint" id="zAdv"></div>
+          </div>
+        </div>
       </div>
-      <div id="listaOp"></div>
-    </div>
 
-    <div class="seccion" id="sec-va">
-      <div class="cab"><h3><span class="num">2</span> Vanos y superficie vidriada</h3><span class="sp"></span>
-        <button class="btn sm" onclick="addEl('ventana')">+ Ventana</button>
-        <button class="btn sm" onclick="addEl('puerta_vidriada')">+ Puerta vidriada</button>
-        <button class="btn sm" onclick="addEl('claraboya')">+ Ventana en techo</button>
+      <!-- 2 · Techumbre -->
+      <div class="panel" data-paso="2">
+        <div id="sol-techo"></div>
+        <div id="lista-techo"></div>
+        <div class="btnrow"><button class="btn sm" onclick="addEl('techo')">+ Otra techumbre</button>
+          <button class="btn sm" onclick="addEl('claraboya')">+ Ventana en techo</button></div>
       </div>
-      <div class="ayuda">Indique la superficie de paramento vertical de la envolvente por orientación (incluye vanos).
-        El % vidriado se calcula por orientación con el U más desfavorable de sus vanos.</div>
-      <div id="fachadas"></div>
-      <div id="listaVa"></div>
-    </div>
 
-    <div class="seccion" id="sec-co">
-      <div class="cab"><h3><span class="num">3</span> Exigencias complementarias</h3></div>
-      <div id="compl"></div>
-    </div>
+      <!-- 3 · Muros -->
+      <div class="panel" data-paso="3">
+        <div id="sol-muro"></div>
+        <div id="lista-muro"></div>
+        <div class="btnrow"><button class="btn sm" onclick="addEl('muro')">+ Otro tipo de muro</button></div>
+      </div>
 
-    <div id="resumen"></div>
-    <div class="btnrow" style="margin-top:20px">
-      <button class="btn pri" onclick="abrirPrev()">Generar informe para la DOM</button>
-      <button class="btn" onclick="cargarEjemplo()">Cargar ejemplo</button>
-      <button class="btn" onclick="autoverificacion()">Autoverificación</button>
-    </div>
-  </section>
-</main>
+      <!-- 4 · Piso y sobrecimiento -->
+      <div class="panel" data-paso="4">
+        <div class="caja nr">
+          <h4>¿El proyecto tiene piso ventilado (sobre el terreno, con cámara)?</h4>
+          <div class="btnrow" id="pregPiso"></div>
+        </div>
+        <div id="lista-piso"></div>
+        <div class="btnrow" id="addPiso"></div>
+      </div>
+
+      <!-- 5 · Puertas y vanos -->
+      <div class="panel" data-paso="5">
+        <div id="fachadas"></div>
+        <div id="lista-vanos"></div>
+        <div class="btnrow" style="margin-bottom:18px">
+          <button class="btn sm" onclick="addEl('ventana')">+ Ventana</button>
+          <button class="btn sm" onclick="addEl('puerta_vidriada')">+ Puerta vidriada</button>
+          <button class="btn sm" onclick="addEl('puerta')">+ Puerta opaca</button>
+        </div>
+        <div id="lista-puerta"></div>
+      </div>
+
+      <!-- 6 · Exigencias complementarias -->
+      <div class="panel" data-paso="6"><div id="compl"></div></div>
+
+      <!-- 7 · Revisión e informe -->
+      <div class="panel" data-paso="7">
+        <div id="resumen"></div>
+        <div id="pendientes"></div>
+        <div class="caja nr">
+          <h4>Firma del informe</h4>
+          <div class="f2">
+            <div class="f"><label>Profesional</label><input id="prNom" data-k="prof_nombre"></div>
+            <div class="f"><label>Título</label><input id="prTit" data-k="prof_titulo"></div>
+            <div class="f"><label>Calidad</label><input id="prCal" data-k="prof_calidad"></div>
+          </div>
+        </div>
+        <div class="btnrow">
+          <button class="btn pri grande" id="btnInf" onclick="abrirPrev()">Generar informe para la DOM</button>
+          <button class="btn grande" onclick="exportJSON()">Exportar JSON</button>
+          <button class="btn grande" onclick="autoverificacion()">Autoverificación</button>
+          <button class="btn grande dg" onclick="nuevoProyecto()">Borrar proyecto</button>
+        </div>
+      </div>
+
+      <div class="pie-nav">
+        <button class="btn grande" id="bAnt" onclick="anterior()">← Anterior</button>
+        <span class="hint" id="guardado">El proyecto se guarda solo en este navegador.</span>
+        <button class="btn pri grande" id="bSig" onclick="siguiente()">Siguiente →</button>
+      </div>
+    </section>
+
+    <aside id="vivo" aria-label="Resumen en vivo">
+      <span class="kicker gris">En vivo</span>
+      <div class="vivo-zona"><span id="vZona">—</span><span id="vLugar"></span></div>
+      <div id="vLista"></div>
+      <details class="vivo-ex" open><summary>Exigencias de la zona</summary>
+        <table class="ex" id="tabEx"></table>
+        <div class="hint" id="exExtra"></div>
+      </details>
+    </aside>
+  </div>
+</section>
 </div>
 
 <div id="modal">
@@ -533,7 +732,7 @@ const ISO="<svg class=\"iso\" viewBox=\"0 0 1440 1440\" xmlns=\"http://www.w3.or
    Regla: lo que no está en una fuente oficial cargada no se inventa; se declara
    como antecedente faltante ("na") y el informe no concluye.
    ========================================================================== */
-const APP_VER='2.0';
+const APP_VER='2.5';
 
 const TIPOS={techo:'Complejo de techumbre',muro:'Complejo de muros perimetrales',
   piso_ventilado:'Complejo de piso ventilado',puerta:'Puerta opaca exterior',
@@ -1036,7 +1235,8 @@ function proyectoVacio(){
     prof_nombre:'Alejandro Vera Donoso',prof_titulo:'Arquitecto',prof_calidad:'Autor del proyecto',
     fachadas:{Norte:'',Oriente:'',Poniente:'',Sur:''},ogt:false,
     herm_via:'',herm_sellos_ok:false,vent_sis:'',vent_desc:'',vent_ok:false,
-    cond_ok:false,cond_ref:'',pda_ok:false,elementos:[]};
+    cond_ok:false,cond_ref:'',pda_ok:false,elementos:[],
+    tipo_proy:'',sistemas:{sip:true,alb:true,mad:true,met:false},piso_vent:'',paso:1};
 }
 function elVacio(t){
   const e={id:uid++,tipo:t,recinto:'',descripcion:'',modo:'loscat',codigo:'',U:'',R100:'',mat:'',esp:'',
@@ -1061,6 +1261,7 @@ function cargarGuardado(){
 }
 function normalizar(j){
   const b=proyectoVacio(), o=Object.assign(b,j);
+  o.sistemas=Object.assign({sip:true,alb:true,mad:true,met:false},j.sistemas||{});
   o.fachadas=Object.assign({Norte:'',Oriente:'',Poniente:'',Sur:''},j.fachadas||{});
   o.elementos=(j.elementos||[]).map(e=>Object.assign(elVacio(e.tipo),e,{id:uid++}));
   return o;
@@ -1076,7 +1277,7 @@ function initUI(){
   document.getElementById('mEd').textContent='· '+D.edicion;
   P=cargarGuardado()||proyectoVacio();
   filtrarComunas('');
-  document.querySelectorAll('#side [data-k]').forEach(inp=>{
+  document.querySelectorAll('[data-k]').forEach(inp=>{
     const k=inp.dataset.k;
     inp.addEventListener(inp.tagName==='SELECT'||inp.type==='date'?'change':'input',()=>{
       P[k]=inp.value;
@@ -1085,9 +1286,10 @@ function initUI(){
   });
   volcarCampos();
   render();
+  mostrar('hub');
 }
 function volcarCampos(){
-  document.querySelectorAll('#side [data-k]').forEach(inp=>{
+  document.querySelectorAll('[data-k]').forEach(inp=>{
     const v=P[inp.dataset.k];inp.value=(v===undefined||v===null)?'':v});
   const s=document.getElementById('pCom');
   if(![...s.options].some(o=>o.value===P.comuna)){filtrarComunas('');}
@@ -1124,7 +1326,7 @@ function setModo(id,m){const e=elDe(id);e.modo=m;
   if(m!=='manual')e.calc=null;
   render()}
 function nuevoProyecto(){if(!confirm('¿Empezar un proyecto nuevo? Se borrará el actual de este navegador (exporte el JSON si lo necesita).'))return;
-  P=proyectoVacio();volcarCampos();render()}
+  P=proyectoVacio();volcarCampos();render();mostrar('tipo')}
 
 /* ---------------------------------------------------------- dibujo */
 function render(){
@@ -1132,9 +1334,10 @@ function render(){
   const E=evaluarProyecto(P);
   pintarZona(E);
   pintarExigencias(E);
-  document.getElementById('listaOp').innerHTML=P.elementos.filter(e=>OPACOS.includes(e.tipo)).map(e=>tarjeta(e,E)).join('')||
-    '<div class="empty" style="border:1px dashed var(--borde);border-radius:8px">Agregue techumbre, muros, pisos ventilados, sobrecimiento y puertas. Use «Soluciones Averarq» para cargar sus sistemas.</div>';
-  document.getElementById('listaVa').innerHTML=P.elementos.filter(e=>VANOS.includes(e.tipo)).map(e=>tarjeta(e,E)).join('');
+  const lista=(id,tipos)=>{const n=document.getElementById(id);if(n)n.innerHTML=P.elementos.filter(e=>tipos.includes(e.tipo)).map(e=>tarjeta(e,E)).join('')};
+  lista('lista-techo',['techo','claraboya']);lista('lista-muro',['muro']);
+  lista('lista-piso',['piso_ventilado','sobrecimiento']);lista('lista-vanos',['ventana','puerta_vidriada']);lista('lista-puerta',['puerta']);
+  pintarSoluciones('techo',E);pintarSoluciones('muro',E);pintarPiso();
   pintarFachadas(E);
   pintarCompl(E);
   pintarResultados(E);
@@ -1498,7 +1701,7 @@ function importJSON(inp){
   fr.onload=()=>{try{
     const j=JSON.parse(fr.result);
     P=j.v===2?normalizar(j):desdeV1(j);
-    volcarCampos();render();
+    volcarCampos();render();mostrar('wiz');irPaso(1);
   }catch(e){alert('No se pudo leer el JSON: '+e.message)}};
   fr.readAsText(inp.files[0]);inp.value='';
 }
@@ -1532,7 +1735,8 @@ function cargarEjemplo(){
     E('puerta',{recinto:'Acceso',modo:'r100',R100:'85',clase:'2',descripcion:'Puerta opaca con núcleo aislante'}),
     E('ventana',{recinto:'Estar',modo:'manual',U:'2,4',fuente:'Planilla U ventanas MINVU',clase:'2',orientacion:'Norte',sup:'6',descripcion:'PVC corredera DVH'}),
     E('ventana',{recinto:'Dormitorio 1',modo:'manual',U:'3,6',fuente:'Planilla U ventanas MINVU',clase:'1',orientacion:'Sur',sup:'3,2',descripcion:'Aluminio sin RPT, DVH'})];
-  volcarCampos();render();
+  P.tipo_proy='nueva';P.piso_vent='no';
+  volcarCampos();render();mostrar('wiz');irPaso(1);
 }
 
 /* ---------------------------------------------------------- arranque
@@ -1558,46 +1762,191 @@ const ICO={
 const PRIO=['bad','na','dif','ok','nr'];
 const peor=L=>{L=L.filter(Boolean);if(!L.length)return'nr';for(const p of PRIO)if(L.includes(p))return p;return'nr'};
 const MARCA={ok:'✓',bad:'!',na:'·',dif:'R',nr:'–'};
-function pasosDe(E){
-  const de=t=>E.els.filter(x=>x.e.tipo===t), est=t=>de(t).map(x=>x.r.estado), c=id=>E.comp.find(x=>x.id===id);
-  const proy=E.z&&!E.glob.faltas.some(f=>/Zona|Destino/.test(f))?'ok':'na';
-  const obl=t=>de(t).length?peor(est(t)):'na';
-  const vanos=peor([...est('ventana'),...est('puerta_vidriada'),...est('claraboya'),E.vid.estado]);
-  const L=[
-    ['proy','Proyecto',proy,'side'],
-    ['techo','Techumbre',obl('techo'),'techo'],
-    ['muro','Muros',obl('muro'),'muro'],
-    ['piso','Piso vent.',peor(est('piso_ventilado')),'piso_ventilado'],
-    ['sob','Sobrecim.',peor(est('sobrecimiento')),'sobrecimiento'],
-    ['vano','Vanos',vanos,'sec-va'],
-    ['herm','Hermeticidad',c('herm')?c('herm').estado:'na','c-herm'],
-    ['vent','Ventilación',c('vent')?c('vent').estado:'na','c-vent'],
-    ['cond','Condensación',c('cond')?c('cond').estado:'na','c-cond']];
-  if(c('pda')&&c('pda').estado!=='nr')L.push(['pda','Plan descont.',c('pda').estado,'c-pda']);
-  L.push(['inf','Informe',E.estado,'resumen']);
-  return L;
+/* ---------------------------------------------------------- v2.5: hub, tipo y asistente
+   El asistente muestra UN paso a la vez. Cada paso del riel lleva el estado
+   normativo real calculado por el motor (no "visitado").                     */
+let VISTA='hub';
+const PASOS=[
+  {n:1,k:'proy',lab:'Proyecto y emplazamiento',tit:'¿Dónde se construye?',
+   ayuda:'Datos del expediente, comuna y altitud. La zona térmica sale de la tabla oficial del MINVU y todo lo que sigue se ajusta a ella.'},
+  {n:2,k:'techo',lab:'Techumbre',tit:'Solución de techumbre',
+   ayuda:'Elige una de tus soluciones: te muestro la variante del LOSCAT más liviana que cumple tu zona. También puedes buscar otra ficha, calcular por capas o acreditar por R100.'},
+  {n:3,k:'muro',lab:'Muros',tit:'Solución de muros',
+   ayuda:'Precargué tus sistemas constructivos. Cada opción trae su ficha oficial: el valor U sale siempre del listado.'},
+  {n:4,k:'piso',lab:'Piso y sobrecimiento',tit:'Piso y sobrecimiento',
+   ayuda:'Dos preguntas: si hay piso ventilado y qué aislante lleva el sobrecimiento (por el exterior).'},
+  {n:5,k:'vano',lab:'Puertas y vanos',tit:'Ventanas y puertas',
+   ayuda:'Superficie de paramento por orientación y cada vano. El % vidriado y la clase de permeabilidad se verifican solos.'},
+  {n:6,k:'herm',lab:'Exigencias complementarias',tit:'Hermeticidad, ventilación y condensación',
+   ayuda:'Las exigencias nuevas de la RT 2025 y, si corresponde, el plan de descontaminación. Elige la vía y armo lo que va al expediente.'},
+  {n:7,k:'inf',lab:'Revisión e informe',tit:'Revisión final',
+   ayuda:'Si algo falta, aquí está la lista exacta con un acceso directo. Cuando todo cumple, el informe queda listo para imprimir.'}];
+
+function mostrar(v){
+  VISTA=v;
+  ['hub','tipo','wiz'].forEach(x=>{const s=document.getElementById('v-'+x);if(s)s.style.display=x===v?'':'none';
+    const b=document.getElementById('nv-'+x);if(b)b.classList.toggle('on',x===v)});
+  if(v==='hub')pintarHub();
+  if(v==='tipo')pintarTipo();
+  if(v==='wiz')irPaso(P.paso||1,true);
+  window.scrollTo(0,0);fijarHdr();
 }
-function pintarPasos(E){
-  const N=document.getElementById('pasos'); if(!N)return;
-  const L=pasosDe(E), cuenta=L.slice(0,-1), res=cuenta.filter(x=>x[2]==='ok'||x[2]==='nr'||x[2]==='dif').length;
-  N.innerHTML=`<div class="pasos-cab"><b>${esc(P.proyecto||'Proyecto sin nombre')}</b> · zona ${E.z||'—'} ·
-      <span class="${res===cuenta.length?'ok':'na'}">${res} de ${cuenta.length} resueltos</span></div>
-    <div class="pasos-fila">${L.map(([k,l,e,dest],j)=>`${j?'<span class="pln"></span>':''}
-      <button class="paso" onclick="irA('${dest}')" title="${esc(l)}: ${ESTXT[e]}">
-        <span class="pic"><svg viewBox="0 0 24 24" aria-hidden="true">${ICO[k]}</svg><span class="pdot ${e}">${MARCA[e]}</span></span>
-        <span class="plb">${esc(l)}</span></button>`).join('')}</div>
-    <div class="pprog"><div style="width:${Math.round(res/cuenta.length*100)}%"></div></div>`;
+function nuevoInforme(){
+  const tieneDatos=P&&(P.elementos.length||P.proyecto);
+  if(tieneDatos&&!confirm('¿Empezar un informe nuevo? El proyecto actual se borrará de este navegador (exporte el JSON si lo necesita).'))return;
+  P=proyectoVacio();volcarCampos();render();mostrar('tipo');
 }
-function irA(dest){
-  let n=document.getElementById(dest);
-  if(!n){const e=P.elementos.find(x=>x.tipo===dest);
-    if(e)n=document.getElementById('el-'+e.id);
-    else{addEl(dest);return}}
-  if(dest==='side'&&window.innerWidth>980){n.scrollTop=0;window.scrollTo({top:0,behavior:'smooth'});return}
-  const y=n.getBoundingClientRect().top+window.scrollY-(document.getElementById('top').offsetHeight+document.getElementById('pasos').offsetHeight+12);
-  window.scrollTo({top:y,behavior:'smooth'});
-  n.classList.add('resalta');setTimeout(()=>n.classList.remove('resalta'),1200);
+function estadosPasos(E){
+  const de=t=>E.els.filter(x=>x.e.tipo===t).map(x=>x.r.estado), c=id=>(E.comp.find(x=>x.id===id)||{}).estado;
+  const obl=t=>de(t).length?peor(de(t)):'na';
+  const piso=P.piso_vent==='si'?[...de('piso_ventilado').length?de('piso_ventilado'):['na']]:[];
+  return{
+    1:E.z&&!E.glob.faltas.some(f=>/Zona|Destino/.test(f))&&String(P.proyecto||'').trim()?'ok':'na',
+    2:peor([obl('techo'),...de('claraboya')]),
+    3:obl('muro'),
+    4:P.piso_vent?peor([...piso,...(de('sobrecimiento').length?de('sobrecimiento'):['na'])]):'na',
+    5:peor([...de('ventana'),...de('puerta_vidriada'),...de('puerta'),E.vid.estado==='nr'&&!de('ventana').length?'na':E.vid.estado]),
+    6:peor([c('herm'),c('vent'),c('cond'),c('pda')]),
+    7:E.estado};
 }
+const ESTP={ok:'Cumple',bad:'No cumple',na:'Pendiente',dif:'En recepción',nr:'No rige'};
+function pintarRail(E){
+  const R=document.getElementById('rail');if(!R)return;
+  const S=estadosPasos(E), hechos=[1,2,3,4,5,6].filter(n=>['ok','dif','nr'].includes(S[n])).length;
+  R.innerHTML=`<span class="kicker gris rail-t">${esc(TIPO_PROY[P.tipo_proy]||'Proyecto')}</span>`+
+    PASOS.map(p=>`<button class="rpaso ${P.paso===p.n?'on':''}" onclick="irPaso(${p.n})">
+      <span class="pic"><svg viewBox="0 0 24 24" aria-hidden="true">${ICO[p.k]}</svg><span class="pdot ${S[p.n]}">${MARCA[S[p.n]]}</span></span>
+      <span class="rtx"><b>${p.lab}</b><span class="est ${S[p.n]}">${ESTP[S[p.n]]}</span></span></button>`).join('')+
+    `<div class="rail-prog"><span class="hint">${hechos} de 6 pasos resueltos</span><div class="pprog"><div style="width:${Math.round(hechos/6*100)}%"></div></div></div>`;
+  const a=R.querySelector('.rpaso.on');if(a&&window.innerWidth<=980)R.scrollLeft=a.offsetLeft-R.clientWidth/2+a.offsetWidth/2;
+}
+function pintarVivo(E){
+  const z=document.getElementById('vZona');if(!z)return;
+  z.textContent=E.z||'—';
+  document.getElementById('vLugar').textContent=`${bonito(P.comuna)} · ${P.altitud_msnm||'—'} msnm`;
+  const un=t=>E.els.filter(x=>x.e.tipo===t);
+  const fila=(k,v,e)=>`<div class="vfila"><i class="vdot ${e}"></i><span>${esc(k)}</span><b>${esc(v)}</b></div>`;
+  const val=(t,f)=>{const L=un(t);if(!L.length)return['—','na'];const x=L[0];return[f(x)||'—',peor(L.map(y=>y.r.estado))]};
+  const uT=x=>{const u=uDe(x.e);return u!==null?'U '+nf(u):(r100De(x.e)!==null?'R100 '+r100De(x.e):'')};
+  const v=[];
+  let a=val('techo',uT);v.push(fila('Techumbre',a[0],a[1]));
+  a=val('muro',uT);v.push(fila('Muros',a[0],a[1]));
+  if(P.piso_vent==='si'){a=val('piso_ventilado',uT);v.push(fila('Piso ventilado',a[0],a[1]))}
+  a=val('sobrecimiento',uT);v.push(fila('Sobrecimiento',a[0],a[1]));
+  const vf=E.vid.filas.filter(f=>f.n);
+  v.push(fila('% vidriado',vf.length?vf.map(f=>f.g.charAt(0)+' '+nf(f.pct,0)+'%').join(' · '):'—',vf.length?E.vid.estado:'na'));
+  E.comp.filter(c=>c.estado!=='nr').forEach(c=>v.push(fila(c.titulo.split(' ')[0]==='Riesgo'?'Condensación':c.titulo.replace('Infiltración de aire de la envolvente','Hermeticidad').replace('Sistema de ventilación','Ventilación').replace('Plan de descontaminación atmosférica','Plan descontaminación'),ESTP[c.estado],c.estado)));
+  document.getElementById('vLista').innerHTML=v.join('');
+}
+function irPaso(n,sinScroll){
+  if(VISTA!=='wiz'){VISTA='wiz';['hub','tipo','wiz'].forEach(x=>{const s=document.getElementById('v-'+x);if(s)s.style.display=x==='wiz'?'':'none';
+    const b=document.getElementById('nv-'+x);if(b)b.classList.toggle('on',x==='wiz')})}
+  P.paso=Math.min(7,Math.max(1,n));
+  const p=PASOS[P.paso-1];
+  document.querySelectorAll('#work .panel').forEach(d=>d.style.display=+d.dataset.paso===P.paso?'':'none');
+  document.getElementById('pNum').textContent=`Paso ${p.n} de 7`;
+  document.getElementById('pTit').textContent=p.tit;
+  document.getElementById('pAyuda').textContent=p.ayuda;
+  document.getElementById('bAnt').textContent=P.paso>1?'← Anterior':'← Tipo de proyecto';
+  document.getElementById('bSig').style.visibility=P.paso<7?'':'hidden';
+  document.getElementById('bSig').textContent=P.paso<7?`Siguiente: ${PASOS[P.paso].lab} →`:'';
+  refrescar();
+  if(!sinScroll)window.scrollTo({top:0,behavior:'smooth'});
+}
+function siguiente(){irPaso(P.paso+1)}
+function anterior(){if(P.paso>1)irPaso(P.paso-1);else mostrar('tipo')}
+
+/* ---- hub ---- */
+const TIPO_PROY={nueva:'Vivienda unifamiliar · obra nueva',amp:'Ampliación',reg:'Regularización',lote:'Conjunto de viviendas',edu:'Educación o salud'};
+function pintarHub(){
+  const E=evaluarProyecto(P), S=estadosPasos(E), hechos=[1,2,3,4,5,6].filter(n=>['ok','dif','nr'].includes(S[n])).length;
+  const hay=P.elementos.length||String(P.proyecto||'').trim();
+  document.getElementById('hubNom').textContent=String(P.prof_nombre||'').split(' ')[0]||'Alejandro';
+  const est={ok:['ok','✓ Cumple'],bad:['bad','No cumple'],na:['na','En curso']}[E.estado]||['na','En curso'];
+  document.getElementById('hubActual').innerHTML=hay?`<button class="hub-proy" onclick="mostrar('wiz')">
+      <b>${esc(P.proyecto||'Proyecto sin nombre')}</b>
+      <span class="hint">${esc(bonito(P.comuna))} · zona ${E.z||'—'} · paso ${P.paso||1} de 7</span>
+      <span class="hub-bar"><span class="pprog"><div style="width:${Math.round(hechos/6*100)}%"></div></span><span class="est ${est[0]}">${hechos} de 6 · ${est[1]}</span></span>
+      <span class="hub-ir">Continuar →</span></button>`
+    :`<div class="empty" style="border:1px dashed var(--borde);border-radius:12px">No hay un proyecto en curso en este navegador.</div>`;
+}
+/* ---- tipo de proyecto ---- */
+const TIPOS_DEF=[
+  ['nueva','Vivienda unifamiliar','Obra nueva. El caso más común: envolvente completa y exigencias RT 2025.','M3 11 12 4l9 7M5 10v10h14V10M10 20v-6h4v6'],
+  ['amp','Ampliación','Sólo la parte nueva de la envolvente.','M3 20h18M5 20V9l7-5 7 5v11M15 13h4M17 11v4'],
+  ['reg','Regularización','Ley 20.898. Confirme si aplica el art. 4.1.10 vigente.','M6 3h9l4 4v14H6zM9 12h6M9 16h4'],
+  ['lote','Conjunto de viviendas','Varias unidades: muestreo del ensayo de hermeticidad por lote.','M2 20h20M4 20v-8l4-3 4 3v8M12 20v-8l4-3 4 3v8'],
+  ['edu','Educación o salud','Próximamente: sus tablas aún no están cargadas.','M3 9l9-5 9 5-9 5zM7 11v5c3 2 7 2 10 0v-5']];
+const SIS_DEF=[['sip','Panel SIP'],['alb','Albañilería confinada'],['mad','Tabiquería de madera'],['met','Metalcon']];
+function pintarTipo(){
+  document.getElementById('tipos').innerHTML=TIPOS_DEF.map(([id,t,s,d])=>{const off=id==='edu',on=P.tipo_proy===id;
+    return `<button class="tipo ${on?'on':''}" ${off?'disabled':''} onclick="elegirTipo('${id}')">
+      <span class="tipo-top"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>${on?'<span class="tick">✓</span>':''}</span>
+      <b>${t}</b><span>${s}</span></button>`}).join('');
+  document.getElementById('sistemas').innerHTML=SIS_DEF.map(([id,l])=>`<button class="chip ${P.sistemas[id]?'on':''}" onclick="P.sistemas.${id}=!P.sistemas.${id};pintarTipo();guardar()">${P.sistemas[id]?'✓':'+'} ${l}</button>`).join('');
+}
+function elegirTipo(id){
+  P.tipo_proy=id;
+  P.tramite={nueva:'Permiso de edificación — obra nueva',amp:'Permiso de edificación — ampliación',reg:'Regularización (Ley 20.898)',lote:'Permiso de edificación — obra nueva'}[id]||P.tramite;
+  if(id==='lote'&&(num(P.unidades)||1)<2)P.unidades='';
+  volcarCampos();pintarTipo();guardar();
+}
+function comenzar(){
+  if(!P.tipo_proy){alert('Elija el tipo de proyecto.');return}
+  P.paso=1;render();mostrar('wiz');
+}
+
+/* ---- soluciones en línea (pasos 2 y 3) ---- */
+const SIS_SOL={sip:['sip'],alb:['alb-int','alb-ext'],mad:['m23-lv','m23-eps','m24']};
+function pintarSoluciones(tipo,E){
+  const N=document.getElementById('sol-'+tipo);if(!N)return;
+  const z=E.z, permit=Object.entries(SIS_SOL).filter(([k])=>P.sistemas[k]).flatMap(([,v])=>v);
+  const L=SOLUCIONES.filter(s=>s.tipo===tipo&&(tipo==='techo'||permit.includes(s.id)));
+  const el=P.elementos.find(e=>e.tipo===tipo);
+  if(!L.length){N.innerHTML='';return}
+  N.innerHTML=`<span class="kicker gris">Tus soluciones${z?` · zona ${z} exige U ≤ ${nf(D.U_MAX[z][tipo])}`:''}</span><div class="opciones">`+
+    L.map(s=>{const o=opcionesSolucion(s,z,P), f=o.elegida, on=el&&el.modo==='loscat'&&f&&s.fam.includes(base(el.codigo));
+      return `<button class="opcion ${on?'on':''} ${f?'':'off'}" ${f?`onclick="usarSolucion('${tipo}','${s.id}')"`:'disabled'}>
+        <span class="radio"></span>
+        <span class="otx"><b>${esc(s.nombre)}</b><span class="hint">${f?`Ficha ${esc(f.c)} · la más liviana que cumple · ${o.ok.length} de ${o.filas.length} variantes cumplen`:`Ninguna variante publicada cumple en zona ${z||'—'}`}</span></span>
+        <span class="oval"><b>${f?'U '+nf(f.u):'—'}</b><span class="est ${f?'ok':'bad'}">${f?'CUMPLE':'NO CUMPLE'}</span></span></button>`}).join('')+'</div>'+
+    (el?'':`<div class="hint" style="margin:-4px 0 12px">¿Otra solución? <button class="link" onclick="addEl('${tipo}')">Agrégala a mano</button> (ficha, cálculo por capas o R100).</div>`);
+}
+function usarSolucion(tipo,sid){
+  let el=P.elementos.find(e=>e.tipo===tipo);
+  if(!el){el=elVacio(tipo);P.elementos.push(el)}
+  const s=SOLUCIONES.find(x=>x.id===sid), o=opcionesSolucion(s,zonificar(P).zona,P);
+  if(!o.elegida)return;
+  Object.assign(el,{modo:'loscat',codigo:o.elegida.c,U:'',descripcion:s.nombre,calc:null});
+  render();
+}
+/* ---- paso 4 ---- */
+function pintarPiso(){
+  const N=document.getElementById('pregPiso');if(!N)return;
+  N.innerHTML=[['no','No, radier sobre terreno'],['si','Sí, piso ventilado']].map(([v,l])=>
+    `<button class="chip ${P.piso_vent===v?'on':''}" onclick="setPiso('${v}')">${l}</button>`).join('');
+  const tiene=t=>P.elementos.some(e=>e.tipo===t);
+  document.getElementById('addPiso').innerHTML=(P.piso_vent==='si'&&!tiene('piso_ventilado')?`<button class="btn sm" onclick="addEl('piso_ventilado')">+ Piso ventilado</button>`:'')+
+    (!tiene('sobrecimiento')?`<button class="btn sm" onclick="addEl('sobrecimiento')">+ Sobrecimiento</button>`:'');
+}
+function setPiso(v){
+  P.piso_vent=v;
+  if(v==='si'&&!P.elementos.some(e=>e.tipo==='piso_ventilado'))P.elementos.push(elVacio('piso_ventilado'));
+  if(v==='no')P.elementos=P.elementos.filter(e=>e.tipo!=='piso_ventilado');
+  if(!P.elementos.some(e=>e.tipo==='sobrecimiento'))P.elementos.push(elVacio('sobrecimiento'));
+  render();
+}
+/* ---- paso 7: pendientes con acceso directo ---- */
+function pintarPendientes(E){
+  const N=document.getElementById('pendientes');if(!N)return;
+  const S=estadosPasos(E);
+  const L=PASOS.slice(0,6).filter(p=>S[p.n]==='na'||S[p.n]==='bad');
+  N.innerHTML=L.map(p=>`<button class="pend" onclick="irPaso(${p.n})"><span class="pdot ${S[p.n]}">${MARCA[S[p.n]]}</span>
+    <span>${p.lab} — ${S[p.n]==='bad'?'no cumple, revisar':'faltan antecedentes'}</span><b>Ir →</b></button>`).join('');
+  const b=document.getElementById('btnInf');
+  if(b)b.textContent=E.estado==='ok'?'Generar informe para la DOM':'Vista previa del informe (aún no concluye)';
+}
+function pintarPasos(E){pintarRail(E);pintarVivo(E);pintarPendientes(E)}
 
 /* ============================================================================
    AVERARQ · Acreditación térmica — INFORME A4 PARA LA DOM
