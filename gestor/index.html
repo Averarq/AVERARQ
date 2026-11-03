@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.36</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.37</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -128,6 +128,10 @@ input[type=color]{width:26px;height:26px;border:none;background:none;padding:0;c
 .bol-items{width:100%;font-size:11px;border-collapse:collapse;margin-top:4px}
 .bol-items td{padding:3px 4px;border-top:1px solid var(--line);vertical-align:middle}
 .bol-items select{font-size:10px;max-width:130px}
+.bol-items tr.off td{opacity:.35}
+.bol-items td.chk{width:16px;text-align:center;padding-right:0}
+.bol-items input[type=checkbox]{width:auto;margin:0;cursor:pointer}
+.bol-fuera-txt{font-size:11px;color:var(--txt2);margin:3px 0 0 2px}
 .bol-rep{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;margin:4px 0 0 2px}
 .bol-rep label{width:auto;cursor:pointer;color:var(--txt)}
 .bol-pie{position:sticky;bottom:-18px;background:var(--panel);padding:10px 0 2px;border-top:1px solid var(--line);margin-top:8px}
@@ -338,7 +342,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.36</span></span></a>
+    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.37</span></span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <select id="selProyecto" title="Cambiar de proyecto"></select>
   <span id="nubeDot" class="nube-dot off" title="Sin nube"></span>
@@ -466,11 +470,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.36 =================
+/* ================= GESTOR AVERARQ v3.37 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.36";
+const GESTOR_VERSION="v3.37";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -2913,6 +2917,7 @@ function boletaNormalizar(b){
       cant, unidad:String(it.unidad||"un"), precio, descuento, total,
       cat:CATGASTO.some(c=>c[0]===it.cat)?it.cat:"material",
       part:PARTGASTO.some(p=>p[0]===it.part)?it.part:"",
+      _inc:true,                      // false = este ítem no se registra
       _obra:""                       // "" = la obra de la boleta
     };
   }).filter(it=>it.total>0);
@@ -3003,6 +3008,8 @@ function detalleBoleta(g){
   const lin=(g.items||[]).map(it=>`${String(it.cant).replace(".",",")} × ${it.desc}  ${CLP(it.monto!=null?it.monto:it.total)}${it.reparto?" ("+it.reparto+")":""}`);
   return [cab,...lin].join("\n");
 }
+/* Lo que suma una boleta considerando solo los ítems marcados */
+function bolMonto(b){return b.items.reduce((s,it)=>it._inc===false?s:s+it.total,0);}
 /* Lo que va a quedar registrado: [{obra, gasto}] para todas las boletas incluidas */
 function bolAsignaciones(){
   const out=[];
@@ -3010,6 +3017,7 @@ function bolAsignaciones(){
     if(!b._incluir||b._ya)continue;
     const partes=[];
     b.items.forEach((it,k)=>{
+      if(it._inc===false)return;
       const dest=it._obra||b._obra;
       if(dest==="rep"){
         const obras=b._rep.slice(), n=obras.length; if(!n)return;
@@ -3051,8 +3059,10 @@ function bolFaltas(){
     if(!b._incluir||b._ya)return;
     const nom=`${b.proveedor} del ${b.fecha.slice(8,10)}-${b.fecha.slice(5,7)}`;
     if(!b._cli){f.push(nom+": falta el cliente");return;}
-    const usaRep=b._obra==="rep"||b.items.some(it=>it._obra==="rep");
-    if(b.items.some(it=>!(it._obra||b._obra)))f.push(nom+": falta la obra");
+    const inc=b.items.filter(it=>it._inc!==false);
+    if(!inc.length){f.push(nom+": no hay ningún ítem marcado");return;}
+    const usaRep=b._obra==="rep"||inc.some(it=>it._obra==="rep");
+    if(inc.some(it=>!(it._obra||b._obra)))f.push(nom+": falta la obra");
     if(usaRep&&!b._rep.length)f.push(nom+": marca entre qué obras repartir");
   });
   return f;
@@ -3078,7 +3088,7 @@ function bolPintar(){
   const clientes=clientesConocidos();
   const lote=bolImp.boletas;
   const vivas=lote.filter(b=>b._incluir&&!b._ya);
-  const totalVivo=vivas.reduce((s,b)=>s+b.total,0);
+  const totalVivo=vivas.reduce((s,b)=>s+bolMonto(b),0);
   const cliTodas=vivas.length&&vivas.every(b=>b._cli===vivas[0]._cli)?vivas[0]._cli:"";
   let h=`<div class="row" style="align-items:baseline">
       <span class="small grow">${lote.length} boleta${lote.length===1?"":"s"} leída${lote.length===1?"":"s"}${lote.length!==vivas.length?` · ${vivas.length} por registrar`:""}</span>
@@ -3091,8 +3101,9 @@ function bolPintar(){
       +obras.map(o=>`<option value="${o.id}" ${sel===o.id?"selected":""}>${esc(o.nombre||"Sin título")}${proyTerminada(o)?" (terminada)":""}</option>`).join("")
       +(obras.length>1?`<option value="rep" ${sel==="rep"?"selected":""}>➗ repartir en partes iguales</option>`:"");
     const usaRep=b._obra==="rep"||b.items.some(it=>it._obra==="rep");
-    const porCat={};b.items.forEach(it=>porCat[it.cat]=(porCat[it.cat]||0)+it.total);
-    const resumen=Object.entries(porCat).map(([k,v])=>`${CATNOMBRE(k)} ${CLP(v)}`).join(" · ");
+    const incItems=b.items.filter(it=>it._inc!==false), fuera=b.items.length-incItems.length;
+    const porCat={};incItems.forEach(it=>porCat[it.cat]=(porCat[it.cat]||0)+it.total);
+    const resumen=Object.entries(porCat).map(([k,v])=>`${CATNOMBRE(k)} ${CLP(v)}`).join(" · ")||"nada marcado";
     h+=`<div class="bol-card ${b._ya?"bol-ya":(b._incluir?"":"bol-fuera")}">
       <div class="bol-cab">
         <input type="checkbox" style="width:auto" data-bolinc="${i}" ${b._incluir&&!b._ya?"checked":""} ${b._ya?"disabled":""} title="Incluir esta boleta">
@@ -3102,6 +3113,7 @@ function bolPintar(){
         <span class="monto">${CLP(b.total)}</span>
       </div>
       ${b._ya?`<div class="bol-ya-txt">✓ Ya registrada en ${esc(b._ya.join(", "))}: no se vuelve a cargar.</div>`:""}
+      ${(fuera&&!b._ya&&b._incluir)?`<div class="bol-fuera-txt">${fuera} ítem${fuera===1?"":"s"} fuera · se registran ${CLP(bolMonto(b))} de ${CLP(b.total)}</div>`:""}
       ${b.revisar.map(r=>`<div class="bol-rev">⚠ ${esc(r)}</div>`).join("")}
       ${b.nota?`<div class="small" style="color:var(--txt2);margin:3px 0 0 2px">${esc(b.nota)}</div>`:""}
       ${(!b._ya&&b._incluir)?`
@@ -3111,13 +3123,17 @@ function bolPintar(){
       </div>
       ${usaRep?`<div class="bol-rep"><span style="color:var(--txt2)">Repartir entre:</span>${obras.map(o=>`<label><input type="checkbox" style="width:auto" data-bolrep="${i}" data-obra="${o.id}" ${b._rep.includes(o.id)?"checked":""}> ${esc(o.nombre||"Sin título")}</label>`).join("")}</div>`:""}
       <div class="bol-tog" data-boltog="${i}">${b._abierta?"▾":"▸"} ${b.items.length} ítem${b.items.length===1?"":"s"} · ${resumen}</div>
-      ${b._abierta?`<table class="bol-items">${b.items.map((it,k)=>`<tr>
+      ${b._abierta?`<table class="bol-items">
+        <tr><td class="chk"><input type="checkbox" data-boltodos="${i}" ${b.items.every(it=>it._inc!==false)?"checked":""} title="Marcar o desmarcar todos"></td>
+            <td colspan="5" class="small" style="color:var(--muted)">Desmarca lo que no vaya a esta obra</td></tr>
+        ${b.items.map((it,k)=>{const off=it._inc===false;return `<tr class="${off?"off":""}">
+          <td class="chk"><input type="checkbox" data-bolinciti="${i},${k}" ${off?"":"checked"} title="Incluir este ítem"></td>
           <td title="${esc(it.original)}${it.codigo?" · "+esc(it.codigo):""}">${esc(it.desc)}<div class="small" style="color:var(--muted)">${String(it.cant).replace(".",",")} ${esc(it.unidad)} × ${CLP(it.precio)}${it.descuento?" − "+CLP(it.descuento):""}</div></td>
           <td class="money">${CLP(it.total)}</td>
-          <td><select data-bolcat="${i},${k}">${opcionesCategoria(it.cat)}</select></td>
-          <td><select data-bolpart="${i},${k}">${opcionesPartida(it.part)}</select></td>
-          <td><select data-bolitobra="${i},${k}" ${b._cli?"":"disabled"}>${opObras(it._obra,true)}</select></td>
-        </tr>`).join("")}</table>`:""}`:""}
+          <td><select data-bolcat="${i},${k}" ${off?"disabled":""}>${opcionesCategoria(it.cat)}</select></td>
+          <td><select data-bolpart="${i},${k}" ${off?"disabled":""}>${opcionesPartida(it.part)}</select></td>
+          <td><select data-bolitobra="${i},${k}" ${(b._cli&&!off)?"":"disabled"}>${opObras(it._obra,true)}</select></td>
+        </tr>`;}).join("")}</table>`:""}`:""}
     </div>`;
   });
   const faltas=bolFaltas();
@@ -3158,6 +3174,11 @@ function bolPintar(){
   $$("#bolCuerpo [data-boltog]").forEach(x=>x.onclick=()=>{const b=lote[+x.dataset.boltog];b._abierta=!b._abierta;repintar();});
   const enItem=(attr,fn)=>$$(`#bolCuerpo [${attr}]`).forEach(x=>x.onchange=()=>{
     const [i,k]=x.getAttribute(attr).split(",").map(Number);fn(lote[i],lote[i].items[k],x.value);repintar();});
+  $$("#bolCuerpo [data-bolinciti]").forEach(x=>x.onchange=()=>{
+    const [i,k]=x.getAttribute("data-bolinciti").split(",").map(Number);
+    lote[i].items[k]._inc=x.checked;repintar();});
+  $$("#bolCuerpo [data-boltodos]").forEach(x=>x.onchange=()=>{
+    lote[+x.dataset.boltodos].items.forEach(it=>it._inc=x.checked);repintar();});
   enItem("data-bolcat",(b,it,v)=>{it.cat=v;});
   enItem("data-bolpart",(b,it,v)=>{it.part=v;});
   enItem("data-bolitobra",(b,it,v)=>{

@@ -1,12 +1,12 @@
 // AVERARQ · Backend (Cloudflare Worker + KV, sin R2)
 // ============================================================================
-//  v9 · FUSIÓN TOTAL + ENLACE OBRA + LISTADOS POR METADATA — 2026-10-17
+//  v10 · FUSIÓN TOTAL + ENLACE OBRA + LISTADOS POR METADATA + CUADRILLA — 2026-10-28
 //  Único archivo válido. Reúne, sin excepción:
 //    · Portal de seguimiento con código del cliente y código secundario
 //      para terceros (modo restringido: sin pagos, sin comprobantes).
 //    · Calendario (feed ICS), PATCH de metadatos y PUT de archivo.
 //    · Proyectos del GESTOR en la nube (gestor:*).
-//    · Pañol de herramientas (panol:global).
+//    · Pañol de herramientas (panol:global) y cuadrilla del taller (cuadrilla:global).
 //    · Página /gestor servida por el propio Worker.
 //    · Respaldo completo, registro del último respaldo y restauración.
 //    · Enlace arquitectura ↔ obra: el portal del cliente muestra el estado
@@ -38,6 +38,7 @@
 //   GET    /api/documentos/:id/file   -> descarga el archivo
 //   DELETE /api/documentos/:id        -> elimina metadato + archivo
 //   GET/PUT /api/panol                -> pañol de herramientas del GESTOR
+//   GET/PUT /api/cuadrilla            -> maestros y tarifas, los mismos en todas las obras
 //   GET    /api/respaldo[?docs=1]     -> respaldo completo en un JSON
 //   GET/PUT /api/respaldo/registro    -> fecha del último respaldo (aviso de los viernes)
 //   POST   /api/restaurar/documento   -> repone un documento con su id original
@@ -668,6 +669,37 @@ export default {
         }
       }
 
+      // ---------- CUADRILLA DEL TALLER (clave KV "cuadrilla:global") ----------
+      // Los maestros con su tarifa: los mismos para todas las obras. Como el
+      // pañol, gana el más reciente, así que la fecha del cuerpo se respeta.
+      // Cada maestro se arma campo por campo: no se guarda lo que no se espera.
+      if (parts[1] === "cuadrilla") {
+        if (request.method === "GET") {
+          const raw = await env.DOCS_KV.get("cuadrilla:global");
+          return json({ cuadrilla: raw ? JSON.parse(raw) : null }, 200, origin);
+        }
+        if (request.method === "PUT") {
+          const body = await request.json().catch(() => null);
+          const c = (body && body.cuadrilla) ? body.cuadrilla : body;
+          if (!c || !Array.isArray(c.maestros)) {
+            return json({ error: "Falta la lista de maestros." }, 400, origin);
+          }
+          const maestros = c.maestros
+            .filter((m) => m && m.id && String(m.nombre || "").trim())
+            .slice(0, 100)
+            .map((m) => ({
+              id: corta(m.id, 40),
+              nombre: corta(String(m.nombre).trim(), 80),
+              tipo: m.tipo === "m2" ? "m2" : "m1",
+              tarifa: Math.max(0, Number(m.tarifa) || 0),
+              activo: m.activo !== false,
+            }));
+          const registro = { maestros: maestros, actualizado: c.actualizado || new Date().toISOString() };
+          await env.DOCS_KV.put("cuadrilla:global", JSON.stringify(registro));
+          return json({ ok: true, actualizado: registro.actualizado, maestros: maestros.length }, 200, origin);
+        }
+      }
+
       // ---------- REINDEXAR (una sola vez, después de desplegar v9) ----------
       // POST /api/reindexar        -> escribe la metadata que falte
       // POST /api/reindexar?todo=1 -> la reescribe toda, aunque ya exista
@@ -829,6 +861,10 @@ export default {
             // Pañol de herramientas (uno solo para todo el taller)
             const panolRaw = await kv.get("panol:global");
             await push(',"panol":' + (panolRaw || "null"));
+
+            // Cuadrilla del taller (maestros y tarifas)
+            const cuadRaw = await kv.get("cuadrilla:global");
+            await push(',"cuadrilla":' + (cuadRaw || "null"));
 
             // Proyectos del GESTOR
             await push(',"gestor":[');
