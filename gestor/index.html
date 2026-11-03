@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.39</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.40</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -343,7 +343,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.39</span></span></a>
+    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.40</span></span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <select id="selProyecto" title="Cambiar de proyecto"></select>
   <span id="nubeDot" class="nube-dot off" title="Sin nube"></span>
@@ -471,11 +471,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.39 =================
+/* ================= GESTOR AVERARQ v3.40 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.39";
+const GESTOR_VERSION="v3.40";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -2476,13 +2476,14 @@ function selectorProyectoHTML(origen){
 /* El avance que se DECLARA al mandante, distinto del avance físico que sale de
    las partidas cubicadas: terminada es 100%, y si no, el porcentaje marcado a
    mano. null = no se declara nada y el estado de cuenta no lo menciona. */
-function avanceDeclarado(){
-  const c=state.control||{};
+function avanceDe(c){
+  c=c||{};
   if(c.terminado)return 100;
   if(c.avancePct===""||c.avancePct==null)return null;
   const n=+c.avancePct;
   return isNaN(n)?null:Math.max(0,Math.min(100,n));
 }
+function avanceDeclarado(){return avanceDe(state.control);}
 /* Partidas de gasto del CONTROL: pocas y de oficio, para saber en qué se fue la plata
    sin convertir el registro en una contabilidad. */
 /* Categorías de gasto del CONTROL */
@@ -3415,7 +3416,7 @@ function htmlCliente(){
   <div class="card"><table style="width:100%;font-size:11px">
     <tr style="color:var(--txt2)"><th style="text-align:left">Obra</th><th class="money">Contrato</th><th class="money">Gastado</th><th class="money">Utilidad</th><th class="money">Margen</th></tr>
     ${b.obras.map(o=>`<tr>
-      <td>${esc(o.nombre)}${o.terminada?' <span style="color:#7fb069;font-size:9px;font-weight:700">✓</span>':""}${o.adic>0?`<div class="small" style="color:var(--txt2)">incluye ${CLP(o.adic)} en adicionales</div>`:""}</td>
+      <td>${esc(o.nombre)}${o.terminada?' <span style="color:#7fb069;font-size:9px;font-weight:700">✓</span>':(o.av!==null&&o.av!==undefined?` <span style="color:var(--naranja2);font-size:9px;font-weight:700">${F(o.av,0)}%</span>`:"")}${o.adic>0?`<div class="small" style="color:var(--txt2)">incluye ${CLP(o.adic)} en adicionales</div>`:""}</td>
       <td class="money">${CLP(o.contrato)}</td>
       <td class="money">${CLP(o.gasto)}</td>
       <td class="money" style="color:${o.utilidad>=0?'#7fb069':'#c0392b'}">${CLP(o.utilidad)}</td>
@@ -4834,6 +4835,10 @@ function proyTerminada(entrada){
   return !!proyMeta(entrada).fin;
 }
 const SELLO_FIN=`<span style="display:inline-block;border:1px solid #3a8a5a;color:#3a8a5a;border-radius:3px;padding:0 5px;font-size:9px;font-weight:700;letter-spacing:.6px;vertical-align:middle">TERMINADO</span>`;
+/* Obra en ejecución con avance declarado: el mismo sello, en naranjo */
+const SELLO_PCT=n=>`<span style="display:inline-block;border:1px solid #c1451b;color:#c1451b;border-radius:3px;padding:0 5px;font-size:9px;font-weight:700;letter-spacing:.6px;vertical-align:middle">${F(n,0)}% EJECUTADO</span>`;
+/* El sello que corresponda, o nada si no se declaró avance */
+const SELLO_AV=(fin,av)=>fin?SELLO_FIN:((av===null||av===undefined)?"":SELLO_PCT(av));
 const SIN_CLIENTE="Sin cliente asignado";
 /* Clientes ya escritos en algún proyecto, para elegirlos en vez de volver a teclearlos */
 function clientesConocidos(){
@@ -4874,7 +4879,7 @@ function resumenCliente(cliente){
       const contrato=base+adic;
       const recibido=Math.max(0,+((sn.planPago||{}).cobrado)||0);
       if(contrato<=0&&recibido<=0)continue;      // obras sin montos no entran al estado de cuenta
-      obras.push({nombre:sn.proyecto||e.nombre||"Obra sin título",base,adic,contrato,recibido,saldo:contrato-recibido,fin:!!ctrl.terminado});
+      obras.push({nombre:sn.proyecto||e.nombre||"Obra sin título",base,adic,contrato,recibido,saldo:contrato-recibido,fin:!!ctrl.terminado,av:avanceDe(ctrl)});
     }
   }
   obras.sort((a,b)=>ordenNombre(a.nombre,b.nombre));
@@ -5956,7 +5961,7 @@ function balanceCliente(cliente){
       if(contrato<=0&&gasto<=0&&recibido<=0)continue;
       obras.push({nombre:sn.proyecto||e.nombre||"Obra",contrato,adic,gasto,recibido,
         utilidad:contrato-gasto, margen:contrato>0?(contrato-gasto)/contrato*100:0,
-        terminada:!!ctrl.terminado, cat:catObra});
+        terminada:!!ctrl.terminado, av:avanceDe(ctrl), cat:catObra});
     }
   }
   obras.sort((a,b)=>String(a.nombre).localeCompare(String(b.nombre),"es",{numeric:true,sensitivity:"base"}));
@@ -6016,13 +6021,13 @@ function emitirEstadoCuentaCliente(){
   const td='style="padding:4px 8px"', tdr='style="padding:4px 8px;text-align:right"';
   const finN=r.obras.filter(o=>o.fin).length;
   const filaCab=`<div style="display:flex;justify-content:space-between;color:#555;font-size:11px;margin-bottom:12px">
-    <span>Mandante: <b>${esc(cliente)}</b> · ${r.obras.length} obra${r.obras.length===1?"":"s"}${finN?` · ${finN} terminada${finN===1?"":"s"}`:""}</span><span>${fecha}</span></div>`;
+    <span>Mandante: <b>${esc(cliente)}</b> · ${r.obras.length} obra${r.obras.length===1?"":"s"}${finN?` · ${finN} terminada${finN===1?"":"s"}`:""}${(function(){const n=r.obras.filter(o=>!o.fin&&o.av!==null&&o.av!==undefined).length;return n?` · ${n} en ejecución`:"";})()}</span><span>${fecha}</span></div>`;
   $("#printArea").innerHTML=`<div class="pr-page">`+prHead("ESTADO DE CUENTA — RESUMEN DE OBRAS",fecha,"",filaCab)+`
     <h2>DETALLE POR OBRA</h2>
     <table style="width:100%;border-collapse:collapse;font-size:11px">
       <tr style="background:#f7f6f2;color:#555"><th ${td}>Obra</th><th ${tdr}>Contrato</th><th ${tdr}>Abonado</th><th ${tdr}>Saldo</th></tr>
       ${r.obras.map(o=>`<tr>
-        <td ${td}>${esc(o.nombre)} ${o.fin?SELLO_FIN:""}${o.adic>0?`<div style="font-size:9.5px;color:#777">incluye ${CLP(o.adic)} en obras adicionales</div>`:""}</td>
+        <td ${td}>${esc(o.nombre)} ${SELLO_AV(o.fin,o.av)}${o.adic>0?`<div style="font-size:9.5px;color:#777">incluye ${CLP(o.adic)} en obras adicionales</div>`:""}</td>
         <td ${tdr}>${CLP(o.contrato)}</td><td ${tdr}>${CLP(o.recibido)}</td>
         <td ${tdr} style="color:${o.saldo>0?'#c1451b':'#3a8a5a'}"><b>${CLP(Math.abs(o.saldo))}</b>${o.saldo<0?" a favor":""}</td></tr>`).join("")}
       <tr style="border-top:2px solid #333"><td ${td}><b>TOTAL</b></td><td ${tdr}><b>${CLP(r.contrato)}</b></td><td ${tdr}><b>${CLP(r.recibido)}</b></td><td ${tdr}><b>${CLP(Math.abs(r.saldo))}</b></td></tr>
