@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.37</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.38</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -98,6 +98,7 @@ input[type=color]{width:26px;height:26px;border:none;background:none;padding:0;c
 .small{font-size:10px;color:var(--txt2)}
 .money{font-family:var(--mono);text-align:right;white-space:nowrap}
 /* ---- planilla semanal de maestros ---- */
+.semrec{color:var(--naranja2);font-size:9px;margin-left:4px;white-space:nowrap}
 .semtab{width:100%;border-collapse:collapse;font-size:11px}
 .semtab th{color:var(--muted);font-weight:600;padding:2px 3px;font-size:10px;text-align:center}
 .semtab th.hoy{color:var(--naranja2)}
@@ -342,7 +343,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.37</span></span></a>
+    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.38</span></span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <select id="selProyecto" title="Cambiar de proyecto"></select>
   <span id="nubeDot" class="nube-dot off" title="Sin nube"></span>
@@ -470,11 +471,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.37 =================
+/* ================= GESTOR AVERARQ v3.38 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.37";
+const GESTOR_VERSION="v3.38";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -2487,6 +2488,11 @@ function jornadasDe(x){
    puede mover lo que ya se pagó en octubre.
 --------------------------------------------------------------------------- */
 const DIASEM=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+/* Trabajar el sábado se paga con un recargo por sobre la tarifa del día: se
+   suma a cada maestro que lo marque, en proporción a lo que hizo (½ sábado,
+   medio recargo). Como la tarifa, queda congelado DENTRO de la semana, para
+   que subirlo mañana no mueva lo que ya se pagó. */
+const RECSAB=5000;
 const MESCORTO=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 /* Fechas en hora local: new Date(iso) las lee en UTC y en Chile eso corre el día */
 function isoDe(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
@@ -2601,8 +2607,12 @@ function semanaDe(ini){
   const c=state.control;
   if(!Array.isArray(c.semanas))c.semanas=[];
   let s=c.semanas.find(x=>x.ini===ini);
-  if(!s){s={ini:ini,part:"",cerrada:false,filas:[]};c.semanas.push(s);}
+  if(!s){s={ini:ini,part:"",cerrada:false,recSab:RECSAB,filas:[]};c.semanas.push(s);}
   if(!Array.isArray(s.filas))s.filas=[];
+  // Semanas de antes del recargo: lo toman solo si siguen abiertas y sin sábado
+  // marcado. Una semana ya pagada no cambia de monto por esto.
+  if(s.recSab===undefined)
+    s.recSab=(!s.cerrada&&!s.filas.some(f=>(+(f.d||[])[5]||0)>0))?RECSAB:0;
   s.filas.forEach(f=>{if(!Array.isArray(f.d)||f.d.length!==7)f.d=[0,0,0,0,0,0,0];});
   if(!s.cerrada){
     // Una semana ABIERTA toma a los maestros que falten en la cuadrilla.
@@ -2633,14 +2643,18 @@ function semanaDe(ini){
   return s;
 }
 function jornadasFila(f){return (f.d||[]).reduce((a,x)=>a+(+x||0),0);}
+function recargoFila(s,f){return (+((f&&f.d||[])[5])||0)*(+(s&&s.recSab)||0);}
+function pagoFila(s,f){return jornadasFila(f)*(+f.tarifa||0)+recargoFila(s,f);}
 function totalSemana(s){
-  let tot=0,jm1=0,jm2=0;
+  let tot=0,jm1=0,jm2=0,sab=0,jsab=0;
   (s&&s.filas||[]).forEach(f=>{
     const j=jornadasFila(f);
     tot+=j*(+f.tarifa||0);
+    const r=recargoFila(s,f);
+    if(r>0){sab+=r;jsab+=(+((f.d||[])[5])||0);}
     if(f.tipo==="m2")jm2+=j;else jm1+=j;
   });
-  return {tot:tot,jm1:jm1,jm2:jm2,jor:jm1+jm2};
+  return {tot:tot+sab,jm1:jm1,jm2:jm2,jor:jm1+jm2,sab:sab,jsab:jsab};
 }
 /* Deja la semana reflejada como UN gasto de mano de obra de esta obra.
    El gasto lleva semId, así que reabrir y corregir actualiza el mismo registro
@@ -2658,13 +2672,14 @@ function sincronizarGastoSemana(s){
   }
   const resumen=s.filas.filter(f=>jornadasFila(f)>0)
     .map(f=>`${f.nombre} ${jorTexto(jornadasFila(f))}`).join(" · ");
+  const recTxt=t.sab>0?` — recargo de sábado ${CLP(t.sab)}`:"";
   const g={
     // El viernes de la semana que cubre, no el día en que se cerró la planilla:
     // así el gasto cae en la semana a la que corresponde el trabajo.
     fecha:sumarDias(s.ini,4),
     monto:t.tot, cat:"mano_obra", part:s.part||"", prov:"",
     jor:{m1:t.jm1, m2:t.jm2}, semId:s.ini,
-    nota:`Maestros semana del ${rotuloSemana(s.ini)}${resumen?" — "+resumen:""}`
+    nota:`Maestros semana del ${rotuloSemana(s.ini)}${resumen?" — "+resumen:""}${recTxt}`
   };
   if(ix>=0)c.gastos[ix]=g;else c.gastos.push(g);
 }
@@ -3552,9 +3567,9 @@ function htmlSemana(){
     s.filas.forEach((f,fi)=>{
       const j=jornadasFila(f);
       h+=`<tr>
-        <td class="semnom" title="${esc(f.nombre)} · ${f.tipo==="m2"?"M2":"M1"} · ${CLP(f.tarifa)} por jornada">
+        <td class="semnom" title="${esc(f.nombre)} · ${f.tipo==="m2"?"M2":"M1"} · ${CLP(f.tarifa)} por jornada${recargoFila(s,f)>0?" + "+CLP(recargoFila(s,f))+" de recargo de sábado":""}">
           <div class="semnombre">${esc(f.nombre)}</div>
-          <div class="sempaga"><span class="semtipo ${f.tipo==="m2"?"m2":"m1"}">${f.tipo==="m2"?"M2":"M1"}</span>${j>0?CLP(j*(+f.tarifa||0)):"—"}</div>
+          <div class="sempaga"><span class="semtipo ${f.tipo==="m2"?"m2":"m1"}">${f.tipo==="m2"?"M2":"M1"}</span>${j>0?CLP(pagoFila(s,f)):"—"}${recargoFila(s,f)>0?`<span class="semrec" title="recargo de sábado">+${CLP(recargoFila(s,f))}</span>`:""}</div>
         </td>
         ${(f.d||[]).slice(0,nDias).map((v,di)=>`<td class="semcel"><button class="semd ${(+v)===1?"lleno":((+v)===0.5?"medio":"")}"
             data-semd="${fi},${di}" ${s.cerrada?"disabled":""}
@@ -3563,6 +3578,7 @@ function htmlSemana(){
       </tr>`;
     });
     h+=`</table></div>
+    ${t.sab>0?`<div class="tot"><span>Recargo de sábado · ${jorTexto(t.jsab)} jornada${t.jsab===1?"":"s"} × ${CLP(s.recSab)}</span><span>${CLP(t.sab)}</span></div>`:""}
     <div class="tot big"><span>Total de la semana</span><span>${CLP(t.tot)}</span></div>
     <div class="row">
       <span class="small" style="color:var(--muted)">Jornadas: ${jorTexto(t.jm1)} de M1 · ${jorTexto(t.jm2)} de M2</span>
