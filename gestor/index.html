@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.34</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.36</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -116,6 +116,21 @@ input[type=color]{width:26px;height:26px;border:none;background:none;padding:0;c
 .semd.medio{background:#4a2a14;border-color:#7a431f;color:#ffb98a}
 .semd.lleno{background:var(--naranja);border-color:var(--naranja);color:#fff;font-weight:700}
 .semd:disabled{cursor:default;opacity:.75}
+/* ---- importador de boletas ---- */
+.bol-card{border:1px solid var(--line);border-left:3px solid var(--naranja);border-radius:4px;padding:8px 10px;margin:8px 0;background:var(--panel2)}
+.bol-card.bol-ya,.bol-card.bol-fuera{border-left-color:var(--muted);opacity:.6}
+.bol-cab{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:12px}
+.bol-cab b.prov{color:var(--txt);font-size:13px}
+.bol-cab .monto{margin-left:auto;font-family:var(--mono);font-weight:700;color:var(--naranja2)}
+.bol-rev{font-size:11px;color:var(--warn);margin:3px 0 0 2px}
+.bol-ya-txt{font-size:11px;color:var(--ok);margin:3px 0 0 2px}
+.bol-tog{font-size:11px;color:var(--txt2);cursor:pointer;margin-top:6px;user-select:none}
+.bol-items{width:100%;font-size:11px;border-collapse:collapse;margin-top:4px}
+.bol-items td{padding:3px 4px;border-top:1px solid var(--line);vertical-align:middle}
+.bol-items select{font-size:10px;max-width:130px}
+.bol-rep{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;margin:4px 0 0 2px}
+.bol-rep label{width:auto;cursor:pointer;color:var(--txt)}
+.bol-pie{position:sticky;bottom:-18px;background:var(--panel);padding:10px 0 2px;border-top:1px solid var(--line);margin-top:8px}
 
 table{width:100%;border-collapse:collapse;font-size:11px}
 th{color:var(--txt2);text-align:left;font-weight:600;padding:4px 4px;border-bottom:1px solid var(--line);font-size:10px;letter-spacing:.5px}
@@ -184,6 +199,16 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
   .semcel{width:36px}
   .semnom{max-width:150px}
   .semnombre{font-size:12px}
+  /* Boletas en el teléfono: cada ítem en dos líneas, las listas debajo y legibles */
+  #tabContent table.bol-items,.bol-items{table-layout:auto;font-size:12px}
+  .bol-items tr{display:flex;flex-wrap:wrap;gap:4px 6px;border-top:1px solid var(--line);padding:6px 0}
+  .bol-items td{border-top:none!important;padding:0!important}
+  .bol-items td:first-child{flex:1 1 60%;min-width:0}
+  .bol-items td.money{flex:0 0 auto}
+  .bol-items td:nth-child(n+3){flex:1 1 30%;min-width:0}
+  .bol-items select{max-width:none;width:100%;font-size:13px}
+  .bol-pie .row{flex-wrap:wrap}
+  #bolRegistrar{order:-1;flex:1 1 100%;margin-bottom:6px}
 
   #status{flex-wrap:wrap;gap:10px;padding:5px 10px;font-size:10px}
   #stCoord,#stEscala{display:none}
@@ -313,7 +338,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.34</span></span></a>
+    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.36</span></span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <select id="selProyecto" title="Cambiar de proyecto"></select>
   <span id="nubeDot" class="nube-dot off" title="Sin nube"></span>
@@ -331,6 +356,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
   <input type="file" id="filePDF" accept="application/pdf" hidden>
   <input type="file" id="fileCSV" accept=".csv,text/csv" hidden>
   <input type="file" id="fileJSON" accept=".json,application/json" hidden>
+  <input type="file" id="fileBoletas" accept=".averarq,.json,application/json,text/plain" hidden>
 </div>
 
 <div id="main">
@@ -433,14 +459,18 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <button class="btn primary" id="proyCerrar">Cerrar</button>
   </div>
 </dialog>
+<dialog id="dlgBoletas" style="max-width:780px">
+  <h2>🧾 BOLETAS A REGISTRAR</h2>
+  <div id="bolCuerpo"></div>
+</dialog>
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.34 =================
+/* ================= GESTOR AVERARQ v3.36 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.34";
+const GESTOR_VERSION="v3.36";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -2472,10 +2502,94 @@ function rotuloSemana(ini){
                          : `${dd(ini)} de ${mm(ini)} al ${dd(f)} de ${mm(f)}`;
 }
 /* La cuadrilla de esta obra: los maestros con nombre y su tarifa */
-function cuadrilla(){
-  const c=state.control;
-  if(!Array.isArray(c.cuadrilla))c.cuadrilla=[];
-  return c.cuadrilla;
+/* ---------------------------------------------------------------------------
+   CUADRILLA DEL TALLER
+   Los maestros son los mismos en todas las obras: se anotan una vez, con su
+   tarifa, y aparecen en la planilla de cada proyecto. Viven en este navegador
+   y en la nube (/api/cuadrilla); entre dos versiones gana la más reciente,
+   igual que el pañol.
+   Lo ya pagado no depende de esta lista: cada semana guarda adentro el nombre
+   y la tarifa con que se marcó.
+--------------------------------------------------------------------------- */
+const CUAD_KEY="averarq_cuadrilla";
+let cuadTaller=null, cuadTimer=null;
+function cuadNuevoId(){return "m"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+/* "Felipe López", "felipe lopez " y "Felipe  Lopez" son la misma persona */
+function normNombre(s){
+  return String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/\s+/g," ").trim();
+}
+const limpiaNombre=s=>String(s||"").replace(/\s+/g," ").trim();
+/* Junta maestros de varias listas, en orden de preferencia: mismo id o mismo
+   nombre es la misma persona y queda una sola vez, con la tarifa de la primera
+   lista donde aparece. Entre dos escrituras del nombre se queda la que lleva
+   tilde: "Felipe López" antes que "Felipe Lopez". */
+function fusionarMaestros(listas){
+  const out=[];
+  listas.forEach(l=>(l||[]).forEach(m=>{
+    const nom=limpiaNombre(m&&m.nombre);
+    if(!nom)return;
+    const ya=out.find(x=>(m.id&&x.id===m.id)||normNombre(x.nombre)===normNombre(nom));
+    if(!ya){
+      out.push({id:m.id||cuadNuevoId(),nombre:nom,tipo:m.tipo==="m2"?"m2":"m1",tarifa:+m.tarifa||0,activo:m.activo!==false});
+      return;
+    }
+    if(nom.normalize("NFD").length>ya.nombre.normalize("NFD").length)ya.nombre=nom;
+  }));
+  return out;
+}
+function cuadrillaTaller(){
+  if(cuadTaller)return cuadTaller;
+  try{
+    const c=JSON.parse(localStorage.getItem(CUAD_KEY)||"null");
+    if(c&&Array.isArray(c.maestros))cuadTaller={maestros:c.maestros,actualizado:c.actualizado||""};
+  }catch(e){}
+  if(!cuadTaller){
+    // Primera vez con v3.35: se arma con los maestros que ya estaban anotados en
+    // las obras, de la más reciente a la más antigua. Queda SIN fecha a propósito:
+    // así cualquier versión que ya esté en la nube le gana y no se pisa nada.
+    const listas=[];
+    if(state&&state.control&&Array.isArray(state.control.cuadrilla))listas.push(state.control.cuadrilla);
+    proyIndice().slice().sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).forEach(it=>{
+      if(it.id===proyActivo)return;
+      const sn=proyLeer(it.id);
+      if(sn&&sn.control&&Array.isArray(sn.control.cuadrilla))listas.push(sn.control.cuadrilla);
+    });
+    cuadTaller={maestros:fusionarMaestros(listas),actualizado:""};
+    try{localStorage.setItem(CUAD_KEY,JSON.stringify(cuadTaller));}catch(e){}
+  }
+  return cuadTaller;
+}
+/* Todos los maestros, también los dados de baja (para no perder su historia) */
+function cuadrilla(){return cuadrillaTaller().maestros;}
+function cuadrillaActivos(){return cuadrilla().filter(m=>m.activo!==false);}
+function cuadrillaGuardar(){
+  const c=cuadrillaTaller();
+  c.actualizado=new Date().toISOString();
+  try{localStorage.setItem(CUAD_KEY,JSON.stringify(c));}catch(e){}
+  cuadrillaSubir();
+}
+function cuadrillaSubir(){
+  if(!nubeCfg)return;
+  clearTimeout(cuadTimer);
+  cuadTimer=setTimeout(()=>{
+    nubeFetch("/api/cuadrilla",{method:"PUT",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(cuadrillaTaller())}).catch(()=>{});
+  },1200);
+}
+function cuadrillaBajar(){
+  if(!nubeCfg)return Promise.resolve();
+  return nubeFetch("/api/cuadrilla").then(r=>{
+    const rem=r&&r.cuadrilla, loc=cuadrillaTaller();
+    if(rem&&Array.isArray(rem.maestros)){
+      if((rem.actualizado||"")>(loc.actualizado||"")){
+        cuadTaller={maestros:rem.maestros,actualizado:rem.actualizado};
+        try{localStorage.setItem(CUAD_KEY,JSON.stringify(cuadTaller));}catch(e){}
+        if(curTab==="control")renderTab();
+      }else if((loc.actualizado||"")>(rem.actualizado||""))cuadrillaSubir();
+    }else if(loc.maestros.length){
+      cuadrillaSubir();            // la nube todavía no la tiene: primer uso del backend v10
+    }
+  }).catch(()=>{});                // backend sin la ruta: se sigue con la copia local
 }
 /* Trae la semana que empieza ese lunes; la crea si no existe.
    A una semana ya cerrada no se le agregan maestros nuevos: ya se pagó. */
@@ -2492,13 +2606,25 @@ function semanaDe(ini){
     // tenga días marcados en la semana. Una vez que hay días anotados, el valor
     // del día queda congelado: lo trabajado no puede cambiar de precio porque
     // después se haya subido la tarifa, ni al reabrir la semana para corregirla.
-    cuadrilla().forEach(m=>{
-      if(m.activo===false)return;
-      const f=s.filas.find(x=>x.mid===m.id);
+    const activos=cuadrillaActivos();
+    const idsTaller=new Set(cuadrilla().map(m=>m.id));
+    activos.forEach(m=>{
+      // Por id; si no calza, por nombre: las semanas abiertas de antes de v3.35
+      // guardaron a cada maestro con el id que tenía en esa obra.
+      let f=s.filas.find(x=>x.mid===m.id);
+      if(!f){
+        f=s.filas.find(x=>!idsTaller.has(x.mid)&&normNombre(x.nombre)===normNombre(m.nombre));
+        if(f)f.mid=m.id;
+      }
       if(!f){s.filas.push({mid:m.id,nombre:m.nombre,tipo:m.tipo,tarifa:+m.tarifa||0,d:[0,0,0,0,0,0,0]});return;}
       f.nombre=m.nombre;
       if(jornadasFila(f)===0){f.tipo=m.tipo;f.tarifa=+m.tarifa||0;}
     });
+    // Filas vacías de quien ya no está en la cuadrilla (dado de baja, o el
+    // duplicado de una obra antigua) se retiran. Una fila con días marcados
+    // nunca se toca: esos días se trabajaron y se pagan.
+    const idsActivos=new Set(activos.map(m=>m.id));
+    s.filas=s.filas.filter(f=>idsActivos.has(f.mid)||jornadasFila(f)>0);
   }
   return s;
 }
@@ -2731,6 +2857,352 @@ function recordarProveedor(nom){
     const a=JSON.parse(localStorage.getItem(PROV_KEY)||"[]");
     if(!a.includes(nom)){a.push(nom);localStorage.setItem(PROV_KEY,JSON.stringify(a));}
   }catch(e){}
+}
+/* ===========================================================================
+   BOLETAS → GASTOS  (archivos .averarq)
+   La foto de la boleta se lee en un chat con la habilidad "boletas AVERARQ",
+   que devuelve un .averarq (o el mismo texto para pegar). Acá se revisa, se
+   asigna a un cliente y a sus obras, y se registra como gastos.
+   - Las compras son por cliente: cada boleta elige cliente y obra, y lo que no
+     se sabe a qué obra fue se reparte en partes iguales entre las que se marquen.
+   - Una boleta se separa por obra, categoría y partida. Herramientas e insumos
+     van un gasto por ítem, para que el PAÑOL los cuente por nombre.
+   - Cada gasto guarda la boleta (proveedor, RUT, folio) y sus ítems con precio:
+     de ahí sale después la calibración de precios de la APU.
+   - Una boleta ya registrada se reconoce y no se carga dos veces.
+=========================================================================== */
+let bolImp=null;                      // lote en revisión
+const BOL_CLI="averarq_bol_cliente";  // último cliente usado
+const dinero=x=>{
+  if(typeof x==="number")return isFinite(x)?Math.round(x):0;
+  const n=parseInt(String(x??"").replace(/[^\d-]/g,""),10);   // "205.277" -> 205277
+  return isFinite(n)?n:0;
+};
+const normRut=r=>String(r||"").toUpperCase().replace(/[^0-9K]/g,"");
+function fechaISO(f){
+  const t=String(f||"").trim();
+  let m=/^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(t);
+  if(m)return m[1]+"-"+m[2].padStart(2,"0")+"-"+m[3].padStart(2,"0");
+  m=/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/.exec(t);
+  if(m)return m[3]+"-"+m[2].padStart(2,"0")+"-"+m[1].padStart(2,"0");
+  return hoyISO();
+}
+/* Huella de una boleta: RUT + folio; si el folio quedó tapado, RUT + transacción;
+   y si tampoco, RUT + fecha + total. Se calcula acá y no se confía en la que
+   traiga el archivo, para que dos chats distintos den siempre la misma. */
+function boletaClave(b){
+  const rut=normRut(b.rut)||normNombre(b.proveedor);
+  const folio=String(b.folio||"").replace(/\D/g,"").replace(/^0+/,"");
+  if(folio)return rut+"|f"+folio;
+  const tx=String(b.transaccion||"").replace(/\D/g,"").replace(/^0+/,"");
+  if(tx)return rut+"|t"+tx;
+  return rut+"|"+b.fecha+"|"+b.total;
+}
+function boletaNormalizar(b){
+  b=b||{};
+  const items=(Array.isArray(b.items)?b.items:[]).map(it=>{
+    it=it||{};
+    const cant=typeof it.cant==="number"?it.cant:(parseFloat(String(it.cant??"1").replace(",","."))||1);
+    const precio=dinero(it.precio), descuento=Math.abs(dinero(it.descuento));
+    let total=dinero(it.total);
+    if(!total&&precio)total=Math.round(cant*precio-descuento);
+    return {
+      codigo:it.codigo?String(it.codigo):"",
+      original:limpiaNombre(it.original||it.desc||""),
+      desc:limpiaNombre(it.desc||it.original||"Ítem sin nombre"),
+      cant, unidad:String(it.unidad||"un"), precio, descuento, total,
+      cat:CATGASTO.some(c=>c[0]===it.cat)?it.cat:"material",
+      part:PARTGASTO.some(p=>p[0]===it.part)?it.part:"",
+      _obra:""                       // "" = la obra de la boleta
+    };
+  }).filter(it=>it.total>0);
+  const suma=items.reduce((s,x)=>s+x.total,0);
+  const total=dinero(b.total)||suma;
+  const revisar=(Array.isArray(b.revisar)?b.revisar:[]).map(String).filter(Boolean);
+  // Lo que no cuadra se avisa: la lectura de una foto puede equivocarse
+  items.forEach((it,i)=>{
+    if(it.precio&&Math.round(it.cant*it.precio-it.descuento)!==it.total)
+      revisar.push(`Línea ${i+1} (${it.desc}): ${it.cant} × ${CLP(it.precio)}${it.descuento?" − "+CLP(it.descuento):""} no da ${CLP(it.total)}.`);
+  });
+  if(suma!==total)revisar.push(`Los ítems suman ${CLP(suma)} y el total de la boleta dice ${CLP(total)}.`);
+  if(!items.length)revisar.push("La boleta no trae ítems legibles.");
+  const out={
+    proveedor:limpiaNombre(b.proveedor||b.razonSocial||"Sin proveedor"),
+    razonSocial:limpiaNombre(b.razonSocial||""), rut:String(b.rut||""),
+    sucursal:String(b.sucursal||""), tipoDoc:b.tipoDoc==="factura"?"factura":"boleta",
+    folio:b.folio?String(b.folio):"", transaccion:b.transaccion?String(b.transaccion):"",
+    fecha:fechaISO(b.fecha), hora:b.hora?String(b.hora):"", medioPago:String(b.medioPago||""),
+    total, pagado:dinero(b.pagado)||0, iva:dinero(b.iva)||0,
+    items, revisar, nota:String(b.nota||""),
+    _incluir:true, _cli:"", _obra:"", _rep:[], _abierta:false, _ya:null
+  };
+  out._clave=boletaClave(out);
+  return out;
+}
+/* Acepta el archivo tal cual, o el texto copiado del chat aunque venga con
+   ```json ... ``` o con una frase antes y después. */
+function boletasLeer(texto){
+  const t=String(texto||"").trim();
+  let d;
+  try{d=JSON.parse(t);}
+  catch(e){
+    const i=t.indexOf("{"), j=t.lastIndexOf("}");
+    if(i<0||j<=i)throw new Error("no encontré datos de boletas en el texto");
+    try{d=JSON.parse(t.slice(i,j+1));}catch(e2){throw new Error("el texto está incompleto o mal copiado");}
+  }
+  const lista=Array.isArray(d)?d:(Array.isArray(d&&d.boletas)?d.boletas:((d&&d.items)?[d]:null));
+  if(!lista||!lista.length)throw new Error("el archivo no trae boletas");
+  return lista.map(boletaNormalizar);
+}
+/* Boletas ya registradas en cualquier obra de la biblioteca: clave -> obras */
+function boletasRegistradas(){
+  const m=new Map();
+  for(const e of proyIndice()){
+    const sn=(e.id===proyActivo)?state:proyLeer(e.id);
+    const gs=(sn&&sn.control&&Array.isArray(sn.control.gastos))?sn.control.gastos:[];
+    gs.forEach(x=>{
+      const k=x&&x.boleta&&x.boleta.clave; if(!k)return;
+      const nom=(e.id===proyActivo?state.proyecto:sn.proyecto)||e.nombre||"obra";
+      const l=m.get(k)||[]; if(!l.includes(nom))l.push(nom); m.set(k,l);
+    });
+  }
+  return m;
+}
+function obrasDeCliente(cli){
+  const g=proyPorCliente().find(([c])=>c===cli);
+  return g?g[1]:[];
+}
+function bolAbrirLote(lista){
+  const ya=boletasRegistradas(), vistas=new Set();
+  let cli="";try{cli=localStorage.getItem(BOL_CLI)||"";}catch(e){}
+  const cliActivo=((state.obra&&state.obra.info&&state.obra.info.cliente)||"").trim();
+  if(!clientesConocidos().includes(cli))cli=cliActivo;
+  lista.forEach(b=>{
+    if(ya.has(b._clave)){b._ya=ya.get(b._clave);b._incluir=false;}
+    else if(vistas.has(b._clave)){b._ya=["esta misma tanda"];b._incluir=false;}
+    vistas.add(b._clave);
+    // Se sugiere el cliente, nunca la obra: con compras repartidas entre obras,
+    // dejar la abierta por defecto es la forma más fácil de cargarle todo a la
+    // que no corresponde con un toque apurado.
+    b._cli=cli;
+    b._obra="";
+  });
+  bolImp={boletas:lista};
+  bolPintar();
+}
+function bolAbrir(){
+  bolImp=null;
+  const f=$("#fileBoletas");if(f)f.value="";   // si no, elegir el mismo archivo otra vez no avisa
+  bolPintar();
+  const d=$("#dlgBoletas");if(d&&!d.open)d.showModal();
+}
+/* Detalle de la boleta para el 🧾 de la lista de gastos */
+function detalleBoleta(g){
+  const b=g.boleta||{};
+  const cab=`${b.proveedor||g.prov||""} · ${b.tipoDoc||"boleta"} ${String(b.folio||"").replace(/^0+/,"")||"s/n"} · ${b.fecha||g.fecha} · total boleta ${CLP(b.total||0)}`;
+  const lin=(g.items||[]).map(it=>`${String(it.cant).replace(".",",")} × ${it.desc}  ${CLP(it.monto!=null?it.monto:it.total)}${it.reparto?" ("+it.reparto+")":""}`);
+  return [cab,...lin].join("\n");
+}
+/* Lo que va a quedar registrado: [{obra, gasto}] para todas las boletas incluidas */
+function bolAsignaciones(){
+  const out=[];
+  for(const b of (bolImp?bolImp.boletas:[])){
+    if(!b._incluir||b._ya)continue;
+    const partes=[];
+    b.items.forEach((it,k)=>{
+      const dest=it._obra||b._obra;
+      if(dest==="rep"){
+        const obras=b._rep.slice(), n=obras.length; if(!n)return;
+        // partes iguales en pesos enteros: el resto va a las primeras, y suma exacto
+        const base=Math.floor(it.total/n); let resto=it.total-base*n;
+        obras.forEach((o,j)=>{const m=base+(j<resto?1:0);if(m>0)partes.push({obra:o,it,k,monto:m,n});});
+      }else if(dest)partes.push({obra:dest,it,k,monto:it.total,n:1});
+    });
+    const grupos=new Map();
+    partes.forEach(p=>{
+      const unoPorItem=CATHERR.includes(p.it.cat);
+      const clave=p.obra+"|"+p.it.cat+"|"+p.it.part+(unoPorItem?"|"+p.k:"");
+      if(!grupos.has(clave))grupos.set(clave,{obra:p.obra,cat:p.it.cat,part:p.it.part,monto:0,items:[],herr:unoPorItem?p.it.desc:""});
+      const g=grupos.get(clave);
+      g.monto+=p.monto;
+      const item={desc:p.it.desc,original:p.it.original,codigo:p.it.codigo,cant:p.it.cant,unidad:p.it.unidad,
+                  precio:p.it.precio,descuento:p.it.descuento,total:p.it.total,monto:p.monto};
+      if(p.n>1)item.reparto="1/"+p.n;
+      g.items.push(item);
+    });
+    const folioCorto=String(b.folio||"").replace(/^0+/,"");
+    for(const g of grupos.values()){
+      const lista=g.items.map(x=>x.desc+(x.cant!==1?" ×"+String(x.cant).replace(".",","):"")+(x.reparto?" ("+x.reparto+")":""));
+      let nota=(b.tipoDoc==="factura"?"Factura ":"Boleta ")+(folioCorto||"s/n")+" · "+lista.join(", ");
+      if(nota.length>150)nota=nota.slice(0,147)+"…";
+      out.push({obra:g.obra,boleta:b,gasto:{
+        fecha:b.fecha,monto:g.monto,cat:g.cat,part:g.part,prov:b.proveedor,herr:g.herr,nota,
+        boleta:{clave:b._clave,proveedor:b.proveedor,razonSocial:b.razonSocial,rut:b.rut,folio:b.folio,
+                transaccion:b.transaccion,fecha:b.fecha,total:b.total,medioPago:b.medioPago,tipoDoc:b.tipoDoc},
+        items:g.items}});
+    }
+  }
+  return out;
+}
+/* Qué falta para poder registrar, en palabras */
+function bolFaltas(){
+  const f=[];
+  (bolImp?bolImp.boletas:[]).forEach((b,i)=>{
+    if(!b._incluir||b._ya)return;
+    const nom=`${b.proveedor} del ${b.fecha.slice(8,10)}-${b.fecha.slice(5,7)}`;
+    if(!b._cli){f.push(nom+": falta el cliente");return;}
+    const usaRep=b._obra==="rep"||b.items.some(it=>it._obra==="rep");
+    if(b.items.some(it=>!(it._obra||b._obra)))f.push(nom+": falta la obra");
+    if(usaRep&&!b._rep.length)f.push(nom+": marca entre qué obras repartir");
+  });
+  return f;
+}
+function bolPintar(){
+  const c=$("#bolCuerpo");if(!c)return;
+  if(!bolImp){
+    c.innerHTML=`
+      <p class="small" style="margin-bottom:10px">Manda las fotos de tus boletas a un chat con Claude: te devuelve un archivo
+      <b>.averarq</b>. Ábrelo acá, o pega el texto que te dio.</p>
+      <div class="row"><button class="btn primary grow" id="bolArchivo">📂 Elegir archivo .averarq</button></div>
+      <div class="row" style="margin-top:6px"><textarea id="bolTexto" rows="5" class="grow" placeholder="…o pega aquí el texto que te dio el chat" style="font-family:var(--mono);font-size:11px;width:100%"></textarea></div>
+      <div class="row"><span class="small grow" id="bolErr" style="color:var(--warn)"></span>
+        <button class="btn" id="bolCerrar">Cerrar</button><button class="btn primary" id="bolPegar">Leer texto</button></div>`;
+    $("#bolArchivo").onclick=()=>{const f=$("#fileBoletas");f.value="";f.click();};
+    $("#bolCerrar").onclick=()=>$("#dlgBoletas").close();
+    $("#bolPegar").onclick=()=>{
+      try{bolAbrirLote(boletasLeer($("#bolTexto").value));}
+      catch(e){$("#bolErr").textContent="No pude leerlo: "+e.message+".";}
+    };
+    return;
+  }
+  const clientes=clientesConocidos();
+  const lote=bolImp.boletas;
+  const vivas=lote.filter(b=>b._incluir&&!b._ya);
+  const totalVivo=vivas.reduce((s,b)=>s+b.total,0);
+  const cliTodas=vivas.length&&vivas.every(b=>b._cli===vivas[0]._cli)?vivas[0]._cli:"";
+  let h=`<div class="row" style="align-items:baseline">
+      <span class="small grow">${lote.length} boleta${lote.length===1?"":"s"} leída${lote.length===1?"":"s"}${lote.length!==vivas.length?` · ${vivas.length} por registrar`:""}</span>
+      <label class="small" style="width:auto">Cliente para todas</label>
+      <select id="bolCliTodas" style="max-width:220px"><option value="">—</option>${clientes.map(x=>`<option ${x===cliTodas?"selected":""}>${esc(x)}</option>`).join("")}</select>
+    </div>`;
+  lote.forEach((b,i)=>{
+    const obras=b._cli?obrasDeCliente(b._cli):[];
+    const opObras=(sel,conHerencia)=>(conHerencia?`<option value="" ${!sel?"selected":""}>como la boleta</option>`:`<option value="" ${!sel?"selected":""}>— obra —</option>`)
+      +obras.map(o=>`<option value="${o.id}" ${sel===o.id?"selected":""}>${esc(o.nombre||"Sin título")}${proyTerminada(o)?" (terminada)":""}</option>`).join("")
+      +(obras.length>1?`<option value="rep" ${sel==="rep"?"selected":""}>➗ repartir en partes iguales</option>`:"");
+    const usaRep=b._obra==="rep"||b.items.some(it=>it._obra==="rep");
+    const porCat={};b.items.forEach(it=>porCat[it.cat]=(porCat[it.cat]||0)+it.total);
+    const resumen=Object.entries(porCat).map(([k,v])=>`${CATNOMBRE(k)} ${CLP(v)}`).join(" · ");
+    h+=`<div class="bol-card ${b._ya?"bol-ya":(b._incluir?"":"bol-fuera")}">
+      <div class="bol-cab">
+        <input type="checkbox" style="width:auto" data-bolinc="${i}" ${b._incluir&&!b._ya?"checked":""} ${b._ya?"disabled":""} title="Incluir esta boleta">
+        <b class="prov">${esc(b.proveedor)}</b>
+        <span>${b.fecha.slice(8,10)}-${b.fecha.slice(5,7)}-${b.fecha.slice(0,4)}</span>
+        <span class="small" style="color:var(--muted)">${b.tipoDoc} ${b.folio?esc(String(b.folio).replace(/^0+/,"")):"s/n"}${b.medioPago?" · "+esc(b.medioPago):""}</span>
+        <span class="monto">${CLP(b.total)}</span>
+      </div>
+      ${b._ya?`<div class="bol-ya-txt">✓ Ya registrada en ${esc(b._ya.join(", "))}: no se vuelve a cargar.</div>`:""}
+      ${b.revisar.map(r=>`<div class="bol-rev">⚠ ${esc(r)}</div>`).join("")}
+      ${b.nota?`<div class="small" style="color:var(--txt2);margin:3px 0 0 2px">${esc(b.nota)}</div>`:""}
+      ${(!b._ya&&b._incluir)?`
+      <div class="row" style="margin-top:6px">
+        <select data-bolcli="${i}" class="grow" style="min-width:150px"><option value="">— cliente —</option>${clientes.map(x=>`<option ${x===b._cli?"selected":""}>${esc(x)}</option>`).join("")}</select>
+        <select data-bolobra="${i}" class="grow" style="min-width:170px" ${b._cli?"":"disabled"}>${opObras(b._obra,false)}</select>
+      </div>
+      ${usaRep?`<div class="bol-rep"><span style="color:var(--txt2)">Repartir entre:</span>${obras.map(o=>`<label><input type="checkbox" style="width:auto" data-bolrep="${i}" data-obra="${o.id}" ${b._rep.includes(o.id)?"checked":""}> ${esc(o.nombre||"Sin título")}</label>`).join("")}</div>`:""}
+      <div class="bol-tog" data-boltog="${i}">${b._abierta?"▾":"▸"} ${b.items.length} ítem${b.items.length===1?"":"s"} · ${resumen}</div>
+      ${b._abierta?`<table class="bol-items">${b.items.map((it,k)=>`<tr>
+          <td title="${esc(it.original)}${it.codigo?" · "+esc(it.codigo):""}">${esc(it.desc)}<div class="small" style="color:var(--muted)">${String(it.cant).replace(".",",")} ${esc(it.unidad)} × ${CLP(it.precio)}${it.descuento?" − "+CLP(it.descuento):""}</div></td>
+          <td class="money">${CLP(it.total)}</td>
+          <td><select data-bolcat="${i},${k}">${opcionesCategoria(it.cat)}</select></td>
+          <td><select data-bolpart="${i},${k}">${opcionesPartida(it.part)}</select></td>
+          <td><select data-bolitobra="${i},${k}" ${b._cli?"":"disabled"}>${opObras(it._obra,true)}</select></td>
+        </tr>`).join("")}</table>`:""}`:""}
+    </div>`;
+  });
+  const faltas=bolFaltas();
+  h+=`<div class="bol-pie">
+    ${faltas.length?`<div class="small" style="color:var(--warn);margin-bottom:6px">Falta: ${esc(faltas.join(" · "))}</div>`:""}
+    <div class="row"><button class="btn" id="bolOtro">‹ Otro archivo</button><span class="grow"></span>
+      <button class="btn" id="bolCancelar">Cancelar</button>
+      <button class="btn primary" id="bolRegistrar" ${(faltas.length||!vivas.length)?"disabled":""}>Registrar ${vivas.length} boleta${vivas.length===1?"":"s"} · ${CLP(totalVivo)}</button></div>
+  </div>`;
+  c.innerHTML=h;
+  // ---- eventos ----
+  const repintar=()=>bolPintar();
+  $("#bolOtro").onclick=()=>{bolImp=null;bolPintar();};
+  $("#bolCancelar").onclick=()=>{bolImp=null;$("#dlgBoletas").close();};
+  $("#bolRegistrar").onclick=()=>bolRegistrar();
+  const cliT=$("#bolCliTodas");if(cliT)cliT.onchange=()=>{
+    lote.forEach(b=>{if(b._incluir&&!b._ya&&b._cli!==cliT.value){b._cli=cliT.value;b._obra="";b._rep=[];b.items.forEach(it=>it._obra="");}});
+    try{localStorage.setItem(BOL_CLI,cliT.value);}catch(e){}
+    repintar();
+  };
+  $$("#bolCuerpo [data-bolinc]").forEach(x=>x.onchange=()=>{lote[+x.dataset.bolinc]._incluir=x.checked;repintar();});
+  $$("#bolCuerpo [data-bolcli]").forEach(x=>x.onchange=()=>{
+    const b=lote[+x.dataset.bolcli];b._cli=x.value;b._obra="";b._rep=[];b.items.forEach(it=>it._obra="");
+    try{localStorage.setItem(BOL_CLI,x.value);}catch(e){}
+    repintar();
+  });
+  $$("#bolCuerpo [data-bolobra]").forEach(x=>x.onchange=()=>{
+    const b=lote[+x.dataset.bolobra];b._obra=x.value;
+    // al elegir repartir, parte con todas las obras en curso del cliente marcadas
+    if(x.value==="rep"&&!b._rep.length)b._rep=obrasDeCliente(b._cli).filter(o=>!proyTerminada(o)).map(o=>o.id);
+    repintar();
+  });
+  $$("#bolCuerpo [data-bolrep]").forEach(x=>x.onchange=()=>{
+    const b=lote[+x.dataset.bolrep], id=x.dataset.obra;
+    b._rep=x.checked?[...new Set([...b._rep,id])]:b._rep.filter(o=>o!==id);
+    repintar();
+  });
+  $$("#bolCuerpo [data-boltog]").forEach(x=>x.onclick=()=>{const b=lote[+x.dataset.boltog];b._abierta=!b._abierta;repintar();});
+  const enItem=(attr,fn)=>$$(`#bolCuerpo [${attr}]`).forEach(x=>x.onchange=()=>{
+    const [i,k]=x.getAttribute(attr).split(",").map(Number);fn(lote[i],lote[i].items[k],x.value);repintar();});
+  enItem("data-bolcat",(b,it,v)=>{it.cat=v;});
+  enItem("data-bolpart",(b,it,v)=>{it.part=v;});
+  enItem("data-bolitobra",(b,it,v)=>{
+    it._obra=v;
+    if(v==="rep"&&!b._rep.length)b._rep=obrasDeCliente(b._cli).filter(o=>!proyTerminada(o)).map(o=>o.id);
+  });
+}
+async function bolRegistrar(){
+  if(bolFaltas().length)return;
+  const asign=bolAsignaciones();
+  if(!asign.length)return;
+  // Las obras que solo están en la nube se bajan antes de escribirles
+  const ids=[...new Set(asign.map(a=>a.obra))];
+  for(const id of ids){
+    if(id===proyActivo||proyLeer(id))continue;
+    if(!nubeCfg){alert("Una de las obras no está en este navegador y no hay nube conectada para bajarla.");return;}
+    try{await nubeBajar(id);}catch(e){alert("No se pudo bajar una obra de la nube: "+e.message);return;}
+  }
+  const porObra=new Map();
+  asign.forEach(a=>{(porObra.get(a.obra)||porObra.set(a.obra,[]).get(a.obra)).push(a.gasto);});
+  const resumen=[];
+  for(const [id,gs] of porObra){
+    const suma=gs.reduce((s,g)=>s+g.monto,0);
+    if(id===proyActivo){
+      if(!Array.isArray(state.control.gastos))state.control.gastos=[];
+      gs.forEach(g=>state.control.gastos.push(g));
+      resumen.push((state.proyecto||"esta obra")+" "+CLP(suma));
+    }else{
+      const sn=proyLeer(id);if(!sn)continue;
+      if(!sn.control)sn.control={contrato:"",gastos:[]};
+      if(!Array.isArray(sn.control.gastos))sn.control.gastos=[];
+      gs.forEach(g=>sn.control.gastos.push(g));
+      if(!proyEscribir(id,sn))continue;
+      proyTocar(id,sn.proyecto||"Proyecto sin título");
+      nubeSubir(id,sn);
+      resumen.push((sn.proyecto||"obra")+" "+CLP(suma));
+    }
+  }
+  bolImp.boletas.forEach(b=>{if(b._incluir&&!b._ya)recordarProveedor(b.proveedor);});
+  const n=bolImp.boletas.filter(b=>b._incluir&&!b._ya).length;
+  autosave();
+  bolImp=null;
+  $("#dlgBoletas").close();
+  proyFirma="";renderProySelect();renderTab();
+  hint(n+" boleta"+(n===1?"":"s")+" registrada"+(n===1?"":"s")+": "+resumen.join(" · "));
 }
 /* Las herramientas del pañol y las ya arrendadas, para escribir siempre igual
    y que el conteo de arriendos no se parta en dos por una letra distinta. */
@@ -3022,7 +3494,7 @@ function htmlSemana(){
   const s=semanaDe(semIni);
   const t=totalSemana(s);
   const hoy=hoyISO(), estaSem=(semIni===lunesDe(hoy));
-  const cua=cuadrilla();
+  const cua=cuadrillaActivos();
   // La semana de obra es de lunes a viernes. Sábado y domingo aparecen solo si
   // alguien trabajó, o si se despliegan a mano para poder marcarlos.
   const hayFinde=s.filas.some(f=>(+f.d[5]||0)>0||(+f.d[6]||0)>0);
@@ -3046,8 +3518,8 @@ function htmlSemana(){
 
   if(!cua.length && !s.filas.length){
     h+=`<div class="small" style="color:var(--muted);padding:8px 2px">
-      Todavía no hay maestros en esta obra. Agrégalos abajo con su nombre y su tarifa por día;
-      después solo marcas los días que vino cada uno.
+      Todavía no hay maestros en la cuadrilla. Agrégalos abajo una sola vez, con su nombre
+      y su tarifa por día: quedan para todas las obras y después solo marcas los días.
     </div>`;
   }else{
     h+=`<div style="overflow-x:auto;margin:4px 0">
@@ -3055,7 +3527,6 @@ function htmlSemana(){
         <th style="text-align:left">Maestro</th>
         ${DIASEM.slice(0,nDias).map((d,i)=>`<th class="${sumarDias(semIni,i)===hoy?"hoy":""}">${d}</th>`).join("")}
         <th class="semplata">Jorn.</th>
-        ${s.cerrada?"":`<th style="width:18px"></th>`}
       </tr>`;
     s.filas.forEach((f,fi)=>{
       const j=jornadasFila(f);
@@ -3068,7 +3539,6 @@ function htmlSemana(){
             data-semd="${fi},${di}" ${s.cerrada?"disabled":""}
             title="${DIASEM[di]} ${sumarDias(semIni,di).slice(8,10)}">${(+v)===1?"1":((+v)===0.5?"½":"·")}</button></td>`).join("")}
         <td class="semplata" style="color:var(--txt2)">${jorTexto(j)}</td>
-        ${s.cerrada?"":`<td><span class="tdel" data-semquita="${fi}" title="sacar de esta semana">✕</span></td>`}
       </tr>`;
     });
     h+=`</table></div>
@@ -3093,20 +3563,22 @@ function htmlSemana(){
   // ---- cuadrilla ----
   h+=`<div style="border-top:1px solid var(--line);margin-top:8px;padding-top:6px">
     <div class="row">
-      <span class="small" style="cursor:pointer;color:var(--txt2)" id="cuadTog">${cuadAbierta?"▾":"▸"} CUADRILLA (${cua.length})</span>
+      <span class="small" style="cursor:pointer;color:var(--txt2)" id="cuadTog">${cuadAbierta?"▾":"▸"} CUADRILLA DEL TALLER (${cua.length})</span>
       <span class="grow"></span>
-      <span class="small" style="color:var(--muted)">M1 ${CLP(c.tarM1)}/día · M2 ${CLP(c.tarM2)}/día</span>
+      <span class="small" style="color:var(--muted)">${cua.length
+        ? cua.map(m=>`${esc(m.nombre.split(" ")[0])} ${CLP(m.tarifa)}`).join(" · ")
+        : "la misma para todas las obras"}</span>
     </div>`;
   if(cuadAbierta){
-    cua.forEach((m,i)=>{
+    cua.forEach(m=>{
       h+=`<div class="row">
-        <input type="text" class="grow" value="${esc(m.nombre)}" data-cua="nombre" data-ci="${i}" placeholder="nombre">
-        <select style="width:62px" data-cua="tipo" data-ci="${i}">
+        <input type="text" class="grow" value="${esc(m.nombre)}" data-cua="nombre" data-ci="${m.id}" placeholder="nombre">
+        <select style="width:62px" data-cua="tipo" data-ci="${m.id}">
           <option value="m1" ${m.tipo!=="m2"?"selected":""}>M1</option>
           <option value="m2" ${m.tipo==="m2"?"selected":""}>M2</option>
         </select>
-        <input type="number" style="width:90px" value="${+m.tarifa||0}" data-cua="tarifa" data-ci="${i}" title="$ por jornada completa">
-        <span class="tdel" data-cuaquita="${i}" title="quitar de la cuadrilla">✕</span>
+        <input type="number" style="width:90px" value="${+m.tarifa||0}" data-cua="tarifa" data-ci="${m.id}" title="$ por jornada completa">
+        <span class="tdel" data-cuaquita="${m.id}" title="dar de baja de la cuadrilla">✕</span>
       </div>`;
     });
     h+=`<div class="row">
@@ -3115,8 +3587,9 @@ function htmlSemana(){
       <button class="btn primary" id="cuadAdd">+ agregar</button>
     </div>
     <div class="small" style="color:var(--muted);padding:2px">
-      La tarifa se toma de M1/M2 y se puede ajustar por persona. Lo que cambies acá
-      vale para las semanas nuevas: las ya cerradas conservan la tarifa con que se pagaron.
+      La misma cuadrilla para todas las obras, y sincronizada con tu teléfono.
+      Si cambias una tarifa vale desde ahora: las semanas cerradas, y las que ya
+      tienen días marcados, conservan la tarifa con que se anotaron.
     </div>`;
   }
   h+=`</div></div>`;
@@ -3153,7 +3626,8 @@ function htmlControl(){
     <div class="row"><span class="small" style="color:var(--muted)">Es el mismo dato del estado de pago en OBRA: si lo cambias aquí, allá también.</span></div>
   </div>
   <div class="card">
-    <div class="row"><b class="small" style="letter-spacing:1px;color:var(--txt2)">AGREGAR GASTO</b></div>
+    <div class="row"><b class="small" style="letter-spacing:1px;color:var(--txt2)">AGREGAR GASTO</b><span class="grow"></span>
+      <button class="btn mini" id="bolAbrir" title="Registrar boletas leídas desde fotos (archivo .averarq)">🧾 Importar boletas</button></div>
     <div class="row">
       <input type="date" id="ctrlFecha" style="width:140px" value="${new Date().toISOString().slice(0,10)}">
       <input type="number" id="ctrlMonto" style="width:110px" placeholder="monto $">
@@ -3178,7 +3652,7 @@ function htmlControl(){
         <td><select data-ctrledit="${x._i}" data-ck="cat" style="width:118px;font-size:10px;color:${CATCOL[x.cat]||'#999'}">${opcionesCategoria(x.cat)}</select></td>
         <td><select data-ctrledit="${x._i}" data-ck="part" style="width:104px;font-size:10px;color:${PARTCOL[x.part||""]}">${opcionesPartida(x.part||"")}</select></td>
         <td><input type="text" value="${esc(x.prov||"")}" list="listaProv" data-ctrledit="${x._i}" data-ck="prov" style="width:110px;font-size:10px" placeholder="—"></td>
-        <td><input type="text" value="${esc(x.nota||"")}" data-ctrledit="${x._i}" data-ck="nota" style="width:100%;min-width:90px;font-size:11px"></td>
+        <td><div style="display:flex;gap:4px;align-items:center">${x.boleta?`<span style="cursor:help" title="${esc(detalleBoleta(x))}">🧾</span>`:""}<input type="text" value="${esc(x.nota||"")}" data-ctrledit="${x._i}" data-ck="nota" style="flex:1;min-width:90px;font-size:11px"></div></td>
         <td><input type="number" value="${x.monto}" data-ctrledit="${x._i}" data-ck="monto" style="width:78px;font-size:11px;text-align:right"></td>
         <td class="tdel" data-ctrldel="${x._i}">✕</td></tr>`;
     });
@@ -3859,6 +4333,7 @@ function bindTab(){
     const verHerr=()=>{ctrlHerrInp.style.display=CATHERR.includes(ctrlCatSel.value)?"":"none";};
     ctrlCatSel.addEventListener("change",verHerr); verHerr();
   }
+  const bolA=$("#bolAbrir");if(bolA)bolA.onclick=bolAbrir;
   const ctrlAdd=$("#ctrlAdd");if(ctrlAdd)ctrlAdd.onclick=()=>{
     const monto=parseFloat($("#ctrlMonto").value)||0;
     if(monto<=0){hint("Ingresa un monto válido.");return;}
@@ -3911,24 +4386,24 @@ function bindTab(){
     f.d[di]= v===0 ? 0.5 : (v===0.5 ? 1 : 0);
     renderTab();autosave();
   });
-  // Sacar a un maestro de ESTA semana (no lo borra de la cuadrilla)
-  $$("#tabContent [data-semquita]").forEach(x=>x.onclick=()=>{
-    const s=semanaDe(semIni);
-    if(s.cerrada)return;
-    s.filas.splice(+x.dataset.semquita,1);
-    renderTab();autosave();
-  });
   const semPart=$("#semPart");if(semPart)semPart.onchange=()=>{
     const s=semanaDe(semIni);s.part=semPart.value;
     if(s.cerrada&&s.gastoId)sincronizarGastoSemana(s);
     autosave();
   };
 
-  // Cuadrilla
+  // Cuadrilla del taller: se guarda aparte de la obra, en el navegador y en la nube
+  const maestroDe=id=>cuadrilla().find(m=>m.id===id);
   $$("#tabContent [data-cua]").forEach(i=>i.addEventListener("change",()=>{
-    const m=cuadrilla()[+i.dataset.ci];if(!m)return;
+    const m=maestroDe(i.dataset.ci);if(!m)return;
     const campo=i.dataset.cua;
-    m[campo]= campo==="tarifa" ? (parseFloat(i.value)||0) : i.value;
+    if(campo==="nombre"){
+      const nom=limpiaNombre(i.value);
+      if(!nom){hint("El nombre no puede quedar vacío.");renderTab();return;}
+      m.nombre=nom;
+    }else if(campo==="tarifa")m.tarifa=Math.max(0,parseFloat(i.value)||0);
+    else m.tipo=i.value==="m2"?"m2":"m1";
+    cuadrillaGuardar();
     // semanaDe() se encarga de propagar; acá solo se avisa qué NO se movió
     if(campo==="tarifa"){
       const f=semanaDe(semIni).filas.find(x=>x.mid===m.id);
@@ -3937,23 +4412,35 @@ function bindTab(){
     }
     renderTab();autosave();
   }));
+  // Dar de baja no borra: queda desactivado, para que otro equipo que todavía
+  // lo tenga no lo haga reaparecer y para no perder a quién se le pagó.
   $$("#tabContent [data-cuaquita]").forEach(x=>x.onclick=()=>{
-    const cua=cuadrilla(), m=cua[+x.dataset.cuaquita];if(!m)return;
-    if(!confirm("¿Sacar a "+(m.nombre||"este maestro")+" de la cuadrilla?\n\nLas semanas ya cerradas no se tocan: lo que se le pagó queda registrado."))return;
-    cua.splice(+x.dataset.cuaquita,1);
-    const s=semanaDe(semIni);
-    if(!s.cerrada)s.filas=s.filas.filter(f=>f.mid!==m.id||jornadasFila(f)>0);
-    renderTab();autosave();
+    const m=maestroDe(x.dataset.cuaquita);if(!m)return;
+    if(!confirm("¿Dar de baja a "+(m.nombre||"este maestro")+" de la cuadrilla?\n\nDeja de aparecer en las semanas nuevas de todas las obras. Lo que ya se le marcó o pagó queda tal cual."))return;
+    m.activo=false;
+    cuadrillaGuardar();
+    renderTab();autosave();hint(m.nombre+" dado de baja.");
   });
   const cuadAdd=$("#cuadAdd");if(cuadAdd)cuadAdd.onclick=()=>{
-    const nom=($("#cuadNom").value||"").trim();
+    const nom=limpiaNombre($("#cuadNom").value);
     if(!nom){hint("Escribe el nombre del maestro.");return;}
     const tipo=$("#cuadTipo").value==="m2"?"m2":"m1";
-    cuadrilla().push({
-      id:"m"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
-      nombre:nom, tipo:tipo, tarifa: tipo==="m2"?(+state.control.tarM2||0):(+state.control.tarM1||0), activo:true
-    });
-    renderTab();autosave();hint(nom+" agregado a la cuadrilla.");
+    const ya=cuadrilla().find(m=>normNombre(m.nombre)===normNombre(nom));
+    if(ya&&ya.activo!==false){hint(ya.nombre+" ya está en la cuadrilla.");return;}
+    if(ya){
+      // Vuelve uno dado de baja: tal como estaba, con su id, su tipo y su
+      // tarifa. El M1 que trae el formulario por defecto no es una decisión.
+      ya.activo=true;
+      cuadrillaGuardar();
+      renderTab();autosave();
+      hint("Volvió "+ya.nombre+" ("+(ya.tipo==="m2"?"M2":"M1")+", "+CLP(ya.tarifa)+" por día).");
+      return;
+    }else{
+      cuadrilla().push({id:cuadNuevoId(),nombre:nom,tipo:tipo,
+        tarifa: tipo==="m2"?(+state.control.tarM2||0):(+state.control.tarM1||0),activo:true});
+    }
+    cuadrillaGuardar();
+    renderTab();autosave();hint(nom+" quedó en la cuadrilla del taller.");
   };
 
   // Cierre del viernes: deja la semana registrada como gasto de mano de obra
@@ -4540,7 +5027,9 @@ function panolBajar(){
   if(!nubeCfg)return Promise.resolve();
   return nubeFetch("/api/panol").then(r=>{
     const rem=r&&r.panol;
-    if(!rem||!Array.isArray(rem.herramientas))return;
+    // La nube todavía no lo tiene: solo se subía al modificarlo, así que un
+    // pañol que nunca se tocó quedaba solo en este navegador. Se sube el local.
+    if(!rem||!Array.isArray(rem.herramientas)){panolSubir();return;}
     const loc=panolCargar();
     // Gana el más reciente: no se mezclan dos pañoles a medias
     if((rem.actualizado||"")>(loc.actualizado||"")){
@@ -4725,6 +5214,17 @@ $("#btnProyGest").onclick=()=>{
 };
 $("#proyNuevo").onclick=()=>{proyNuevoCmd();renderProyLista();};
 $("#proyCerrar").onclick=()=>$("#dlgProy").close();
+$("#fileBoletas").onchange=e=>{
+  const f=e.target.files&&e.target.files[0];if(!f)return;
+  const dlg=$("#dlgBoletas");
+  const r=new FileReader();
+  r.onload=()=>{
+    try{bolAbrirLote(boletasLeer(r.result));}
+    catch(err){bolImp=null;bolPintar();const er=$("#bolErr");if(er)er.textContent="No pude leer "+f.name+": "+err.message+".";}
+    if(!dlg.open)dlg.showModal();
+  };
+  r.readAsText(f);
+};
 $("#nubeConectar").onclick=()=>{
   const url=$("#nubeUrl").value.trim(), token=$("#nubeToken").value.trim();
   if(!url||!token){hint("Completa la URL y el token de la nube.");return;}
@@ -5975,7 +6475,7 @@ function emitirObra(){
   if(!hist.length)pushHist();
   renderTab();setTool("select");
   // La nube se consulta al final: si no hay configuración, el GESTOR funciona igual en local
-  if(nubeCargarCfg())setTimeout(()=>{nubeSincronizar(true);panolBajar();},300);
+  if(nubeCargarCfg())setTimeout(()=>{nubeSincronizar(true);panolBajar();cuadrillaBajar();},300);
   else nubeDot("off","Sin nube: los proyectos viven solo en este navegador");
 })();
 </script>
