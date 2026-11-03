@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.38</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.39</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -343,7 +343,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.38</span></span></a>
+    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.39</span></span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <select id="selProyecto" title="Cambiar de proyecto"></select>
   <span id="nubeDot" class="nube-dot off" title="Sin nube"></span>
@@ -471,11 +471,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.38 =================
+/* ================= GESTOR AVERARQ v3.39 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.38";
+const GESTOR_VERSION="v3.39";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -2457,11 +2457,31 @@ function selectorProyectoHTML(origen){
       <input type="text" class="grow" list="listaCli" value="${esc(cliAct)}" data-obrainfo="cliente" placeholder="elige un cliente guardado o escribe uno nuevo" title="Mismo dato que el mandante de OBRA. La lista muestra los clientes que ya tienes.">
       ${datalistClientes()}
       ${hermanas>1?`<button class="btn mini" data-clienteCta="1" title="Estado de cuenta con todas las obras de este cliente">📄 Estado de cuenta del cliente (${hermanas})</button>`:""}</div>
-    <div class="row"><label style="font-size:11px;color:var(--txt);cursor:pointer" title="Marca la obra como terminada: se refleja en el estado de cuenta del cliente">
-      <input type="checkbox" style="width:auto" data-ctrlfin="1" ${(state.control&&state.control.terminado)?"checked":""}> Obra terminada</label>
-      ${(state.control&&state.control.terminado)?`<span class="small" style="color:#5fbf8a">✓ esta obra se muestra como terminada en los documentos</span>`:""}</div>
+    ${(function(){
+      const c=state.control||{}, modo=c.terminado?"fin":(c.avanceModo||""), pct=avanceDeclarado();
+      return `<div class="row" style="gap:14px;flex-wrap:wrap">
+      <label style="font-size:11px;color:var(--txt);cursor:pointer;width:auto" title="Obra entregada: se muestra como terminada en los documentos">
+        <input type="checkbox" style="width:auto" data-ctrlfin="1" ${modo==="fin"?"checked":""}> Obra terminada</label>
+      <label style="font-size:11px;color:var(--txt);cursor:pointer;width:auto" title="Declara la obra a mitad de ejecución: aparece como 50% de avance en el estado de cuenta">
+        <input type="checkbox" style="width:auto" data-ctrlav="50" ${modo==="50"?"checked":""}> 50%</label>
+      <label style="font-size:11px;color:var(--txt);cursor:pointer;width:auto" title="Declara otro porcentaje de avance">
+        <input type="checkbox" style="width:auto" data-ctrlav="otro" ${modo==="otro"?"checked":""}> Otro</label>
+      ${modo==="otro"?`<input type="number" min="0" max="100" step="1" style="width:66px" data-ctrlavn="1" value="${(c.avancePct===""||c.avancePct==null)?"":c.avancePct}" placeholder="%" title="porcentaje de avance declarado">`:""}
+      ${modo==="fin"?`<span class="small" style="color:#5fbf8a">✓ esta obra se muestra como terminada en los documentos</span>`
+        :(pct!==null?`<span class="small" style="color:var(--naranja2)">${F(pct,0)}% de avance declarado en el estado de cuenta</span>`:"")}
+      </div>`;})()}
     <div class="row"><span class="small" style="color:var(--muted)">${lista.length} proyecto(s) en este navegador${nubeCfg?" · sincronizados con la nube":""}${act&&act.soloNube?" · este está solo en la nube: se baja al abrirlo":""}${hermanas>1?` · ${hermanas} obras de ${esc(cliAct)}`:""}</span></div>
   </div>`;
+}
+/* El avance que se DECLARA al mandante, distinto del avance físico que sale de
+   las partidas cubicadas: terminada es 100%, y si no, el porcentaje marcado a
+   mano. null = no se declara nada y el estado de cuenta no lo menciona. */
+function avanceDeclarado(){
+  const c=state.control||{};
+  if(c.terminado)return 100;
+  if(c.avancePct===""||c.avancePct==null)return null;
+  const n=+c.avancePct;
+  return isNaN(n)?null:Math.max(0,Math.min(100,n));
 }
 /* Partidas de gasto del CONTROL: pocas y de oficio, para saber en qué se fue la plata
    sin convertir el registro en una contabilidad. */
@@ -4340,8 +4360,23 @@ function bindTab(){
   });
   $$("#tabContent [data-ctrlfin]").forEach(c=>c.onchange=()=>{
     state.control.terminado=c.checked;
+    if(c.checked){state.control.avanceModo="";state.control.avancePct="";}
     autosave();renderTab();
     hint(c.checked?"Obra marcada como terminada.":"Obra vuelve a figurar en ejecución.");
+  });
+  $$("#tabContent [data-ctrlav]").forEach(c=>c.onchange=()=>{
+    const v=c.dataset.ctrlav;
+    if(!c.checked){state.control.avanceModo="";state.control.avancePct="";}
+    else if(v==="50"){state.control.avanceModo="50";state.control.avancePct=50;state.control.terminado=false;}
+    else{state.control.avanceModo="otro";state.control.terminado=false;}
+    autosave();renderTab();
+    const p=avanceDeclarado();
+    hint(p===null?"Avance declarado: sin informar.":"Obra declarada con "+F(p,0)+"% de avance.");
+  });
+  const avn=$("#tabContent [data-ctrlavn]");if(avn)avn.addEventListener("change",()=>{
+    const n=parseFloat(avn.value);
+    state.control.avancePct=isNaN(n)?"":Math.max(0,Math.min(100,n));
+    autosave();renderTab();
   });
   // Control de obra
   const ctrlC=$('[data-ctrl="contrato"]');if(ctrlC)ctrlC.addEventListener("change",()=>{state.control.contrato=parseFloat(ctrlC.value)||"";renderTab();autosave();});
@@ -6018,6 +6053,7 @@ function emitirEstadoCuenta(){
   </div>`;
   let avance=null;   // solo se informa si hay avance real registrado
   try{ if(state.partidas.some(p=>partidaCalc(p).q>0)){ const a=obraTotales().avanceFisico; if(a>0)avance=a; } }catch(e){}
+  const decl=avanceDeclarado();   // lo que el arquitecto declara, si lo declaró
   $("#printArea").innerHTML=`<div class="pr-page">`+prHead("ESTADO DE CUENTA",fecha)+`
     <div style="display:flex;justify-content:space-between;color:#555;font-size:11px;margin-bottom:14px;gap:12px">
       <span>${o.info&&o.info.cliente?"Mandante: <b>"+esc(o.info.cliente)+"</b>":""}${nom?((o.info&&o.info.cliente)?" · ":"")+"Obra: "+esc(nom):""}</span>
@@ -6037,8 +6073,13 @@ function emitirEstadoCuenta(){
     <div class="pr-tot"><span>Abonado a la fecha (${F(t.pctRecibido,1)}%)</span><span>${CLP(t.recibido)}</span></div>
     <div class="pr-tot big"><span>${t.porCobrar<0?"SALDO A FAVOR DEL CLIENTE":"SALDO PENDIENTE"}</span><span>${CLP(Math.abs(t.porCobrar))}</span></div>
     ${barra}
-    ${avance!==null?`<h2 style="margin-top:16px">AVANCE DE OBRA</h2>
-    <div class="pr-tot"><span>Avance físico a la fecha</span><span><b>${F(avance,1)}%</b></span></div>`:""}
+    ${(avance!==null||decl!==null)?`<h2 style="margin-top:16px">AVANCE DE OBRA</h2>
+    ${decl!==null?`<div style="display:flex;width:100%;height:26px;border:1px solid #ddd;border-radius:4px;overflow:hidden;margin:6px 0">
+      <div style="width:${Math.min(100,Math.max(0,decl))}%;background:#fc4c02;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:600">${decl>=12?"Ejecutado "+F(decl,0)+"%":""}</div>
+      <div style="flex:1;background:#f2f1ee;display:flex;align-items:center;justify-content:center;color:#777;font-size:10px;font-weight:600">${(100-decl)>=12?"Por ejecutar "+F(100-decl,0)+"%":""}</div>
+    </div>
+    <div class="pr-tot"><span>${decl>=100?"Obra terminada":"Avance de obra a la fecha"}</span><span><b>${F(decl,0)}%</b></span></div>`:""}
+    ${avance!==null?`<div class="pr-tot"><span>Avance físico según partidas cubicadas</span><span><b>${F(avance,1)}%</b></span></div>`:""}`:""}
     <p style="margin-top:16px;font-size:10.5px;color:#555">Documento informativo del estado de pagos de la obra a la fecha indicada. Los montos corresponden al contrato acordado entre las partes; cualquier obra adicional no descrita en él se cotiza por separado.</p>
     <div style="display:flex;justify-content:space-between;gap:40px;margin-top:56px;font-size:11px">
       <div style="flex:1;text-align:center;border-top:1px solid #333;padding-top:6px"><b>ALEJANDRO VERA DONOSO</b><br>Arquitecto · Averarq</div>
