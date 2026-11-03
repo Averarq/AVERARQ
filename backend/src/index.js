@@ -1,5 +1,6 @@
 // AVERARQ · Backend (Cloudflare Worker + KV, sin R2)
 // ============================================================================
+//  v11 · AVANCE DECLARADO DE OBRA EN EL PORTAL — 2026-11-03
 //  v10 · FUSIÓN TOTAL + ENLACE OBRA + LISTADOS POR METADATA + CUADRILLA — 2026-10-28
 //  Único archivo válido. Reúne, sin excepción:
 //    · Portal de seguimiento con código del cliente y código secundario
@@ -271,6 +272,7 @@ function resumenDeRegistro(reg) {
   const contrato = base + adic;
   const abonado = Math.max(0, Number((d.planPago || {}).cobrado) || 0);
   return {
+    avance: avanceDeCtrl(ctrl),
     cliente: ((d.obra && d.obra.info && d.obra.info.cliente) || "").trim(),
     nombre: d.proyecto || reg.nombre || "Obra",
     contrato: contrato,
@@ -282,6 +284,16 @@ function resumenDeRegistro(reg) {
   };
 }
 
+// Avance que el arquitecto DECLARA en el GESTOR (casillas 50% / Otro / Terminada).
+// Misma regla que avanceDe() del GESTOR: terminada es 100; si no, el porcentaje
+// marcado; null si no se declaró nada (y entonces el portal no muestra sello).
+function avanceDeCtrl(ctrl) {
+  ctrl = ctrl || {};
+  if (ctrl.terminado) return 100;
+  if (ctrl.avancePct === "" || ctrl.avancePct == null) return null;
+  const n = Number(ctrl.avancePct);
+  return isNaN(n) ? null : Math.max(0, Math.min(100, Math.round(n)));
+}
 // Metadata de un proyecto del GESTOR: solo los campos de la lista blanca más
 // los del listado interno. El snapshot con los gastos jamás entra aquí.
 function metaGestor(reg) {
@@ -299,6 +311,8 @@ function metaGestor(reg) {
     k: Number(r.contrato) || 0,
     d: Number(r.adicionales) || 0,
     b: Number(r.abonado) || 0,
+    // avance declarado; ausente si no se declaró (las claves de antes de v11 no lo traen)
+    ...(r.avance === null || r.avance === undefined ? {} : { av: r.avance }),
   });
 }
 // Obra para el cliente, armada desde la metadata de la clave
@@ -312,6 +326,7 @@ function obraDesdeMeta(md) {
     abonado: abonado,
     saldo: contrato - abonado,
     terminada: !!md.t,
+    avance: (md.av === undefined || md.av === null) ? (md.t ? 100 : null) : Number(md.av),
     actualizado: md.u || null,
   };
 }
@@ -352,7 +367,7 @@ async function resumenObraCliente(env, cliente) {
       obras.push({
         nombre: r.nombre, contrato: r.contrato, adicionales: r.adicionales,
         abonado: r.abonado, saldo: r.saldo, terminada: r.terminada,
-        actualizado: r.actualizado,
+        avance: r.avance, actualizado: r.actualizado,
       });
     }
   }
@@ -369,6 +384,7 @@ async function resumenObraCliente(env, cliente) {
     saldo: t.saldo,
     pct: t.contrato > 0 ? Math.round((t.abonado / t.contrato) * 100) : 0,
     terminadas: obras.filter((o) => o.terminada).length,
+    enEjecucion: obras.filter((o) => !o.terminada && o.avance !== null && o.avance !== undefined).length,
     actualizado: obras.map((o) => o.actualizado).filter(Boolean).sort().pop() || null,
   };
 }

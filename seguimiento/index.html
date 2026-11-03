@@ -158,6 +158,7 @@
   .obra-tabla tr.total td{ border-top:2px solid var(--grafito3); font-weight:700; }
   .obra-nombre{ font-weight:600; }
   .obra-fin{ display:inline-block; border:1px solid var(--verde); color:var(--verde); border-radius:3px; padding:0 6px; font-size:9.5px; font-weight:700; letter-spacing:.6px; margin-left:7px; vertical-align:middle; }
+  .obra-pct{ display:inline-block; border:1px solid #FC4C02; color:#FC4C02; border-radius:3px; padding:0 6px; font-size:9.5px; font-weight:700; letter-spacing:.6px; margin-left:7px; vertical-align:middle; }
   .obra-adic{ font-size:10.5px; color:var(--gris); margin-top:2px; }
   .obra-saldo{ color:var(--rojo); font-weight:700; } .obra-saldo.pagado{ color:var(--verde); }
   @media(max-width:600px){ .obra-tabla{ font-size:12px; } .obra-tabla th:nth-child(3), .obra-tabla td:nth-child(3){ display:none; } }
@@ -288,7 +289,7 @@
       const filas = o.obras.map(x=>`
         <tr>
           <td>
-            <div class="obra-nombre">${esc(x.nombre)}${x.terminada?'<span class="obra-fin">TERMINADO</span>':''}</div>
+            <div class="obra-nombre">${esc(x.nombre)}${x.terminada?'<span class="obra-fin">TERMINADO</span>':((x.avance!==null&&x.avance!==undefined)?`<span class="obra-pct">${Math.round(x.avance)}% EJECUTADO</span>`:'')}</div>
             ${x.adicionales>0?`<div class="obra-adic">incluye ${money(x.adicionales)} en obras adicionales acordadas</div>`:''}
           </td>
           <td>${money(x.contrato)}</td>
@@ -298,7 +299,7 @@
       obraHtml = `
       <div class="seccion">
         <h2>🏗 Obra en ejecución</h2>
-        <div class="obra-nota">${o.obras.length} obra${o.obras.length===1?'':'s'}${o.terminadas?` · ${o.terminadas} terminada${o.terminadas===1?'':'s'}`:''}. Montos de obra, independientes de los honorarios de arquitectura.</div>
+        <div class="obra-nota">${o.obras.length} obra${o.obras.length===1?'':'s'}${o.terminadas?` · ${o.terminadas} terminada${o.terminadas===1?'':'s'}`:''}${o.enEjecucion?` · ${o.enEjecucion} en ejecución`:''}. Montos de obra, independientes de los honorarios de arquitectura.</div>
         <div class="pago-resumen">
           <div class="pago-stat"><div class="n">${money(o.contrato)}</div><div class="l">Total obra</div></div>
           <div class="pago-stat"><div class="n verde">${money(o.abonado)}</div><div class="l">Abonado</div></div>
