@@ -4,3 +4,5 @@ src/gestor.html
 .wrangler/
 respaldos/
 _respaldo/
+# El paquete del MASTERGRAFO vive en KV, nunca en el repositorio público
+src/mastergrafo*

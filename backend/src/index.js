@@ -1,5 +1,6 @@
 // AVERARQ · Backend (Cloudflare Worker + KV, sin R2)
 // ============================================================================
+//  v12 · MASTERGRAFO: el grafo normativo, solo con token — 2026-11-04
 //  v11 · AVANCE DECLARADO DE OBRA EN EL PORTAL — 2026-11-03
 //  v10 · FUSIÓN TOTAL + ENLACE OBRA + LISTADOS POR METADATA + CUADRILLA — 2026-10-28
 //  Único archivo válido. Reúne, sin excepción:
@@ -8,6 +9,7 @@
 //    · Calendario (feed ICS), PATCH de metadatos y PUT de archivo.
 //    · Proyectos del GESTOR en la nube (gestor:*).
 //    · Pañol de herramientas (panol:global) y cuadrilla del taller (cuadrilla:global).
+//    · MASTERGRAFO, el grafo normativo (mastergrafo:paquete), solo con token.
 //    · Página /gestor servida por el propio Worker.
 //    · Respaldo completo, registro del último respaldo y restauración.
 //    · Enlace arquitectura ↔ obra: el portal del cliente muestra el estado
@@ -40,6 +42,7 @@
 //   DELETE /api/documentos/:id        -> elimina metadato + archivo
 //   GET/PUT /api/panol                -> pañol de herramientas del GESTOR
 //   GET/PUT /api/cuadrilla            -> maestros y tarifas, los mismos en todas las obras
+//   GET/PUT /api/mastergrafo[/info]   -> grafo normativo (lo sube empaquetar_mastergrafo.py)
 //   GET    /api/respaldo[?docs=1]     -> respaldo completo en un JSON
 //   GET/PUT /api/respaldo/registro    -> fecha del último respaldo (aviso de los viernes)
 //   POST   /api/restaurar/documento   -> repone un documento con su id original
@@ -69,7 +72,8 @@ function corsHeaders(origin) {
   return {
     "Access-Control-Allow-Origin": origin || "*",
     "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-    "Access-Control-Allow-Headers": "Authorization, Content-Type",
+    "Access-Control-Allow-Headers": "Authorization, Content-Type, If-None-Match",
+    "Access-Control-Expose-Headers": "ETag",
     "Access-Control-Max-Age": "86400",
   };
 }
@@ -689,6 +693,64 @@ export default {
       // Los maestros con su tarifa: los mismos para todas las obras. Como el
       // pañol, gana el más reciente, así que la fecha del cuerpo se respeta.
       // Cada maestro se arma campo por campo: no se guarda lo que no se espera.
+      // ---------- MASTERGRAFO (grafo normativo, clave KV "mastergrafo:paquete") ----------
+      // El paquete lo arma y lo sube empaquetar_mastergrafo.py --subir, desde la
+      // carpeta de normativa. Vive SOLO aquí: el repositorio de la web es público,
+      // y el trabajo de cruzar la normativa en 2.000 nodos es de la oficina.
+      //   GET /api/mastergrafo        -> el paquete. Con If-None-Match igual a su
+      //                                  huella responde 304 y no se baja de nuevo.
+      //   GET /api/mastergrafo/info   -> huella, fecha y tamaño, sin el paquete
+      //   PUT /api/mastergrafo        -> lo reemplaza (se valida el formato)
+      if (parts[1] === "mastergrafo") {
+        if (request.method === "GET" && parts[2] === "info") {
+          // list() trae la metadata sin leer el valor: no se bajan 3 MB para ver una huella
+          const k = (await listarTodo(env.DOCS_KV, "mastergrafo:paquete")).find((x) => x.name === "mastergrafo:paquete");
+          return json({ mastergrafo: (k && k.metadata) || null }, 200, origin);
+        }
+        if (request.method === "GET" && parts.length === 2) {
+          const { value, metadata } = await env.DOCS_KV.getWithMetadata("mastergrafo:paquete");
+          if (!value) return json({ error: "El mastergrafo todavía no se ha subido." }, 404, origin);
+          const etag = metadata && metadata.huella ? `"${metadata.huella}"` : null;
+          const pide = (request.headers.get("If-None-Match") || "").trim();
+          if (etag && pide === etag) {
+            return new Response(null, { status: 304, headers: { ETag: etag, ...corsHeaders(origin) } });
+          }
+          return new Response(value, {
+            headers: {
+              "Content-Type": "application/json; charset=utf-8",
+              "Cache-Control": "private, no-cache",
+              ...(etag ? { ETag: etag } : {}),
+              ...corsHeaders(origin),
+            },
+          });
+        }
+        if (request.method === "PUT" && parts.length === 2) {
+          const txt = await request.text();
+          if (txt.length > 24 * 1024 * 1024) {
+            return json({ error: "El paquete supera los 24 MB que admite KV." }, 413, origin);
+          }
+          let p;
+          try { p = JSON.parse(txt); } catch (e) {
+            return json({ error: "El paquete no es un JSON válido." }, 400, origin);
+          }
+          if (!p || p.formato !== "averarq-mastergrafo" || !Array.isArray(p.n) || !Array.isArray(p.e)) {
+            return json({ error: "No es un paquete del mastergrafo." }, 400, origin);
+          }
+          const meta = {
+            huella: corta(p.huella, 40),
+            generado: corta(p.generado, 24),
+            corpus: corta(p.corpus, 24),
+            nodos: p.n.length,
+            relaciones: p.e.length,
+            bytes: txt.length,
+            subido: new Date().toISOString(),
+          };
+          await env.DOCS_KV.put("mastergrafo:paquete", txt, { metadata: meta });
+          return json({ ok: true, ...meta }, 200, origin);
+        }
+        return json({ error: "Ruta del mastergrafo no válida." }, 404, origin);
+      }
+
       if (parts[1] === "cuadrilla") {
         if (request.method === "GET") {
           const raw = await env.DOCS_KV.get("cuadrilla:global");

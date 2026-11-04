@@ -64,8 +64,8 @@
   .tools-sep{ display:flex; align-items:center; gap:10px; margin:22px 2px 12px; }
   .tools-sep span{ font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--gris); white-space:nowrap; }
   .tools-sep:before,.tools-sep:after{ content:""; height:1px; background:#3a3c3b; flex:1; }
-  .tools{ display:grid; grid-template-columns:repeat(5,1fr); gap:10px; }
-  @media(max-width:480px){ .tools{ grid-template-columns:repeat(3,1fr); } }
+  /* Seis herramientas: dos filas de tres, igual en el computador y en el teléfono */
+  .tools{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
   .tool-card{
     background:var(--grafito3); border-radius:12px; padding:14px 6px 12px; text-align:center;
     border:1px solid #3a3c3b; transition:transform .15s, border-color .15s, background .15s;
@@ -131,6 +131,8 @@
           <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></svg></div><div class="tool-name">Solar</div></a>
         <a class="tool-card" href="../viento/" title="Wind Lab: simulación preliminar de viento">
           <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5h10a2.8 2.8 0 1 0-2.8-2.8"/><path d="M3 12.5h14.2a2.8 2.8 0 1 1-2.8 2.8"/><path d="M3 16.5h6.5"/></svg></div><div class="tool-name">Viento</div></a>
+        <a class="tool-card" href="../mastergrafo/" title="Mastergrafo: el grafo normativo — OGUC, LGUC, leyes y circulares DDU, con su texto, su vigencia y cómo se conectan">
+          <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6.5" r="2.3"/><circle cx="18" cy="8" r="2.3"/><circle cx="11.5" cy="18" r="2.3"/><path d="M8.3 6.8l7.4 .9M7.1 8.6l3.3 7.3M16.7 10l-4 5.9"/></svg></div><div class="tool-name">Mastergrafo</div></a>
       </div>
       <button class="logout" onclick="logout()">Cerrar sesión</button>
     </div>
