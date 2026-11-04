@@ -1111,5 +1111,92 @@ function _arranque(){
 }
 _arranque();
 </script>
+<script>
+/* ===========================================================================
+   ENLACES AL MASTERGRAFO (aditivo: no toca nada de la herramienta)
+   Convierte las menciones "art. N.N.N" de la OGUC en enlaces a su ficha en
+   averarq.cl/mastergrafo. Solo aparece en un navegador que ya tiene la nube
+   configurada (GESTOR o Mastergrafo); para cualquier otro visitante la página
+   queda exactamente igual. Solo enlaza los artículos de la lista de abajo,
+   todos verificados en el grafo: nunca se arma un número por su cuenta.
+   =========================================================================== */
+(function(){
+  var ARTS = ["4.3.2", "4.3.3", "4.3.4", "4.3.5"];
+  var CFG = ["averarq_doc_config","averarq_mg_config"];
+  function hayNube(){
+    for (var i=0;i<CFG.length;i++){
+      try{ var c=JSON.parse(localStorage.getItem(CFG[i])||"null"); if(c&&c.url&&c.token) return true; }catch(e){}
+    }
+    return false;
+  }
+  if (!hayNube()) return;
+
+  var css = document.createElement("style");
+  css.textContent = "a.mg-link{color:inherit;text-decoration:underline dotted #fc4c02;text-decoration-thickness:1.5px;text-underline-offset:2px;cursor:pointer}"
+    + "a.mg-link:hover{color:#fc4c02;text-decoration-style:solid}"
+    + "@media print{a.mg-link{color:inherit!important;text-decoration:none!important}}";
+  document.head.appendChild(css);
+
+  // "art." / "artículo(s)" + uno o varios números: "4.3.2, 4.3.3, 4.3.4 y 4.3.5", "4.3.2 a 4.3.5"
+  var NUM = "\\d+(?:\\.\\d+){1,3}";
+  var RE = new RegExp("(\\b(?:[Aa]rt[ií]culos?|[Aa]rts?\\.)\\s+)(" + NUM + "(?:\\s*(?:,|y|e|a|al|o)\\s+" + NUM + ")*)", "g");
+  var NUM_RE = new RegExp(NUM, "g");
+  // Lo que viene justo después indica otra norma: "artículo 5.4.2 (3) del Eurocódigo 2"
+  var OTRA = /^(?:\s*\(\w+\))?\s*(?:de la|del|de)?\s*(?:Euroc[oó]digo|NCh|EN\b|ISO\b|D\.?S\.?|Ley\b|LGUC)/i;
+  var SALTAR = {A:1,BUTTON:1,SELECT:1,OPTION:1,TEXTAREA:1,INPUT:1,LABEL:1,SCRIPT:1,STYLE:1,NOSCRIPT:1,TITLE:1,svg:1,SVG:1};
+
+  function saltar(n){
+    for (var p=n.parentNode; p && p!==document.body; p=p.parentNode){
+      if (p.nodeType!==1) continue;
+      if (SALTAR[p.nodeName] || p.isContentEditable || p.namespaceURI==="http://www.w3.org/2000/svg") return true;
+    }
+    return false;
+  }
+  function enlace(num){
+    var a = document.createElement("a");
+    a.className = "mg-link";
+    a.href = "../mastergrafo/#n=art_oguc_" + num.replace(/\./g,"_");
+    a.target = "averarq_mastergrafo";   // una sola pestaña del visor, reutilizada (misma web: sin noopener)
+    a.title = "Abrir OGUC art. " + num + " en el Mastergrafo";
+    a.textContent = num;
+    return a;
+  }
+  function procesar(nodo){
+    var s = nodo.nodeValue, m, frag = null, ult = 0;
+    RE.lastIndex = 0;
+    while ((m = RE.exec(s))){
+      var ini = m.index + m[1].length, lista = m[2];
+      if (OTRA.test(s.slice(ini + lista.length, ini + lista.length + 40))) continue;
+      var k;
+      NUM_RE.lastIndex = 0;
+      while ((k = NUM_RE.exec(lista))){
+        if (ARTS.indexOf(k[0]) < 0) continue;
+        var pos = ini + k.index;
+        frag = frag || document.createDocumentFragment();
+        frag.appendChild(document.createTextNode(s.slice(ult, pos)));
+        frag.appendChild(enlace(k[0]));
+        ult = pos + k[0].length;
+      }
+    }
+    if (!frag) return;
+    frag.appendChild(document.createTextNode(s.slice(ult)));
+    nodo.parentNode.replaceChild(frag, nodo);
+  }
+  var obs, cola = null;
+  function recorrer(){
+    cola = null;
+    obs.disconnect();
+    try{
+      var w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null), n, l = [];
+      while ((n = w.nextNode())) if (/\d\.\d/.test(n.nodeValue) && /rt/i.test(n.nodeValue) && !saltar(n)) l.push(n);
+      for (var i=0;i<l.length;i++) procesar(l[i]);
+    } finally {
+      obs.observe(document.body, {childList:true, subtree:true, characterData:true});
+    }
+  }
+  obs = new MutationObserver(function(){ if (!cola) cola = setTimeout(recorrer, 120); });
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", recorrer); else recorrer();
+})();
+</script>
 </body>
 </html>
