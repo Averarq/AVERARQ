@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.41</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.42</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -344,7 +344,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.41</span></span></a>
+    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.42</span></span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <select id="selProyecto" title="Cambiar de proyecto"></select>
   <span id="nubeDot" class="nube-dot off" title="Sin nube"></span>
@@ -472,11 +472,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.41 =================
+/* ================= GESTOR AVERARQ v3.42 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.41";
+const GESTOR_VERSION="v3.42";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -2396,9 +2396,36 @@ function numPalabras(n){
   if(resto){ out+=tramo(resto); }
   return out.trim().replace(/\s+/g," ");
 }
+/* Al elegir el cliente del recibo: trae su RUT si ya se conoce y, si es el cliente
+   del proyecto abierto, el nombre del proyecto. Nunca pisa lo que ya está escrito. */
+function completarReciboCliente(){
+  const r=state.recibo; if(!r)return;
+  // _auto marca lo que puso el GESTOR: eso se puede reemplazar al cambiar de cliente;
+  // lo que escribiste tú, nunca
+  const auto=r._auto||(r._auto={}), avisos=[];
+  if(auto.rut||!String(r.rut||"").trim()){
+    const rut=r.cliente?rutDeCliente(r.cliente):"";
+    if(rut){r.rut=rut;auto.rut=true;avisos.push("RUT");}
+    else if(auto.rut){r.rut="";auto.rut=false;}
+  }
+  if(auto.proyecto||!String(r.proyecto||"").trim()){
+    const cliProy=((state.obra&&state.obra.info&&state.obra.info.cliente)||"").trim();
+    const nom=(($("#nomProyecto")&&$("#nomProyecto").value)||state.proyecto||"").trim();
+    if(r.cliente&&cliProy&&nom&&nom!=="Proyecto sin título"&&normNombre(cliProy)===normNombre(r.cliente)){r.proyecto=nom;auto.proyecto=true;avisos.push("proyecto");}
+    else if(auto.proyecto){r.proyecto="";auto.proyecto=false;}
+  }
+  if(avisos.length)hint("Recibo: se completó "+avisos.join(" y ")+" de "+r.cliente);
+}
+/* Pasa al formulario lo que completó el GESTOR sin redibujar la pestaña:
+   así no se pierde el clic ni el foco del campo al que vas */
+function reciboAlDOM(){
+  for(const k of ["rut","proyecto"]){const el=$(`#tabContent [data-rec="${k}"]`);if(el&&el.value!==(state.recibo[k]||""))el.value=state.recibo[k]||"";}
+  const bt=$("#recCliProy");if(bt&&state.recibo.cliente)bt.remove();
+}
 function htmlRecibo(){
   if(!state.recibo)state.recibo={nro:"",fecha:"",cliente:"",rut:"",monto:"",concepto:"",medio:"efectivo",proyecto:"",obs:"",saldoOn:false,saldo:""};
   const r=state.recibo; const s=state.serv;
+  const cliProy=((state.obra&&state.obra.info&&state.obra.info.cliente)||"").trim();
   // detectar cuota disponible del presupuesto de honorarios
   let hint="";
   if(s&&s.items&&s.items.length){
@@ -2412,7 +2439,8 @@ function htmlRecibo(){
   <div class="card">
     <div class="row"><label style="width:80px">N° recibo</label><input type="text" style="width:100px" value="${esc(r.nro)}" placeholder="ej: 001" data-rec="nro">
       <label style="width:40px">Fecha</label><input type="text" style="width:120px" value="${esc(r.fecha)}" placeholder="dd-mm-aaaa" data-rec="fecha"><button class="btn mini" id="recHoy">hoy</button></div>
-    <div class="row"><label style="width:80px">Recibí de</label><input type="text" class="grow" value="${esc(r.cliente)}" placeholder="nombre del cliente" data-rec="cliente"></div>
+    <div class="row"><label style="width:80px">Recibí de</label><input type="text" class="grow" list="listaCli" value="${esc(r.cliente)}" placeholder="cliente de CONTROL o uno nuevo" data-rec="cliente" title="La lista muestra los clientes que ya tienes en CONTROL">${datalistClientes()}
+      ${(cliProy&&!r.cliente)?`<button class="btn mini" id="recCliProy" title="Usar el cliente del proyecto abierto">↧ ${esc(cliProy)}</button>`:""}</div>
     <div class="row"><label style="width:80px">RUT</label><input type="text" style="width:130px" value="${esc(r.rut)}" placeholder="opcional" data-rec="rut"></div>
     <div class="row"><label style="width:80px">Monto $</label><input type="number" style="width:130px" value="${r.monto}" placeholder="monto recibido" data-rec="monto">
       ${r.monto?`<span class="small" style="color:var(--muted)">(${numPalabras(r.monto)} pesos)</span>`:""}</div>
@@ -4317,9 +4345,23 @@ function bindTab(){
   $$("#tabContent [data-rec]").forEach(i=>i.addEventListener("change",()=>{
     const k=i.dataset.rec;
     state.recibo[k]=(i.type==="checkbox")?i.checked:((k==="monto"||k==="saldo")?(parseFloat(i.value)||""):i.value);
+    if(k==="rut"||k==="proyecto"){(state.recibo._auto||(state.recibo._auto={}))[k]=false;}
+    if(k==="cliente"){completarReciboCliente();reciboAlDOM();}
     if(k==="monto"||k==="saldoOn"||k==="saldo")renderTab();
     autosave();
   }));
+  // Elegir de la lista dispara "input": se completa sin redibujar, para no quitar el foco
+  const recCliIn=$('#tabContent [data-rec="cliente"]');
+  if(recCliIn)recCliIn.addEventListener("input",()=>{
+    const v=recCliIn.value.trim(); state.recibo.cliente=recCliIn.value;
+    if(!clientesConocidos().some(c=>c===v))return;
+    completarReciboCliente();reciboAlDOM();
+    autosave();
+  });
+  const recCli=$("#recCliProy");if(recCli)recCli.onclick=()=>{
+    state.recibo.cliente=((state.obra&&state.obra.info&&state.obra.info.cliente)||"").trim();
+    completarReciboCliente();renderTab();autosave();
+  };
   const recHoy=$("#recHoy");if(recHoy)recHoy.onclick=()=>{state.recibo.fecha=new Date().toLocaleDateString("es-CL");renderTab();autosave();};
   const recImp=$("#recImport");if(recImp)recImp.onclick=()=>{
     const s=state.serv,t=servTot();
@@ -4851,6 +4893,20 @@ function clientesConocidos(){
     if(c)set.add(c);
   }
   return [...set].sort((a,b)=>a.localeCompare(b,"es"));
+}
+/* RUT ya usado para un cliente: en un recibo anterior o como propietario en EETT,
+   en cualquier proyecto guardado. Devuelve "" si no hay ninguno. */
+function rutDeCliente(nombre){
+  const n=normNombre(nombre); if(!n)return "";
+  for(const e of proyOrdenados()){
+    const act=e.id===proyActivo, sn=act?state:proyLeer(e.id);
+    if(!sn)continue;
+    // el recibo que se está editando no cuenta como fuente: es justamente el que se completa
+    const r=act?null:sn.recibo, p=sn.eett&&sn.eett.prop;
+    if(r&&r.rut&&normNombre(r.cliente)===n)return String(r.rut).trim();
+    if(p&&p.rut&&normNombre(p.nombre)===n)return String(p.rut).trim();
+  }
+  return "";
 }
 function datalistClientes(){
   return `<datalist id="listaCli">${clientesConocidos().map(c=>`<option value="${esc(c)}"></option>`).join("")}</datalist>`;
