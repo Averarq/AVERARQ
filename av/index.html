@@ -77,9 +77,16 @@
   .tool-name{ font-weight:600; font-size:12.5px; }
   .logout{ background:none; color:var(--gris); font-size:13px; margin:24px auto 0; display:block; }
   .logout:hover{ color:var(--cream); }
+
+  /* Hero de la portada como fondo (media/hero/hero.css): el contenido va encima
+     y, en pantallas anchas, a la izquierda para dejar ver el video */
+  .wrap{ position:relative; z-index:1; }
+  @media(min-width:1101px){ body{ justify-content:flex-start; padding-left:max(24px,7vw); } }
 </style>
+<link rel="stylesheet" href="../media/hero/hero.css">
 </head>
 <body>
+<div data-av-hero></div>
 <div class="wrap">
   <div class="brand">
     <img id="brandLogo" alt="Averarq">
@@ -186,5 +193,6 @@ function logout(){
 
 initUI();
 </script>
+<script src="../media/hero/hero.js" defer></script>
 </body>
 </html>

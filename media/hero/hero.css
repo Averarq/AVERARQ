@@ -1,0 +1,84 @@
+/* ===========================================================================
+   HERO AVERARQ COMPARTIDO — el mismo fondo de la portada (panel diagonal con el
+   video del valle e isotipo que se dibuja), para usar en otras páginas del
+   sitio: seguimiento y hub. La portada mantiene su propia copia.
+   Uso:  <link rel="stylesheet" href="../media/hero/hero.css">
+         <div data-av-hero></div>            ← capa de fondo
+         <script src="../media/hero/hero.js" defer></script>
+   Modos: (por defecto) capa fija a pantalla completa · .avh-banda: franja en flujo
+   Todas las clases empiezan con avh- para no chocar con el CSS de cada página.
+   =========================================================================== */
+.av-hero{
+  --avh-naranja:#FF4D00; --avh-oscuro:#111110;
+  position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none;
+  background:var(--avh-oscuro);
+}
+.av-hero .avh-grid{
+  position:absolute; inset:0;
+  background-image:
+    linear-gradient(rgba(255,77,0,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,77,0,.04) 1px, transparent 1px);
+  background-size:60px 60px;
+}
+.av-hero .avh-video{
+  position:absolute; top:0; right:0; bottom:0; width:52vw; overflow:hidden;
+  clip-path:polygon(24% 0%, 100% 0%, 100% 100%, 0% 100%);
+  background:#1a1714 url('hero-valle.webp') center / cover no-repeat;
+}
+.av-hero .avh-video video{
+  position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;
+  opacity:0; transition:opacity .8s ease;
+}
+.av-hero .avh-video video.listo{ opacity:1; }
+.av-hero .avh-video::after{
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(90deg, rgba(17,17,16,.6) 0%, rgba(17,17,16,.1) 45%, rgba(17,17,16,.25) 100%);
+}
+
+/* Isotipo: el logo se revela siguiendo su propio trazo */
+.av-hero .avh-iso{
+  position:absolute; top:50%; right:9vw; width:min(30vw,400px); aspect-ratio:1/1;
+  transform:translateY(-50%); opacity:0; animation:avhEntrada 1.2s ease .2s forwards;
+}
+.av-hero .avh-iso svg{ width:100%; height:100%; display:block; overflow:visible; }
+.av-hero .avh-fill{ fill:#fff; opacity:.82; animation:avhRespiraFill 4.5s ease-in-out 3.2s infinite; }
+.av-hero .avh-halo{ fill:#fff; opacity:0; filter:blur(18px); animation:avhHalo 1.6s ease 2.8s forwards, avhRespira 6s ease-in-out 4.4s infinite; }
+.av-hero .avh-reveal{ stroke-dasharray:100; stroke-dashoffset:100; animation:avhDibujar 2.4s cubic-bezier(.65,0,.35,1) .6s forwards; }
+@keyframes avhEntrada{ from{opacity:0; transform:translateY(-50%) scale(.96)} to{opacity:1; transform:translateY(-50%) scale(1)} }
+@keyframes avhDibujar{ to{ stroke-dashoffset:0 } }
+@keyframes avhHalo{ to{ opacity:.30 } }
+@keyframes avhRespira{ 0%,100%{opacity:.18} 50%{opacity:.45} }
+@keyframes avhRespiraFill{ 0%,100%{opacity:.82} 50%{opacity:1} }
+
+/* Pantallas angostas: el video cubre todo con un velo oscuro para que se lea lo de encima */
+@media (max-width:1100px){
+  .av-hero .avh-video{ width:100%; clip-path:none; }
+  .av-hero .avh-video::after{ background:linear-gradient(0deg, rgba(17,17,16,.94) 0%, rgba(17,17,16,.82) 55%, rgba(17,17,16,.62) 100%); }
+  .av-hero .avh-iso{ width:74vw; right:-12vw; top:28%; }
+  .av-hero .avh-iso{ animation:none; opacity:.22; }
+  .av-hero .avh-halo{ display:none; }
+}
+
+/* Franja: el mismo hero, más bajo y en el flujo de la página */
+.av-hero.avh-banda{ position:relative; inset:auto; height:190px; z-index:0; }
+.av-hero.avh-banda .avh-iso{ width:150px; right:12vw; }
+.av-hero.avh-banda::after{
+  content:''; position:absolute; left:0; right:0; bottom:0; height:60px;
+  background:linear-gradient(0deg, var(--avh-fin, #212322), transparent);
+}
+@media (max-width:1100px){
+  .av-hero.avh-banda{ height:130px; }
+  .av-hero.avh-banda .avh-iso{ width:110px; right:6vw; top:50%; opacity:.5; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .av-hero .avh-iso{ animation:none; opacity:1; }
+  .av-hero .avh-reveal{ animation:none; stroke-dashoffset:0; }
+  .av-hero .avh-fill{ animation:none; opacity:.9; }
+  .av-hero .avh-halo{ animation:none; opacity:.12; }
+}
+@media (prefers-reduced-motion: reduce) and (max-width:1100px){
+  .av-hero .avh-iso{ opacity:.22; }
+  .av-hero.avh-banda .avh-iso{ opacity:.5; }
+}
+@media print{ .av-hero{ display:none !important; } }

@@ -174,7 +174,20 @@
   footer{ text-align:center; padding:30px 20px; color:var(--gris); font-size:12px; border-top:1px solid var(--grafito3); margin-top:20px; }
   footer a{ color:var(--naranja); text-decoration:none; }
   .loading{ text-align:center; padding:40px; color:var(--gris); }
+
+  /* Hero de la portada (media/hero/hero.css): fondo a pantalla completa en el
+     ingreso; al entrar al proyecto queda como franja bajo la barra superior */
+  .top, .wrap, footer{ position:relative; z-index:1; }
+  body:not(.seg-panel) .top{ background:rgba(17,17,16,.55); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); border-bottom-color:rgba(255,255,255,.06); }
+  #segHero{ --avh-fin:var(--ink); }
+  body:not(.seg-panel) footer{ border-top-color:transparent; }
+  body.seg-panel #segHero + .wrap, body.seg-panel #panelView{ margin-top:-40px; }
+  @media(min-width:1101px){
+    body:not(.seg-panel) #loginView{ max-width:none; padding-left:7vw; }
+    body:not(.seg-panel) #loginView .login{ margin:14vh 0 0; }
+  }
 </style>
+<link rel="stylesheet" href="../media/hero/hero.css">
 </head>
 <body>
   <div class="top">
@@ -183,6 +196,7 @@
     <span class="top-ver" id="segVer"></span>
     <a href="/" class="top-home">← Volver al inicio</a>
   </div>
+  <div data-av-hero id="segHero"></div>
 
   <!-- LOGIN -->
   <div class="wrap" id="loginView">
@@ -209,8 +223,8 @@
 
   /* Versión del portal. Va en el pie, en gris: al cliente no le estorba y a ti
      te dice de inmediato si el navegador te está mostrando una copia vieja. */
-  const SEG_VERSION = "v1.4";
-  const SEG_FECHA   = "06-10-2026";
+  const SEG_VERSION = "v1.5";
+  const SEG_FECHA   = "09-11-2026";
   document.addEventListener('DOMContentLoaded', ()=>{
     const el = document.getElementById('segVer');
     if(el){ el.textContent = SEG_VERSION; el.title = 'Portal de seguimiento ' + SEG_VERSION + ' · ' + SEG_FECHA; }
@@ -589,5 +603,16 @@
   </div>
   <button id="lbNext" class="lb-nav lb-next" onclick="lbNav(1)" title="Siguiente (→)">›</button>
 </div>
+<script>
+  /* Hero: pantalla completa en el ingreso, franja dentro del proyecto */
+  (function(){
+    var lv=document.getElementById('loginView'), h=document.getElementById('segHero');
+    if(!lv||!h) return;
+    function sync(){ var panel=lv.classList.contains('hidden');
+      document.body.classList.toggle('seg-panel',panel); h.classList.toggle('avh-banda',panel); }
+    new MutationObserver(sync).observe(lv,{attributes:true,attributeFilter:['class']}); sync();
+  })();
+</script>
+<script src="../media/hero/hero.js" defer></script>
 </body>
 </html>
