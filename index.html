@@ -1289,7 +1289,7 @@
     <div class="hero-grid" aria-hidden="true"></div>
     <div class="hero-accent" aria-hidden="true"></div>
     <div class="hero-video" aria-hidden="true">
-      <video id="heroVideo" muted autoplay loop playsinline preload="none" poster="media/hero/hero-valle.webp" data-src="media/hero/hero-valle.mp4"></video>
+      <video id="heroVideo" muted autoplay loop playsinline preload="none" poster="media/hero/hero-valle.webp" data-src="media/hero/hero-valle_1440.mp4" data-src-movil="media/hero/hero-valle_720.mp4"></video>
     </div>
     <div class="hero-iso" id="heroIso" aria-hidden="true">
       <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -1948,7 +1948,7 @@
   var c = navigator.connection;
   if (c && (c.saveData || /2g/.test(c.effectiveType || ''))) return;
   v.muted = true;
-  v.src = v.getAttribute('data-src');
+  v.src = v.getAttribute(window.matchMedia('(max-width: 900px)').matches ? 'data-src-movil' : 'data-src');
   v.addEventListener('playing', function () { v.classList.add('listo'); }, { once: true });
   var p = v.play(); if (p && p.catch) p.catch(function () {});
   document.addEventListener('visibilitychange', function () {
