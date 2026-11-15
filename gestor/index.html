@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.42</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.43</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -69,6 +69,7 @@ body{background:var(--bg);color:var(--txt);font:13px/1.45 'Segoe UI',system-ui,s
 .tab{flex:1;padding:9px 2px;text-align:center;cursor:pointer;color:var(--txt2);font-size:10px;letter-spacing:.5px;border-bottom:2px solid transparent;user-select:none}
 .tab:hover{color:var(--txt)}
 .tab.active{color:var(--naranja2);border-bottom-color:var(--naranja)}
+.tab .bandeja-n{display:inline-block;margin-left:5px;background:var(--naranja);color:#fff;border-radius:9px;padding:0 6px;font-size:9px;font-weight:700;letter-spacing:0;line-height:15px}
 #grpChips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
 .chip{padding:3px 9px;border:1px solid var(--line);border-radius:11px;font-size:10px;color:var(--txt2);cursor:pointer;user-select:none;white-space:nowrap}
 .chip:hover{color:var(--txt)}
@@ -344,7 +345,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.42</span></span></a>
+    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.43</span></span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <select id="selProyecto" title="Cambiar de proyecto"></select>
   <span id="nubeDot" class="nube-dot off" title="Sin nube"></span>
@@ -472,11 +473,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.42 =================
+/* ================= GESTOR AVERARQ v3.43 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.42";
+const GESTOR_VERSION="v3.43";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -3060,6 +3061,49 @@ function bolAbrirLote(lista){
   bolImp={boletas:lista};
   bolPintar();
 }
+/* ---------- BANDEJA DE BOLETAS (v3.43) ----------
+   Las fotos sacadas en averarq.cl/boletas llegan leídas a la nube. Aquí se ven
+   como "N en la bandeja" y se abren con el mismo registro de siempre. */
+let bandeja=[], bandejaUlt=0, bandejaPorLeer=0, bandejaMal=0;
+function bandejaBotonHTML(){
+  const extra=(bandejaPorLeer?`<span class="small" style="color:var(--muted);margin-right:6px" title="Fotos del día que la tarea programada lee en la tarde">⏳ ${bandejaPorLeer} por leer</span>`:"")
+    +(bandejaMal?`<span class="small" style="color:var(--warn);margin-right:6px" title="Fotos que no se pudieron leer: revísalas en averarq.cl/boletas o vuelve a fotografiarlas">⚠ ${bandejaMal} ilegible${bandejaMal===1?"":"s"}</span>`:"");
+  if(!bandeja.length)return extra;
+  const tot=bandeja.reduce((s,e)=>s+(+(e.boleta&&e.boleta.total)||0),0);
+  return extra+`<button class="btn mini primary" id="bandejaAbrir" title="Boletas fotografiadas que esperan obra · ${CLP(tot)}">📥 ${bandeja.length} en la bandeja</button>`;
+}
+function bandejaPintar(){
+  const t=document.querySelector('.tab[data-tab="control"]');
+  if(t)t.innerHTML="CONTROL"+(bandeja.length?`<span class="bandeja-n" title="Boletas en la bandeja">${bandeja.length}</span>`:"");
+  const a=$("#bandejaAviso");if(a){a.innerHTML=bandejaBotonHTML();const b=$("#bandejaAbrir");if(b)b.onclick=bandejaAbrir;}
+}
+function bandejaRevisar(){
+  if(!nubeCargarCfg())return Promise.resolve();
+  bandejaUlt=Date.now();
+  return nubeFetch("/api/boletas").then(r=>{
+    const antes=bandeja.length;
+    bandeja=Array.isArray(r.boletas)?r.boletas:[];
+    bandejaPorLeer=+r.porLeer||0; bandejaMal=+r.noLegibles||0;
+    bandejaPintar();
+    if(bandeja.length&&bandeja.length!==antes)hint("📥 "+bandeja.length+" boleta"+(bandeja.length===1?"":"s")+" en la bandeja, esperando obra (CONTROL)");
+  }).catch(()=>{});
+}
+function bandejaAbrir(){
+  const lista=bandeja.map(e=>{const b=boletaNormalizar(e.boleta);b._bandeja=e.id;b._foto=e.foto||"";return b;});
+  if(!lista.length){hint("La bandeja está vacía");return;}
+  bolAbrirLote(lista);
+  const d=$("#dlgBoletas");if(d&&!d.open)d.showModal();
+}
+/* La foto de una boleta, desde la nube (pide el token, por eso no es un enlace) */
+function bolVerFoto(id){
+  if(!nubeCargarCfg()){hint("Sin nube conectada: no puedo traer la foto");return;}
+  const w=window.open("","_blank");
+  if(w)w.document.write('<body style="margin:0;background:#111;color:#aaa;font:14px sans-serif;display:grid;place-items:center;height:100vh">Cargando la foto…</body>');
+  fetch(nubeCfg.url.replace(/\/$/,"")+"/api/boletas/foto/"+encodeURIComponent(id),{headers:{Authorization:"Bearer "+nubeCfg.token}})
+    .then(r=>{if(!r.ok)throw new Error(r.status===404?"la foto ya no está en la nube":"HTTP "+r.status);return r.blob();})
+    .then(b=>{const u=URL.createObjectURL(b);if(w)w.location.href=u;else window.open(u,"_blank");})
+    .catch(e=>{if(w)w.close();hint("No pude abrir la foto: "+e.message);});
+}
 function bolAbrir(){
   bolImp=null;
   const f=$("#fileBoletas");if(f)f.value="";   // si no, elegir el mismo archivo otra vez no avisa
@@ -3111,7 +3155,8 @@ function bolAsignaciones(){
       out.push({obra:g.obra,boleta:b,gasto:{
         fecha:b.fecha,monto:g.monto,cat:g.cat,part:g.part,prov:b.proveedor,herr:g.herr,nota,
         boleta:{clave:b._clave,proveedor:b.proveedor,razonSocial:b.razonSocial,rut:b.rut,folio:b.folio,
-                transaccion:b.transaccion,fecha:b.fecha,total:b.total,medioPago:b.medioPago,tipoDoc:b.tipoDoc},
+                transaccion:b.transaccion,fecha:b.fecha,total:b.total,medioPago:b.medioPago,tipoDoc:b.tipoDoc,
+                ...(b._foto?{foto:b._foto}:{})},
         items:g.items}});
     }
   }
@@ -3138,11 +3183,13 @@ function bolPintar(){
     c.innerHTML=`
       <p class="small" style="margin-bottom:10px">Manda las fotos de tus boletas a un chat con Claude: te devuelve un archivo
       <b>.averarq</b>. Ábrelo acá, o pega el texto que te dio.</p>
-      <div class="row"><button class="btn primary grow" id="bolArchivo">📂 Elegir archivo .averarq</button></div>
+      ${bandeja.length?`<div class="row" style="margin-bottom:8px"><button class="btn primary grow" id="bolBandeja">📥 Abrir la bandeja · ${bandeja.length} boleta${bandeja.length===1?"":"s"} de las fotos</button></div>`:""}
+      <div class="row"><button class="btn ${bandeja.length?"":"primary "}grow" id="bolArchivo">📂 Elegir archivo .averarq</button></div>
       <div class="row" style="margin-top:6px"><textarea id="bolTexto" rows="5" class="grow" placeholder="…o pega aquí el texto que te dio el chat" style="font-family:var(--mono);font-size:11px;width:100%"></textarea></div>
       <div class="row"><span class="small grow" id="bolErr" style="color:var(--warn)"></span>
         <button class="btn" id="bolCerrar">Cerrar</button><button class="btn primary" id="bolPegar">Leer texto</button></div>`;
     $("#bolArchivo").onclick=()=>{const f=$("#fileBoletas");f.value="";f.click();};
+    const bB=$("#bolBandeja");if(bB)bB.onclick=bandejaAbrir;
     $("#bolCerrar").onclick=()=>$("#dlgBoletas").close();
     $("#bolPegar").onclick=()=>{
       try{bolAbrirLote(boletasLeer($("#bolTexto").value));}
@@ -3175,9 +3222,10 @@ function bolPintar(){
         <b class="prov">${esc(b.proveedor)}</b>
         <span>${b.fecha.slice(8,10)}-${b.fecha.slice(5,7)}-${b.fecha.slice(0,4)}</span>
         <span class="small" style="color:var(--muted)">${b.tipoDoc} ${b.folio?esc(String(b.folio).replace(/^0+/,"")):"s/n"}${b.medioPago?" · "+esc(b.medioPago):""}</span>
+        ${b._foto?`<button class="btn mini" data-bolfoto="${esc(b._foto)}" title="Ver la foto de la boleta">📷</button>`:""}
         <span class="monto">${CLP(b.total)}</span>
       </div>
-      ${b._ya?`<div class="bol-ya-txt">✓ Ya registrada en ${esc(b._ya.join(", "))}: no se vuelve a cargar.</div>`:""}
+      ${b._ya?`<div class="bol-ya-txt">✓ Ya registrada en ${esc(b._ya.join(", "))}: no se vuelve a cargar.${b._bandeja?` <button class="btn mini" data-bolquitar="${i}">Quitar de la bandeja</button>`:""}</div>`:""}
       ${(fuera&&!b._ya&&b._incluir)?`<div class="bol-fuera-txt">${fuera} ítem${fuera===1?"":"s"} fuera · se registran ${CLP(bolMonto(b))} de ${CLP(b.total)}</div>`:""}
       ${b.revisar.map(r=>`<div class="bol-rev">⚠ ${esc(r)}</div>`).join("")}
       ${b.nota?`<div class="small" style="color:var(--txt2);margin:3px 0 0 2px">${esc(b.nota)}</div>`:""}
@@ -3236,6 +3284,13 @@ function bolPintar(){
     b._rep=x.checked?[...new Set([...b._rep,id])]:b._rep.filter(o=>o!==id);
     repintar();
   });
+  $$("#bolCuerpo [data-bolfoto]").forEach(x=>x.onclick=()=>bolVerFoto(x.dataset.bolfoto));
+  $$("#bolCuerpo [data-bolquitar]").forEach(x=>x.onclick=async()=>{
+    const b=lote[+x.dataset.bolquitar];x.disabled=true;
+    try{await nubeFetch("/api/boletas/"+encodeURIComponent(b._bandeja),{method:"DELETE"});b._bandeja="";bandejaRevisar();hint("Boleta repetida quitada de la bandeja");}
+    catch(e){x.disabled=false;hint("No se pudo quitar: "+e.message);}
+    repintar();
+  });
   $$("#bolCuerpo [data-boltog]").forEach(x=>x.onclick=()=>{const b=lote[+x.dataset.boltog];b._abierta=!b._abierta;repintar();});
   const enItem=(attr,fn)=>$$(`#bolCuerpo [${attr}]`).forEach(x=>x.onchange=()=>{
     const [i,k]=x.getAttribute(attr).split(",").map(Number);fn(lote[i],lote[i].items[k],x.value);repintar();});
@@ -3283,6 +3338,11 @@ async function bolRegistrar(){
     }
   }
   bolImp.boletas.forEach(b=>{if(b._incluir&&!b._ya)recordarProveedor(b.proveedor);});
+  // Las que vinieron de la bandeja y quedaron registradas (o eran repetidas) salen
+  // de ella; las que desmarcaste se quedan para otro momento.
+  const salen=bolImp.boletas.filter(b=>b._bandeja&&((b._incluir&&!b._ya)||b._ya)).map(b=>b._bandeja);
+  if(salen.length)Promise.all(salen.map(id=>nubeFetch("/api/boletas/"+encodeURIComponent(id),{method:"DELETE"}).catch(()=>null)))
+    .then(r=>{const fallan=r.filter(x=>!x).length;bandejaRevisar();if(fallan)hint(fallan+" boleta(s) registradas no salieron de la bandeja: sin conexión. Al reabrirla aparecerán como ya registradas.");});
   const n=bolImp.boletas.filter(b=>b._incluir&&!b._ya).length;
   autosave();
   bolImp=null;
@@ -3714,6 +3774,7 @@ function htmlControl(){
   </div>
   <div class="card">
     <div class="row"><b class="small" style="letter-spacing:1px;color:var(--txt2)">AGREGAR GASTO</b><span class="grow"></span>
+      <span id="bandejaAviso">${bandejaBotonHTML()}</span>
       <button class="btn mini" id="bolAbrir" title="Registrar boletas leídas desde fotos (archivo .averarq)">🧾 Importar boletas</button></div>
     <div class="row">
       <input type="date" id="ctrlFecha" style="width:140px" value="${new Date().toISOString().slice(0,10)}">
@@ -3739,7 +3800,7 @@ function htmlControl(){
         <td><select data-ctrledit="${x._i}" data-ck="cat" style="width:118px;font-size:10px;color:${CATCOL[x.cat]||'#999'}">${opcionesCategoria(x.cat)}</select></td>
         <td><select data-ctrledit="${x._i}" data-ck="part" style="width:104px;font-size:10px;color:${PARTCOL[x.part||""]}">${opcionesPartida(x.part||"")}</select></td>
         <td><input type="text" value="${esc(x.prov||"")}" list="listaProv" data-ctrledit="${x._i}" data-ck="prov" style="width:110px;font-size:10px" placeholder="—"></td>
-        <td><div style="display:flex;gap:4px;align-items:center">${x.boleta?`<span style="cursor:help" title="${esc(detalleBoleta(x))}">🧾</span>`:""}<input type="text" value="${esc(x.nota||"")}" data-ctrledit="${x._i}" data-ck="nota" style="flex:1;min-width:90px;font-size:11px"></div></td>
+        <td><div style="display:flex;gap:4px;align-items:center">${x.boleta?`<span style="cursor:${x.boleta.foto?"pointer":"help"}" title="${esc(detalleBoleta(x))}${x.boleta.foto?"\n(clic: ver la foto)":""}" ${x.boleta.foto?`data-bolfoto="${esc(x.boleta.foto)}"`:""}>🧾</span>`:""}<input type="text" value="${esc(x.nota||"")}" data-ctrledit="${x._i}" data-ck="nota" style="flex:1;min-width:90px;font-size:11px"></div></td>
         <td><input type="number" value="${x.monto}" data-ctrledit="${x._i}" data-ck="monto" style="width:78px;font-size:11px;text-align:right"></td>
         <td class="tdel" data-ctrldel="${x._i}">✕</td></tr>`;
     });
@@ -4362,6 +4423,8 @@ function bindTab(){
     state.recibo.cliente=((state.obra&&state.obra.info&&state.obra.info.cliente)||"").trim();
     completarReciboCliente();renderTab();autosave();
   };
+  const bAb=$("#bandejaAbrir");if(bAb)bAb.onclick=bandejaAbrir;
+  $$("#tabContent [data-bolfoto]").forEach(x=>x.onclick=()=>bolVerFoto(x.dataset.bolfoto));
   const recHoy=$("#recHoy");if(recHoy)recHoy.onclick=()=>{state.recibo.fecha=new Date().toLocaleDateString("es-CL");renderTab();autosave();};
   const recImp=$("#recImport");if(recImp)recImp.onclick=()=>{
     const s=state.serv,t=servTot();
@@ -5366,6 +5429,7 @@ $("#nubeConectar").onclick=()=>{
   try{localStorage.setItem(NUBE_CFG,JSON.stringify({url:url.replace(/\/$/,""),token}));}catch(e){}
   nubeCargarCfg();
   nubeSincronizar(true);
+  bandejaRevisar();
 };
 $("#nubeSync").onclick=()=>nubeSincronizar(true);
 $("#avisoResp").onclick=()=>{$("#btnProyGest").click();};
@@ -6616,8 +6680,10 @@ function emitirObra(){
   if(!hist.length)pushHist();
   renderTab();setTool("select");
   // La nube se consulta al final: si no hay configuración, el GESTOR funciona igual en local
-  if(nubeCargarCfg())setTimeout(()=>{nubeSincronizar(true);panolBajar();cuadrillaBajar();},300);
+  if(nubeCargarCfg())setTimeout(()=>{nubeSincronizar(true);panolBajar();cuadrillaBajar();bandejaRevisar();},300);
   else nubeDot("off","Sin nube: los proyectos viven solo en este navegador");
+  // Al volver al GESTOR (después de sacar fotos en el teléfono) se revisa la bandeja otra vez
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden&&Date.now()-bandejaUlt>60000)bandejaRevisar();});
 })();
 </script>
 </body>

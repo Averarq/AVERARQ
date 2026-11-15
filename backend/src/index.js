@@ -1,5 +1,6 @@
 // AVERARQ · Backend (Cloudflare Worker + KV, sin R2)
 // ============================================================================
+//  v13 · BANDEJA DE BOLETAS: foto sin leer → lectura en la tarde → bandeja → GESTOR — 2026-11-12
 //  v12 · MASTERGRAFO: el grafo normativo, solo con token — 2026-11-04
 //  v11 · AVANCE DECLARADO DE OBRA EN EL PORTAL — 2026-11-03
 //  v10 · FUSIÓN TOTAL + ENLACE OBRA + LISTADOS POR METADATA + CUADRILLA — 2026-10-28
@@ -10,6 +11,8 @@
 //    · Proyectos del GESTOR en la nube (gestor:*).
 //    · Pañol de herramientas (panol:global) y cuadrilla del taller (cuadrilla:global).
 //    · MASTERGRAFO, el grafo normativo (mastergrafo:paquete), solo con token.
+//    · BANDEJA DE BOLETAS (boleta:pend:*, boleta:foto:*): la foto se lee con la
+//      API de Claude y queda esperando que el GESTOR la asigne a una obra.
 //    · Página /gestor servida por el propio Worker.
 //    · Respaldo completo, registro del último respaldo y restauración.
 //    · Enlace arquitectura ↔ obra: el portal del cliente muestra el estado
@@ -43,6 +46,15 @@
 //   GET/PUT /api/panol                -> pañol de herramientas del GESTOR
 //   GET/PUT /api/cuadrilla            -> maestros y tarifas, los mismos en todas las obras
 //   GET/PUT /api/mastergrafo[/info]   -> grafo normativo (lo sube empaquetar_mastergrafo.py)
+//   GET    /api/boletas               -> bandeja: boletas leídas que esperan obra (+ cuántas fotos faltan por leer)
+//   POST   /api/boletas/cruda         -> guarda una foto SIN leer (la lee en la tarde la tarea programada)
+//   GET    /api/boletas/crudas        -> fotos sin leer, la más antigua primero
+//   POST   /api/boletas/crudas/:id    -> lectura de una foto: pasa a la bandeja (o queda marcada como no legible)
+//   GET    /api/boletas/instrucciones -> las instrucciones de lectura (una sola fuente)
+//   POST   /api/boletas/foto          -> (opcional, con ANTHROPIC_API_KEY) la lee al tiro con la API de Claude
+//   POST   /api/boletas               -> deja en la bandeja boletas ya leídas (JSON .averarq)
+//   GET    /api/boletas/foto/:id      -> la foto original de una boleta
+//   DELETE /api/boletas/:id           -> la saca de la bandeja (la foto se conserva)
 //   GET    /api/respaldo[?docs=1]     -> respaldo completo en un JSON
 //   GET/PUT /api/respaldo/registro    -> fecha del último respaldo (aviso de los viernes)
 //   POST   /api/restaurar/documento   -> repone un documento con su id original
@@ -50,8 +62,11 @@
 //   GET    /gestor                    -> la página del GESTOR (no es /api/)
 //
 // Auth: header  Authorization: Bearer <API_TOKEN>   (wrangler secret put API_TOKEN)
+//       Las rutas /api/boletas/* aceptan además BOLETAS_TOKEN, un token que SOLO abre
+//       la bandeja: es el que usa la tarea programada (wrangler secret put BOLETAS_TOKEN).
 
 import GESTOR_HTML from "./gestor.html";
+import BOLETAS_PROMPT from "./boletas_prompt.js";
 
 // Entrega el GESTOR inyectando el origen del propio Worker como URL de la nube
 function servirGestor(origin) {
@@ -570,7 +585,12 @@ export default {
       }
     }
 
-    if (!authOk(request, env)) {
+    // El token de boletas abre solo /api/boletas/*: nunca proyectos, documentos ni respaldo
+    const tokenBoletas = (() => {
+      const t = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+      return !!(env.BOLETAS_TOKEN && t && t === env.BOLETAS_TOKEN && parts[1] === "boletas");
+    })();
+    if (!authOk(request, env) && !tokenBoletas) {
       return json({ error: "No autorizado. Revisa el token de acceso." }, 401, origin);
     }
 
@@ -693,6 +713,173 @@ export default {
       // Los maestros con su tarifa: los mismos para todas las obras. Como el
       // pañol, gana el más reciente, así que la fecha del cuerpo se respeta.
       // Cada maestro se arma campo por campo: no se guarda lo que no se espera.
+      // ---------- BANDEJA DE BOLETAS ----------
+      // La foto se saca en el celular (averarq.cl/boletas), el Worker se la pasa a
+      // Claude con las instrucciones de boletas y lo leído queda en la bandeja hasta
+      // que en el GESTOR se asigna a cliente y obra. La foto se guarda aparte y se
+      // conserva aunque la boleta salga de la bandeja: es el respaldo del gasto.
+      //   boleta:pend:<id>  -> { id, subida, origen, foto, boleta, lectura }
+      //   boleta:foto:<id>  -> la imagen en base64 (metadata: type, bytes, subida)
+      if (parts[1] === "boletas") {
+        const kv = env.DOCS_KV;
+        const nuevoId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+        const corto = (t, n) => String(t == null ? "" : t).slice(0, n);
+        const metaDe = (e) => ({
+          s: e.subida, p: corto(e.boleta && e.boleta.proveedor, 40), f: corto(e.boleta && e.boleta.fecha, 10),
+          t: Number(e.boleta && e.boleta.total) || 0, n: (e.boleta && Array.isArray(e.boleta.items)) ? e.boleta.items.length : 0,
+          a: (e.boleta && Array.isArray(e.boleta.revisar)) ? e.boleta.revisar.length : 0, ft: e.foto ? 1 : 0,
+        });
+        const guardarFoto = async (f) => {
+          if (!f || !f.b64) return null;
+          const b64 = String(f.b64).replace(/^data:[^,]*,/, "");
+          if (b64.length > 8 * 1024 * 1024) throw Object.assign(new Error("La foto pesa demasiado (máx. 6 MB)."), { status: 413 });
+          const id = nuevoId();
+          await kv.put("boleta:foto:" + id, b64, { metadata: { type: corto(f.type || "image/jpeg", 40), bytes: Math.round(b64.length * 0.75), subida: new Date().toISOString() } });
+          return id;
+        };
+        const encolar = async (lista, origen, fotoId, lectura) => {
+          const ids = [];
+          for (const b of lista) {
+            if (!b || typeof b !== "object" || !Array.isArray(b.items)) continue;
+            const e = { id: nuevoId(), subida: new Date().toISOString(), origen, foto: fotoId || null, boleta: b, lectura: lectura || null };
+            await kv.put("boleta:pend:" + e.id, JSON.stringify(e), { metadata: metaDe(e) });
+            ids.push(e.id);
+          }
+          return ids;
+        };
+        const leerJSON = (txt) => {
+          const t = String(txt || "").trim();
+          try { return JSON.parse(t); } catch (e) {}
+          const i = t.indexOf("{"), j = t.lastIndexOf("}");
+          if (i < 0 || j <= i) return null;
+          try { return JSON.parse(t.slice(i, j + 1)); } catch (e) { return null; }
+        };
+        const resumen = (b) => ({ proveedor: b.proveedor || "", fecha: b.fecha || "", total: Number(b.total) || 0,
+          items: Array.isArray(b.items) ? b.items.length : 0, revisar: Array.isArray(b.revisar) ? b.revisar : [] });
+        try {
+          // GET /api/boletas -> la bandeja completa, la más antigua primero
+          if (request.method === "GET" && parts.length === 2) {
+            const claves = await listarTodo(kv, "boleta:pend:");
+            const vals = await Promise.all(claves.map((k) => kv.get(k.name)));
+            const boletas = vals.map((v) => { try { return JSON.parse(v); } catch (e) { return null; } })
+              .filter(Boolean).sort((a, b) => String(a.subida).localeCompare(String(b.subida)));
+            const crudas = await listarTodo(kv, "boleta:cruda:");
+            const porLeer = crudas.filter((k) => !(k.metadata && k.metadata.mal)).length;
+            const noLegibles = crudas.length - porLeer;
+            return json({ boletas, porLeer, noLegibles }, 200, origin);
+          }
+          // GET /api/boletas/instrucciones -> cómo leer una boleta (texto)
+          if (request.method === "GET" && parts[2] === "instrucciones") {
+            return new Response(BOLETAS_PROMPT, { headers: { "Content-Type": "text/markdown; charset=utf-8", ...corsHeaders(origin) } });
+          }
+          // POST /api/boletas/cruda -> la foto sin leer: { foto:{b64,type}, nombre? }
+          if (request.method === "POST" && parts[2] === "cruda" && parts.length === 3) {
+            let body; try { body = await request.json(); } catch (e) { return json({ error: "El cuerpo no es JSON." }, 400, origin); }
+            if (!body || !body.foto || !body.foto.b64) return json({ error: "No llegó la foto." }, 400, origin);
+            const fotoId = await guardarFoto(body.foto);
+            const e = { id: nuevoId(), subida: new Date().toISOString(), foto: fotoId, nombre: corto(body.nombre, 80) };
+            await kv.put("boleta:cruda:" + e.id, JSON.stringify(e), { metadata: { s: e.subida, f: fotoId } });
+            return json({ ok: true, id: e.id, foto: fotoId }, 200, origin);
+          }
+          // GET /api/boletas/crudas -> fotos por leer (las no legibles van al final, marcadas)
+          if (request.method === "GET" && parts[2] === "crudas" && parts.length === 3) {
+            const claves = await listarTodo(kv, "boleta:cruda:");
+            const vals = await Promise.all(claves.map((k) => kv.get(k.name)));
+            const crudas = vals.map((v) => { try { return JSON.parse(v); } catch (e) { return null; } })
+              .filter(Boolean).sort((a, b) => (!!a.mal - !!b.mal) || String(a.subida).localeCompare(String(b.subida)));
+            return json({ crudas }, 200, origin);
+          }
+          // POST /api/boletas/crudas/:id -> la lectura de esa foto
+          //   { formato:"averarq-boletas", boletas:[...], lectura? }  -> pasan a la bandeja con la foto
+          //   { boletas:[], error:"..." }                              -> queda marcada como no legible
+          if (request.method === "POST" && parts[2] === "crudas" && parts[3]) {
+            const raw = await kv.get("boleta:cruda:" + parts[3]);
+            if (!raw) return json({ error: "Esa foto ya no está por leer." }, 404, origin);
+            const cr = JSON.parse(raw);
+            let body; try { body = await request.json(); } catch (e) { return json({ error: "El cuerpo no es JSON." }, 400, origin); }
+            const lista = Array.isArray(body && body.boletas) ? body.boletas : [];
+            if (!lista.length) {
+              cr.mal = corto((body && body.error) || "No se pudo leer.", 300);
+              await kv.put("boleta:cruda:" + cr.id, JSON.stringify(cr), { metadata: { s: cr.subida, f: cr.foto, mal: 1 } });
+              return json({ ok: true, ids: [], noLegible: true }, 200, origin);
+            }
+            const ids = await encolar(lista, "tarde", cr.foto, body.lectura || null);
+            if (!ids.length) return json({ error: "Ninguna boleta trae ítems." }, 400, origin);
+            await kv.delete("boleta:cruda:" + cr.id);
+            return json({ ok: true, ids }, 200, origin);
+          }
+          // DELETE /api/boletas/crudas/:id -> descartar una foto sin leer (la foto se borra también)
+          if (request.method === "DELETE" && parts[2] === "crudas" && parts[3]) {
+            const raw = await kv.get("boleta:cruda:" + parts[3]);
+            if (raw) { try { const cr = JSON.parse(raw); if (cr.foto) await kv.delete("boleta:foto:" + cr.foto); } catch (e) {} }
+            await kv.delete("boleta:cruda:" + parts[3]);
+            return json({ ok: true }, 200, origin);
+          }
+          // GET /api/boletas/foto/:id -> la imagen
+          if (request.method === "GET" && parts[2] === "foto" && parts[3]) {
+            const { value, metadata } = await kv.getWithMetadata("boleta:foto:" + parts[3]);
+            if (!value) return json({ error: "Esa foto no está en la nube." }, 404, origin);
+            const bin = atob(value); const bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            return new Response(bytes, { headers: { "Content-Type": (metadata && metadata.type) || "image/jpeg",
+              "Cache-Control": "private, max-age=86400", ...corsHeaders(origin) } });
+          }
+          // POST /api/boletas/foto -> la lee Claude y queda en la bandeja
+          //   cuerpo: { imagenes:[{b64,type}] (trozos para leer), foto:{b64,type} (la que se guarda), hoy:"AAAA-MM-DD" }
+          if (request.method === "POST" && parts[2] === "foto" && parts.length === 3) {
+            if (!env.ANTHROPIC_API_KEY) return json({ error: "Falta la clave de la API de Claude en el Worker (wrangler secret put ANTHROPIC_API_KEY)." }, 503, origin);
+            let body; try { body = await request.json(); } catch (e) { return json({ error: "El cuerpo no es JSON." }, 400, origin); }
+            const imgs = (Array.isArray(body.imagenes) ? body.imagenes : []).filter((x) => x && x.b64).slice(0, 6);
+            if (!imgs.length) return json({ error: "No llegó ninguna imagen." }, 400, origin);
+            const hoy = /^\d{4}-\d{2}-\d{2}$/.test(body.hoy || "") ? body.hoy
+              : new Date(Date.now() - 4 * 3600e3).toISOString().slice(0, 10);
+            const contenido = imgs.map((x) => ({ type: "image", source: { type: "base64",
+              media_type: /^image\/(jpeg|png|webp|gif)$/.test(x.type || "") ? x.type : "image/jpeg",
+              data: String(x.b64).replace(/^data:[^,]*,/, "") } }));
+            contenido.push({ type: "text", text: (imgs.length > 1
+              ? `Son ${imgs.length} trozos consecutivos de la MISMA foto, de arriba hacia abajo (se solapan un poco: no dupliques líneas). `
+              : "") + `Fecha de hoy: ${hoy}. Lee la compra y responde solo con el JSON.` });
+            const modelo = env.BOLETAS_MODELO || "claude-sonnet-5-5";
+            const r = await fetch("https://api.anthropic.com/v1/messages", {
+              method: "POST",
+              headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+              body: JSON.stringify({ model: modelo, max_tokens: 16000, system: BOLETAS_PROMPT, messages: [{ role: "user", content: contenido }] }),
+            });
+            const out = await r.json().catch(() => null);
+            if (!r.ok || !out) {
+              const msg = (out && out.error && out.error.message) || ("HTTP " + r.status);
+              return json({ error: "Claude no pudo leer la foto: " + msg }, 502, origin);
+            }
+            const texto = (out.content || []).filter((c) => c.type === "text").map((c) => c.text).join("\n");
+            const d = leerJSON(texto);
+            if (!d || !Array.isArray(d.boletas)) return json({ error: "La respuesta de Claude no trae boletas legibles.", respuesta: corto(texto, 600) }, 502, origin);
+            if (!d.boletas.length) return json({ error: d.error ? "No parece una compra: " + corto(d.error, 200) : "No encontré boletas en la foto." }, 422, origin);
+            const lectura = { modelo, entrada: out.usage ? out.usage.input_tokens : null, salida: out.usage ? out.usage.output_tokens : null };
+            const fotoId = await guardarFoto(body.foto || imgs[0]);
+            const ids = await encolar(d.boletas, "foto", fotoId, lectura);
+            return json({ ok: true, ids, foto: fotoId, boletas: d.boletas.map(resumen), lectura }, 200, origin);
+          }
+          // POST /api/boletas -> boletas ya leídas (el .averarq de un chat), con foto opcional
+          if (request.method === "POST" && parts.length === 2) {
+            let body; try { body = await request.json(); } catch (e) { return json({ error: "El cuerpo no es JSON." }, 400, origin); }
+            const lista = Array.isArray(body) ? body : (Array.isArray(body.boletas) ? body.boletas : null);
+            if (!lista || !lista.length) return json({ error: "No trae boletas (formato averarq-boletas)." }, 400, origin);
+            const fotoId = await guardarFoto(body.foto);
+            const ids = await encolar(lista, "texto", fotoId, null);
+            if (!ids.length) return json({ error: "Ninguna boleta trae ítems." }, 400, origin);
+            return json({ ok: true, ids, foto: fotoId }, 200, origin);
+          }
+          // DELETE /api/boletas/:id -> sale de la bandeja (ya se registró en el GESTOR)
+          if (request.method === "DELETE" && parts.length === 3) {
+            await kv.delete("boleta:pend:" + parts[2]);
+            return json({ ok: true }, 200, origin);
+          }
+          return json({ error: "Ruta de boletas no válida." }, 404, origin);
+        } catch (e) {
+          return json({ error: e.message || String(e) }, e.status || 500, origin);
+        }
+      }
+
       // ---------- MASTERGRAFO (grafo normativo, clave KV "mastergrafo:paquete") ----------
       // El paquete lo arma y lo sube empaquetar_mastergrafo.py --subir, desde la
       // carpeta de normativa. Vive SOLO aquí: el repositorio de la web es público,
@@ -943,6 +1130,37 @@ export default {
             // Cuadrilla del taller (maestros y tarifas)
             const cuadRaw = await kv.get("cuadrilla:global");
             await push(',"cuadrilla":' + (cuadRaw || "null"));
+
+            // Bandeja de boletas: lo leído que todavía no se asigna a una obra.
+            // Las fotos viajan solo con ?docs=1, como el contenido de los documentos.
+            await push(',"boletasBandeja":[');
+            const lb = await listarTodo(kv, "boleta:pend:");
+            let prim = true;
+            for (const k of lb) {
+              const v = await kv.get(k.name);
+              if (!v) continue;
+              let entrada = v;
+              if (conDocs) {
+                try { const e = JSON.parse(v); if (e.foto) { const f = await kv.get("boleta:foto:" + e.foto); if (f) { e.fotoB64 = f; entrada = JSON.stringify(e); } } } catch (e) {}
+              }
+              await push((prim ? "" : ",") + entrada);
+              prim = false;
+            }
+            await push("]");
+            await push(',"boletasPorLeer":[');
+            const lc = await listarTodo(kv, "boleta:cruda:");
+            prim = true;
+            for (const k of lc) {
+              const v = await kv.get(k.name);
+              if (!v) continue;
+              let entrada = v;
+              if (conDocs) {
+                try { const e = JSON.parse(v); if (e.foto) { const f = await kv.get("boleta:foto:" + e.foto); if (f) { e.fotoB64 = f; entrada = JSON.stringify(e); } } } catch (e) {}
+              }
+              await push((prim ? "" : ",") + entrada);
+              prim = false;
+            }
+            await push("]");
 
             // Proyectos del GESTOR
             await push(',"gestor":[');
