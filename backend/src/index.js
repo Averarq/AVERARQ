@@ -1,5 +1,6 @@
 // AVERARQ · Backend (Cloudflare Worker + KV, sin R2)
 // ============================================================================
+//  v13.1 · GET /api/version (para el botón único de publicación) — 2026-11-16
 //  v13 · BANDEJA DE BOLETAS: foto sin leer → lectura en la tarde → bandeja → GESTOR — 2026-11-12
 //  v12 · MASTERGRAFO: el grafo normativo, solo con token — 2026-11-04
 //  v11 · AVANCE DECLARADO DE OBRA EN EL PORTAL — 2026-11-03
@@ -60,6 +61,7 @@
 //   POST   /api/restaurar/documento   -> repone un documento con su id original
 //   POST   /api/reindexar             -> escribe la metadata que falte (una vez)
 //   GET    /gestor                    -> la página del GESTOR (no es /api/)
+//   GET    /api/version               -> versión del Worker y del GESTOR que sirve (público, sin datos)
 //
 // Auth: header  Authorization: Bearer <API_TOKEN>   (wrangler secret put API_TOKEN)
 //       Las rutas /api/boletas/* aceptan además BOLETAS_TOKEN, un token que SOLO abre
@@ -67,6 +69,8 @@
 
 import GESTOR_HTML from "./gestor.html";
 import BOLETAS_PROMPT from "./boletas_prompt.js";
+
+const BACKEND_VERSION = "v13.1";
 
 // Entrega el GESTOR inyectando el origen del propio Worker como URL de la nube
 function servirGestor(origin) {
@@ -427,6 +431,13 @@ export default {
     }
 
     const parts = url.pathname.split("/").filter(Boolean); // ["api", ...]
+
+    // ---------- VERSIÓN (pública: solo números de versión, ningún dato) ----------
+    // La usa PUBLICAR.bat para saber si el Worker en línea es el del computador.
+    if (parts[1] === "version" && parts.length === 2 && request.method === "GET") {
+      const g = GESTOR_HTML.match(/GESTOR_VERSION="([^"]+)"/);
+      return json({ backend: BACKEND_VERSION, gestor: g ? g[1] : null }, 200, origin);
+    }
 
     // ============================================================
     //  RUTAS PÚBLICAS DE SEGUIMIENTO (portal del cliente)

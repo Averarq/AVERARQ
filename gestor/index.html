@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.43</title>
+<title>GESTOR AVERARQ · Gestión integral de proyectos — v3.44</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440"><rect width="1440" height="1440" rx="220" fill="%23111311"/><polygon fill="%23fc4c02" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/></svg>'>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -345,7 +345,7 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
     <svg viewBox="370 320 700 800" xmlns="http://www.w3.org/2000/svg" aria-label="Averarq">
       <polygon fill="var(--naranja)" points="879.25 931.98 523.94 931.98 702.32 489.3 752.32 617.77 855.82 617.77 740.88 332.49 666.62 332.49 384.85 1019.93 488.57 1019.74 914.32 1019.74 949.4 1107.51 1055.15 1107.47 983.44 930.64 879.25 931.98"/>
     </svg>
-    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.43</span></span></a>
+    AVER<b>ARQ</b><span><span class="lg-nom">GESTOR DE PROYECTO</span><span class="lg-ver">v3.44</span></span></a>
   <input id="nomProyecto" type="text" placeholder="Nombre del proyecto" value="Proyecto sin título">
   <select id="selProyecto" title="Cambiar de proyecto"></select>
   <span id="nubeDot" class="nube-dot off" title="Sin nube"></span>
@@ -473,11 +473,11 @@ dialog h2{font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--naran
 
 <div id="printArea"></div>
 <script>
-/* ================= GESTOR AVERARQ v3.43 =================
+/* ================= GESTOR AVERARQ v3.44 =================
    Herramienta de cubicación y presupuesto — averarq.cl
    Precios de materiales REFERENCIALES: calibrar con proveedores.
 ============================================================ */
-const GESTOR_VERSION="v3.43";
+const GESTOR_VERSION="v3.44";
 console.log("%c GESTOR AVERARQ "+GESTOR_VERSION+" cargado ","background:#fc4c02;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px");
 let PDF_OK=false;
 try{
@@ -3204,9 +3204,10 @@ function bolPintar(){
   const cliTodas=vivas.length&&vivas.every(b=>b._cli===vivas[0]._cli)?vivas[0]._cli:"";
   let h=`<div class="row" style="align-items:baseline">
       <span class="small grow">${lote.length} boleta${lote.length===1?"":"s"} leída${lote.length===1?"":"s"}${lote.length!==vivas.length?` · ${vivas.length} por registrar`:""}</span>
-      <label class="small" style="width:auto">Cliente para todas</label>
-      <select id="bolCliTodas" style="max-width:220px"><option value="">—</option>${clientes.map(x=>`<option ${x===cliTodas?"selected":""}>${esc(x)}</option>`).join("")}</select>
-    </div>`;
+      ${vivas.length?`<label class="small" style="width:auto">Cliente para todas</label>
+      <select id="bolCliTodas" style="max-width:220px"><option value="">—</option>${clientes.map(x=>`<option ${x===cliTodas?"selected":""}>${esc(x)}</option>`).join("")}</select>`:""}
+    </div>
+    ${(!vivas.length&&lote.some(b=>b._ya))?`<div class="small" style="color:var(--ok);margin:4px 0 8px">✓ ${lote.length===1?"Esta boleta ya está registrada":"Todas estas boletas ya están registradas"}: no hay nada que asignar.${lote.some(b=>b._ya&&b._bandeja)?" Usa «Quitar de la bandeja» para sacarla"+(lote.length===1?"":"s")+" de la bandeja.":""}</div>`:""}`;
   lote.forEach((b,i)=>{
     const obras=b._cli?obrasDeCliente(b._cli):[];
     const opObras=(sel,conHerencia)=>(conHerencia?`<option value="" ${!sel?"selected":""}>como la boleta</option>`:`<option value="" ${!sel?"selected":""}>— obra —</option>`)
