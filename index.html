@@ -1226,7 +1226,7 @@
 </style>
 
 <style>
-  /* ── HERO CON VIDEO (opción C · panel diagonal) — nov 2026 ── */
+  /* ── HERO CON IMÁGENES (opción C · panel diagonal) — nov 2026 ── */
   .hero-video {
     position: absolute;
     top: 0; right: 0; bottom: 0;
@@ -1234,23 +1234,25 @@
     z-index: 0;
     overflow: hidden;
     clip-path: polygon(24% 0%, 100% 0%, 100% 100%, 0% 100%);
-    background: #1a1714 url('media/hero/hero-valle.webp') center / cover no-repeat;
+    background: #1a1714;
   }
-  .hero-video video {
+  .hero-video img {
     position: absolute; inset: 0;
     width: 100%; height: 100%;
     object-fit: cover; display: block;
-    opacity: 0; transition: opacity .8s ease;
+    opacity: 0;
+    transition: opacity .8s ease-in-out;
   }
-  .hero-video video.listo { opacity: 1; }
+  .hero-video img.activa { opacity: 1; }
   .hero-video::after {
     content: ''; position: absolute; inset: 0;
     background: linear-gradient(90deg, rgba(17,17,16,.6) 0%, rgba(17,17,16,.1) 45%, rgba(17,17,16,.25) 100%);
   }
   .hero.con-video .hero-accent { display: none; }
-  .hero.con-video .hero-iso { width: min(30vw, 400px); right: 9vw; }
+  .hero.con-video .hero-iso { width: min(30vw, 400px); right: 9vw; pointer-events: none; }
   .hero.con-video .iso-fill, .hero.con-video .iso-halo { fill: #ffffff; }
   .hero.con-video .iso-fill { animation-name: isoFillVideo; }
+  .hero.con-video .iso-sheen { display: none; }
   @keyframes isoFillVideo { 0%,100% { opacity: .82; } 50% { opacity: 1; } }
   @media (max-width: 900px) {
     .hero-video { width: 100%; clip-path: none; }
@@ -1259,6 +1261,7 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .hero.con-video .iso-fill { animation: none; opacity: .9; }
+    .hero-video img { transition: none; }
   }
 </style>
 </head>
@@ -1288,8 +1291,19 @@
     <div class="hero-bg" aria-hidden="true"></div>
     <div class="hero-grid" aria-hidden="true"></div>
     <div class="hero-accent" aria-hidden="true"></div>
-    <div class="hero-video" aria-hidden="true">
-      <video id="heroVideo" muted autoplay loop playsinline preload="none" poster="media/hero/hero-valle.webp" data-src="media/hero/hero-valle_1440.mp4" data-src-movil="media/hero/hero-valle_720.mp4"></video>
+    <div class="hero-video" id="heroSlides" aria-hidden="true">
+      <picture>
+        <source media="(max-width: 900px)" srcset="media/hero/hero-01-900.webp">
+        <img class="activa" src="media/hero/hero-01-1440.webp" alt="" fetchpriority="high">
+      </picture>
+      <img data-n="02" alt="">
+      <img data-n="03" alt="">
+      <img data-n="04" alt="">
+      <img data-n="05" alt="">
+      <img data-n="06" alt="">
+      <img data-n="07" alt="">
+      <img data-n="08" alt="">
+      <img data-n="09" alt="">
     </div>
     <div class="hero-iso" id="heroIso" aria-hidden="true">
       <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -1940,20 +1954,54 @@
 <script data-goatcounter="https://averarq-alejandro.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
 <script>
-/* Hero con video: se carga solo si el usuario no pidió reducir movimiento ni ahorrar datos */
+/* Hero: fundido lento entre imágenes + isotipo que se desvanece y se redibuja como capa independiente */
 (function () {
-  var v = document.getElementById('heroVideo');
-  if (!v) return;
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var cont = document.getElementById('heroSlides');
+  if (!cont) return;
+  var reducir = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var c = navigator.connection;
-  if (c && (c.saveData || /2g/.test(c.effectiveType || ''))) return;
-  v.muted = true;
-  v.src = v.getAttribute(window.matchMedia('(max-width: 900px)').matches ? 'data-src-movil' : 'data-src');
-  v.addEventListener('playing', function () { v.classList.add('listo'); }, { once: true });
-  var p = v.play(); if (p && p.catch) p.catch(function () {});
-  document.addEventListener('visibilitychange', function () {
-    if (document.hidden) v.pause(); else { var q = v.play(); if (q && q.catch) q.catch(function () {}); }
-  });
+  if (reducir || (c && (c.saveData || /2g/.test(c.effectiveType || '')))) return;
+
+  var ANCHO = window.matchMedia('(max-width: 900px)').matches ? '900' : '1440';
+  var MS_IMAGEN = 2500;        /* tiempo de cada imagen, fundido incluido */
+  var ISO_CADA = 3;            /* el isotipo se redibuja cada 3 imágenes  */
+
+  var slides = [cont.querySelector('img.activa')].concat([].slice.call(cont.querySelectorAll('img[data-n]')));
+  function cargar(i) {
+    var im = slides[i];
+    if (im && im.dataset.n && !im.getAttribute('src')) im.src = 'media/hero/hero-' + im.dataset.n + '-' + ANCHO + '.webp';
+  }
+  window.addEventListener('load', function () { cargar(1); cargar(2); });
+
+  var iso = document.querySelector('#heroIso svg');
+  var trazo = document.querySelector('#heroIso .iso-reveal');
+  function redibujarIso() {
+    if (!iso || !trazo || !iso.animate) return;
+    var salida = iso.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 450, easing: 'ease-in', fill: 'forwards' });
+    salida.onfinish = function () {
+      setTimeout(function () {
+        trazo.animate([{ strokeDashoffset: 100 }, { strokeDashoffset: 0 }],
+                      { duration: 1100, easing: 'cubic-bezier(0.65, 0, 0.35, 1)', fill: 'forwards' });
+        iso.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, fill: 'forwards' });
+      }, 150);
+    };
+  }
+
+  var actual = 0, cuenta = 0, timer = null;
+  function siguiente() {
+    var prox = (actual + 1) % slides.length;
+    var im = slides[prox];
+    cargar(prox); cargar((prox + 1) % slides.length);
+    if (!im.complete || !im.naturalWidth) { im.onload = function () { im.onload = null; }; return; }   /* si no cargó, se salta este turno */
+    slides[actual].classList.remove('activa');
+    im.classList.add('activa');
+    actual = prox; cuenta++;
+    if (cuenta % ISO_CADA === 0) setTimeout(redibujarIso, 850);   /* a mitad de la imagen, no en el cambio */
+  }
+  function iniciar() { if (!timer) timer = setInterval(siguiente, MS_IMAGEN); }
+  function detener() { clearInterval(timer); timer = null; }
+  iniciar();
+  document.addEventListener('visibilitychange', function () { document.hidden ? detener() : iniciar(); });
 })();
 </script>
 </body>
