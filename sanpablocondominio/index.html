@@ -55,6 +55,27 @@ button{font:inherit;color:inherit}
 .chip:hover{border-color:var(--muted)}
 .chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:500}
 
+
+/* Banner de video */
+.hero{position:relative;height:clamp(520px,74vh,820px);overflow:hidden;background:#111;color:#fff}
+.hero video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hero-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,22,21,.6) 0%,rgba(20,22,21,.15) 55%,rgba(20,22,21,0) 75%),linear-gradient(180deg,rgba(20,22,21,.55) 0%,rgba(20,22,21,.05) 28%,rgba(20,22,21,.1) 55%,rgba(26,28,27,.92) 100%)}
+.hero-in{position:relative;height:100%;display:flex;flex-direction:column;justify-content:space-between;padding-bottom:40px}
+.hero .top nav{color:rgba(255,255,255,.85)}
+.hero-copy{max-width:1600px}
+.hero h1{font-size:clamp(40px,7vw,96px);line-height:.98;letter-spacing:-.02em;animation:rise .9s .1s both}
+.hero .eyebrow{color:#fff;display:flex;align-items:center;gap:10px;animation:rise .9s both}
+.hero .eyebrow::before{content:"";width:28px;height:3px;background:var(--accent);border-radius:2px}
+.hero-copy p{font-size:clamp(16px,1.5vw,20px);max-width:52ch;margin:16px 0 0;color:rgba(255,255,255,.88);animation:rise .9s .2s both}
+.hero-row{display:flex;justify-content:space-between;align-items:end;gap:24px;flex-wrap:wrap;margin-top:28px;animation:rise .9s .3s both}
+.hero-cta{background:var(--accent);color:#fff;text-decoration:none;font-weight:500;padding:14px 26px;border-radius:999px}
+.hero-cta:hover{filter:brightness(1.08)}
+.hero .stat span{color:rgba(255,255,255,.75)}
+.vidtoggle{position:absolute;right:clamp(16px,3vw,40px);top:76px;background:rgba(26,28,27,.6);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;opacity:.6}
+.vidtoggle:hover{opacity:1}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+#plano{scroll-margin-top:12px}
+
 /* Escenario */
 .stage{display:grid;grid-template-columns:minmax(0,1fr) 370px;gap:20px;align-items:start}
 .stage:fullscreen{background:var(--bg);padding:24px;align-items:center;grid-template-columns:minmax(0,1fr) 400px;height:100%}
@@ -196,6 +217,7 @@ footer p{margin:0;max-width:70ch}
 }
 @media (max-width:680px){
   .intro{grid-template-columns:1fr}
+  .vidtoggle{top:auto;bottom:12px}
   .top nav{display:none}
   .types,.amen{grid-template-columns:1fr}
   .tool .tl{display:none}
@@ -203,39 +225,48 @@ footer p{margin:0;max-width:70ch}
 }
 @media (prefers-reduced-motion:reduce){
   *{transition:none!important}
+  .hero h1,.hero .eyebrow,.hero-copy p,.hero-row{animation:none}
   .lotg.on .house{animation:none;stroke-dashoffset:0;fill:rgba(255,255,255,.16)}
   .lot.on,.poi .ring{animation:none}
 }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header class="top">
-    <a class="brand" href="#plano" aria-label="Averarq">
-      <svg viewBox="41.6 33.0 21.9 25.4" aria-hidden="true"><path fill="#fc4c02" d="M 57.574219 52.507812 L 46.25 52.507812 L 51.9375 38.394531 L 53.53125 42.492188 L 56.828125 42.492188 L 53.164062 33.398438 L 50.796875 33.398438 L 41.816406 55.308594 L 45.125 55.304688 L 58.695312 55.304688 L 59.8125 58.101562 L 63.183594 58.101562 L 60.898438 52.464844 Z"/></svg>
-      <b>AVERARQ</b>
-    </a>
-    <nav>
-      <a href="#plano">Plano interactivo</a>
-      <a href="#tipologias">Tipologías</a>
-      <a href="#equipamiento">Equipamiento</a>
-      <a href="#disponibilidad">Disponibilidad</a>
-    </nav>
-  </header>
-
-  <div class="intro">
-    <div>
+<section class="hero" aria-label="Condominio San Pablo, Panquehue">
+  <video id="heroVid" autoplay muted loop playsinline preload="auto" poster="banner.jpg" aria-hidden="true">
+    <source src="banner.mp4" type="video/mp4">
+  </video>
+  <div class="hero-shade"></div>
+  <div class="wrap hero-in">
+    <header class="top">
+      <a class="brand" href="#plano" aria-label="Averarq">
+        <svg viewBox="41.6 33.0 21.9 25.4" aria-hidden="true"><path fill="#fc4c02" d="M 57.574219 52.507812 L 46.25 52.507812 L 51.9375 38.394531 L 53.53125 42.492188 L 56.828125 42.492188 L 53.164062 33.398438 L 50.796875 33.398438 L 41.816406 55.308594 L 45.125 55.304688 L 58.695312 55.304688 L 59.8125 58.101562 L 63.183594 58.101562 L 60.898438 52.464844 Z"/></svg>
+        <b>AVERARQ</b>
+      </a>
+      <nav>
+        <a href="#plano">Plano interactivo</a>
+        <a href="#tipologias">Tipologías</a>
+        <a href="#equipamiento">Equipamiento</a>
+        <a href="#disponibilidad">Disponibilidad</a>
+      </nav>
+    </header>
+    <div class="hero-copy">
       <div class="eyebrow">Panquehue · Valle del Aconcagua</div>
       <h1>Condominio San Pablo</h1>
-      <p>28 casas de dos pisos entre huertos y alamedas, con acceso controlado, plaza central y parque común. Recorre el plano y elige tu lote.</p>
-    </div>
-    <div class="stats">
-      <div class="stat"><b class="num" data-count="28">28</b><span>viviendas</span></div>
-      <div class="stat"><b class="num" data-count="2">2</b><span>etapas</span></div>
-      <div class="stat"><b class="num" id="statFrom">—</b><span>UF desde</span></div>
+      <p>28 casas de dos pisos entre huertos, cerros y alamedas. Un solo acceso controlado, plaza central y parque común.</p>
+      <div class="hero-row">
+        <a class="hero-cta" href="#plano">Explorar el plano</a>
+        <div class="stats">
+          <div class="stat"><b class="num" data-count="28">28</b><span>viviendas</span></div>
+          <div class="stat"><b class="num" data-count="8">8</b><span>tipologías</span></div>
+          <div class="stat"><b class="num" id="statFrom">—</b><span>UF desde</span></div>
+        </div>
+      </div>
     </div>
   </div>
-
+  <button class="vidtoggle" id="vidToggle" aria-label="Pausar video">Pausar</button>
+</section>
+<div class="wrap">
   <div class="filters" id="plano" role="toolbar" aria-label="Filtros">
     <div class="fgroup" data-key="e"><span>Etapa</span>
       <button class="chip" id="f-e-all" data-v="all" aria-pressed="true">Todas</button>
@@ -696,6 +727,12 @@ document.querySelectorAll("th").forEach(th=>th.addEventListener("click",()=>{
   if(sortK===th.dataset.k) sortDir*=-1; else {sortK=th.dataset.k; sortDir=1;}
   renderRows();
 }));
+
+
+/* ---------- Video del banner ---------- */
+const vid=document.getElementById("heroVid"), vt=document.getElementById("vidToggle");
+if(reduce){ vid.removeAttribute("autoplay"); vid.pause(); vt.textContent="Reproducir"; vt.setAttribute("aria-label","Reproducir video"); }
+vt.onclick=()=>{ if(vid.paused){ vid.play().catch(()=>{}); vt.textContent="Pausar"; vt.setAttribute("aria-label","Pausar video"); } else { vid.pause(); vt.textContent="Reproducir"; vt.setAttribute("aria-label","Reproducir video"); } };
 
 /* ---------- Inicio ---------- */
 document.getElementById("statFrom").textContent=fmt(Math.min(...LOTS.map(l=>l.uf)));
