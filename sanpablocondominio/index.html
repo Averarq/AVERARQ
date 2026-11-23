@@ -1,1 +1,713 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Condominio San Pablo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Mundo grafito Averarq: el plano manda, el naranja marca la elección, el blanco dibuja la volumetría. */
+  --bg:#1a1c1b;
+  --panel:#232524;
+  --line:#3a3d3c;
+  --ink:#eeeeec;
+  --muted:#a3a6a3;
+  --accent:#fc4c02;
+  --ok:#5fae6e;
+  --display:"Outfit","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --body:"Outfit","Avenir Next","Segoe UI",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-weight:300;line-height:1.5}
+a{color:inherit}
+h1,h2,h3{font-family:var(--display);font-weight:600;text-wrap:balance;margin:0;letter-spacing:-.01em}
+.num{font-variant-numeric:tabular-nums}
+.wrap{max-width:1600px;margin:0 auto;padding:0 clamp(16px,3vw,40px)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 0}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+.brand svg{width:26px;height:30px}
+.brand b{font-weight:500;letter-spacing:.32em;font-size:15px}
+.top nav{display:flex;gap:22px;font-size:14px;color:var(--muted)}
+.top nav a{text-decoration:none}
+.top nav a:hover{color:var(--ink)}
+
+.intro{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:end;padding:22px 0 20px;border-bottom:1px solid var(--line)}
+.eyebrow{color:var(--accent);font-weight:500;font-size:13px;letter-spacing:.18em;text-transform:uppercase;margin-bottom:10px}
+.intro h1{font-size:clamp(34px,5vw,66px);line-height:1.02}
+.intro p{color:var(--muted);max-width:60ch;margin:14px 0 0;font-size:17px}
+.stats{display:flex;gap:clamp(18px,3vw,44px)}
+.stat b{display:block;font-family:var(--display);font-weight:600;font-size:clamp(26px,3vw,42px);line-height:1}
+.stat span{color:var(--muted);font-size:13px}
+
+.filters{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;padding:16px 0}
+.fgroup{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.fgroup[hidden]{display:none}
+.fgroup > span{color:var(--muted);font-size:13px;margin-right:4px}
+.chip{font-size:14px;background:transparent;border:1px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer;transition:all .15s}
+.chip:hover{border-color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:500}
+
+/* Escenario */
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 370px;gap:20px;align-items:start}
+.stage:fullscreen{background:var(--bg);padding:24px;align-items:center;grid-template-columns:minmax(0,1fr) 400px;height:100%}
+.stage:fullscreen .card{position:static}
+.plan{position:relative;border-radius:14px;overflow:hidden;background:#000;box-shadow:0 30px 80px rgba(0,0,0,.45);aspect-ratio:1160/520;touch-action:none;user-select:none}
+#svg{position:absolute;inset:0;width:100%;height:100%;cursor:grab}
+.plan.dragging #svg{cursor:grabbing}
+#svg :focus{outline:none}
+#svg .lot:focus-visible{stroke:#fff}
+.dim{fill:rgba(12,13,13,.64);opacity:0;transition:opacity .25s;pointer-events:none}
+.plan.focus .dim{opacity:1}
+.lot{fill:transparent;stroke:transparent;stroke-width:1.5;vector-effect:non-scaling-stroke;cursor:pointer;transition:stroke .15s,fill .15s}
+.plan:not(.focus) .lot:not(.off){stroke:rgba(255,255,255,.35)}
+.plan.tint .lot.e1:not(.off){fill:rgba(252,76,2,.10)}
+.plan.tint .lot.e2:not(.off){fill:rgba(120,190,255,.10)}
+.lot.off{fill:rgba(12,13,13,.62)!important;cursor:default}
+.lot.on{stroke:var(--accent)!important;stroke-width:3;stroke-dasharray:7 5;animation:march 1.2s linear infinite;filter:drop-shadow(0 0 6px rgba(252,76,2,.8))}
+.house{fill:rgba(255,255,255,0);stroke:#fff;stroke-width:calc(2.2px * var(--k,1));stroke-linejoin:round;stroke-dasharray:100;stroke-dashoffset:100;opacity:0;pointer-events:none}
+.lotg.on .house{opacity:1;animation:draw 1s cubic-bezier(.65,0,.35,1) forwards, fillin .5s .8s forwards;filter:drop-shadow(0 0 4px rgba(255,255,255,.9))}
+.tag rect{fill:var(--bg);opacity:.85}
+.tag text{fill:var(--ink);font:600 13px var(--display);text-anchor:middle;dominant-baseline:central}
+.lotg.off .tag{opacity:.25}
+.plan.focus .lotg:not(.on) .tag{opacity:.25}
+.lotg.on .tag rect{fill:var(--accent);opacity:1}
+.tag,.vlabel,.poi-l{pointer-events:none}
+.vlabel{opacity:0;transition:opacity .3s .7s}
+.lotg.on .vlabel{opacity:1}
+.vlabel line{stroke:#fff;stroke-width:1}
+.vlabel rect{fill:rgba(26,28,27,.92);stroke:rgba(255,255,255,.5);stroke-width:.8}
+.vlabel text{fill:#fff;font:500 11px var(--display);dominant-baseline:central}
+.vlabel .k{fill:var(--accent);font-weight:600}
+.poi{cursor:pointer}
+.poi .core{fill:#fff;stroke:var(--accent);stroke-width:3}
+.poi .ring{fill:none;stroke:#fff;stroke-width:1.5;opacity:.8;transform-box:fill-box;transform-origin:center;animation:pulse 2.4s ease-out infinite}
+.poi .ico{fill:var(--accent)}
+.poi-l{opacity:0;transition:opacity .2s}
+.poi:hover .poi-l,.poi.on .poi-l{opacity:1}
+.poi-l rect{fill:rgba(26,28,27,.92)}
+.poi-l text{fill:#fff;font:500 12px var(--display);dominant-baseline:central}
+.plan.focus .poi:not(.on){opacity:.35}
+.plan.nopoi .poi{display:none}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes fillin{to{fill:rgba(255,255,255,.16)}}
+@keyframes march{to{stroke-dashoffset:-24}}
+@keyframes pulse{0%{transform:scale(.6);opacity:.9}100%{transform:scale(1.9);opacity:0}}
+
+.hud{position:absolute;left:14px;top:14px;display:flex;gap:6px;flex-wrap:wrap}
+.hud span{background:rgba(26,28,27,.85);backdrop-filter:blur(6px);padding:5px 11px;border-radius:999px;font-size:12px}
+.hud .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.tools{position:absolute;right:14px;bottom:14px;display:flex;gap:6px;background:rgba(26,28,27,.85);backdrop-filter:blur(6px);padding:6px;border-radius:12px}
+.tool{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid transparent;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px}
+.tool:hover{background:rgba(255,255,255,.08)}
+.tool[aria-pressed="true"]{background:var(--accent);color:#fff}
+.tool svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.hint{position:absolute;left:14px;bottom:14px;background:rgba(26,28,27,.85);backdrop-filter:blur(6px);padding:8px 14px;border-radius:999px;font-size:13px;pointer-events:none;transition:opacity .2s}
+.plan.focus .hint{opacity:0}
+.hint kbd,.keys kbd{font:inherit;font-size:11px;border:1px solid var(--line);border-radius:4px;padding:0 5px;margin:0 2px}
+.tourbar{position:absolute;left:0;right:0;top:0;height:3px;background:transparent}
+.tourbar i{display:block;height:100%;width:0;background:var(--accent)}
+
+/* Ficha */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;position:sticky;top:16px}
+.zoom{height:250px;background-color:#000;background-repeat:no-repeat;transition:background-position .45s ease,background-size .45s ease;position:relative}
+.zoom .badge{position:absolute;left:14px;top:14px;background:var(--accent);color:#fff;font-weight:600;border-radius:8px;padding:4px 10px;font-size:13px}
+.cbody{padding:20px 22px 22px}
+.ctitle{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.ctitle h3{font-size:32px}
+.status{font-size:12px;font-weight:500;color:var(--ok);border:1px solid currentColor;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.status.Reservada{color:#e3b341}.status.Vendida{color:#e5534b}
+.ctype{color:var(--muted);margin:2px 0 10px}
+.cdesc{margin:0 0 10px;font-size:14px;color:var(--ink);opacity:.85}
+.feats{list-style:none;padding:0;margin:0 0 16px;display:flex;flex-wrap:wrap;gap:6px}
+.feats li{border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;color:var(--muted)}
+.specs{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.specs div{background:var(--panel);padding:11px 14px}
+.specs small{display:block;color:var(--muted);font-size:12px}
+.specs b{font-weight:500;font-size:18px}
+.price{margin-top:16px;display:flex;justify-content:space-between;align-items:end;gap:10px}
+.price small{color:var(--muted);font-size:12px;display:block}
+.price b{font-family:var(--display);font-size:36px;font-weight:600;line-height:1}
+.nav2{display:flex;gap:8px;margin-top:16px}
+.nav2 button{flex:0 0 auto;background:transparent;border:1px solid var(--line);border-radius:10px;padding:11px 14px;cursor:pointer}
+.nav2 button:hover{border-color:var(--muted)}
+.cta{flex:1;display:block;text-align:center;background:var(--accent);color:#fff;text-decoration:none;font-weight:500;padding:12px;border-radius:10px}
+.cta:hover{filter:brightness(1.08)}
+.empty{padding:24px 22px}
+.empty h3{font-size:26px;margin-bottom:8px}
+.empty p{color:var(--muted);margin:0 0 14px}
+.mini{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mini div{border:1px solid var(--line);border-radius:10px;padding:10px}
+.mini b{display:block;font-size:20px;font-weight:600}
+.mini span{font-size:12px;color:var(--muted)}
+.keys{margin-top:14px;color:var(--muted);font-size:12px;line-height:1.9}
+
+section.block{padding:72px 0 0}
+.shead{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:24px}
+.shead h2{font-size:clamp(26px,3vw,40px)}
+.shead p{color:var(--muted);max-width:52ch;margin:0}
+.types{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.type{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;transition:border-color .2s,transform .2s}
+.type:hover{border-color:var(--accent);transform:translateY(-3px)}
+.type .zoom{height:180px}
+.type .cbody{flex:1;display:flex;flex-direction:column;gap:12px}
+.type h3{font-size:24px}
+.type p{color:var(--muted);margin:0}
+.type ul{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:6px}
+.type li{border:1px solid var(--line);border-radius:999px;padding:4px 11px;font-size:13px}
+.type .from{margin-top:auto;display:flex;justify-content:space-between;align-items:end;border-top:1px solid var(--line);padding-top:14px}
+.type .from small{color:var(--muted)}
+.type .from b{font-family:var(--display);font-size:24px;font-weight:600}
+
+.amen{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.amen button{background:var(--panel);padding:20px;text-align:left;border:0;cursor:pointer;transition:background .2s}
+.amen button:hover{background:#2a2d2c}
+.amen b{display:block;font-weight:500;font-size:17px;margin-bottom:4px}
+.amen span{color:var(--muted);font-size:14px}
+.amen i{display:block;width:22px;height:3px;background:var(--accent);margin-bottom:14px;border-radius:2px}
+
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;min-width:760px}
+th,td{text-align:left;padding:12px 16px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:500;color:var(--muted);font-size:13px;background:var(--panel);cursor:pointer;user-select:none}
+th.sorted{color:var(--ink)}
+td.r,th.r{text-align:right}
+.lotrow{cursor:pointer;transition:background .12s}
+.lotrow:hover,.lotrow.on{background:rgba(252,76,2,.1)}
+.lotrow.off{opacity:.35}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;vertical-align:middle}
+
+footer{margin:72px 0 0;padding:28px 0 40px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;color:var(--muted);font-size:13px}
+footer p{margin:0;max-width:70ch}
+
+@media (max-width:1300px){.types{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:1100px){
+  .stage{grid-template-columns:1fr}
+  .card{position:static}
+  .types{grid-template-columns:1fr 1fr}
+  .amen{grid-template-columns:1fr 1fr}
+}
+@media (max-width:680px){
+  .intro{grid-template-columns:1fr}
+  .top nav{display:none}
+  .types,.amen{grid-template-columns:1fr}
+  .tool .tl{display:none}
+  .hint{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important}
+  .lotg.on .house{animation:none;stroke-dashoffset:0;fill:rgba(255,255,255,.16)}
+  .lot.on,.poi .ring{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="#plano" aria-label="Averarq">
+      <svg viewBox="41.6 33.0 21.9 25.4" aria-hidden="true"><path fill="#fc4c02" d="M 57.574219 52.507812 L 46.25 52.507812 L 51.9375 38.394531 L 53.53125 42.492188 L 56.828125 42.492188 L 53.164062 33.398438 L 50.796875 33.398438 L 41.816406 55.308594 L 45.125 55.304688 L 58.695312 55.304688 L 59.8125 58.101562 L 63.183594 58.101562 L 60.898438 52.464844 Z"/></svg>
+      <b>AVERARQ</b>
+    </a>
+    <nav>
+      <a href="#plano">Plano interactivo</a>
+      <a href="#tipologias">Tipologías</a>
+      <a href="#equipamiento">Equipamiento</a>
+      <a href="#disponibilidad">Disponibilidad</a>
+    </nav>
+  </header>
+
+  <div class="intro">
+    <div>
+      <div class="eyebrow">Panquehue · Valle del Aconcagua</div>
+      <h1>Condominio San Pablo</h1>
+      <p>28 casas de dos pisos entre huertos y alamedas, con acceso controlado, plaza central y parque común. Recorre el plano y elige tu lote.</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><b class="num" data-count="28">28</b><span>viviendas</span></div>
+      <div class="stat"><b class="num" data-count="2">2</b><span>etapas</span></div>
+      <div class="stat"><b class="num" id="statFrom">—</b><span>UF desde</span></div>
+    </div>
+  </div>
+
+  <div class="filters" id="plano" role="toolbar" aria-label="Filtros">
+    <div class="fgroup" data-key="e"><span>Etapa</span>
+      <button class="chip" id="f-e-all" data-v="all" aria-pressed="true">Todas</button>
+      <button class="chip" id="f-e-1" data-v="1" aria-pressed="false">Etapa 1</button>
+      <button class="chip" id="f-e-2" data-v="2" aria-pressed="false">Etapa 2</button>
+    </div>
+    <div class="fgroup" data-key="st"><span>Estilo</span>
+      <button class="chip" id="f-st-all" data-v="all" aria-pressed="true">Todos</button>
+      <button class="chip" id="f-st-c" data-v="Colonial" aria-pressed="false">Colonial</button>
+      <button class="chip" id="f-st-m" data-v="Mediterránea" aria-pressed="false">Mediterránea</button>
+    </div>
+    <div class="fgroup" data-key="d"><span>Dormitorios</span>
+      <button class="chip" id="f-d-all" data-v="all" aria-pressed="true">Todos</button>
+      <button class="chip" id="f-d-2" data-v="2" aria-pressed="false">2</button>
+      <button class="chip" id="f-d-3" data-v="3" aria-pressed="false">3</button>
+      <button class="chip" id="f-d-4" data-v="4" aria-pressed="false">4</button>
+    </div>
+    <div class="fgroup" data-key="t" id="ftype" hidden><span>Tipología</span>
+      <button class="chip" id="f-t-x" data-v="all" aria-pressed="true">—</button>
+    </div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="plan" id="plan">
+      <svg viewBox="300 215 1160 520" id="svg" role="img" aria-label="Vista cenital del Condominio San Pablo con 28 lotes, plaza central y parque común">
+        <defs><mask id="hole"><rect x="-500" y="-500" width="2700" height="2000" fill="#fff"/><polygon id="holePoly" points="" fill="#000"/></mask></defs>
+        <image href="masterplan.jpg" x="0" y="0" width="1672" height="941"/>
+        <rect class="dim" x="-500" y="-500" width="2700" height="2000" mask="url(#hole)"/>
+        <g id="lots"></g>
+        <g id="pois"></g>
+      </svg>
+      <div class="tourbar"><i id="tourFill"></i></div>
+      <div class="hud">
+        <span><i class="sw" style="background:#fc4c02"></i>Etapa 1 · 18 casas</span>
+        <span><i class="sw" style="background:#78beff"></i>Etapa 2 · 10 casas</span>
+      </div>
+      <div class="hint">Pasa el mouse por una casa · rueda para acercar · <kbd>←</kbd><kbd>→</kbd> para recorrer</div>
+      <div class="tools" role="toolbar" aria-label="Controles del plano">
+        <button class="tool" id="tZoomIn" title="Acercar"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button class="tool" id="tZoomOut" title="Alejar"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+        <button class="tool" id="tFit" title="Ver todo el conjunto"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span class="tl">Ver todo</span></button>
+        <button class="tool" id="tPoi" aria-pressed="true" title="Mostrar equipamiento"><svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3"/><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/></svg><span class="tl">Equipamiento</span></button>
+        <button class="tool" id="tTour" aria-pressed="false" title="Recorrido automático (barra espaciadora)"><svg viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></svg><span class="tl">Recorrido</span></button>
+        <button class="tool" id="tFull" title="Pantalla completa (F)"><svg viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg><span class="tl">Presentar</span></button>
+      </div>
+    </div>
+    <aside class="card" id="card" aria-live="polite"></aside>
+  </div>
+
+  <section class="block" id="tipologias">
+    <div class="shead">
+      <h2>Ocho tipologías, dos estilos</h2>
+      <p>De 70 a 120 m², entre UF 3.750 y UF 4.000, con terminaciones de alto estándar. La colonial lleva teja chilena, aleros y corredor; la mediterránea, volúmenes blancos sin aleros y terrazas. Toca una tipología para ver sus lotes en el plano.</p>
+    </div>
+    <div class="types" id="types"></div>
+  </section>
+
+  <section class="block" id="equipamiento">
+    <div class="shead"><h2>Vivir en comunidad, en el campo</h2><p>Toca un elemento para ubicarlo en el plano.</p></div>
+    <div class="amen" id="amen"></div>
+  </section>
+
+  <section class="block" id="disponibilidad">
+    <div class="shead">
+      <h2>Disponibilidad</h2>
+      <p>Toca una fila para ubicar el lote en el plano. Los filtros de arriba también se aplican aquí.</p>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th data-k="n">Lote</th><th data-k="e">Etapa</th><th data-k="t">Tipología</th>
+          <th class="r" data-k="m2">Terreno</th><th class="r" data-k="c">Construido</th>
+          <th class="r" data-k="d">Dorm.</th><th class="r" data-k="b">Baños</th>
+          <th class="r" data-k="uf">Valor</th><th data-k="s">Estado</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <p>Imágenes referenciales. Superficies aproximadas de prediseño, sujetas a topografía y aprobación municipal. Valores en UF referenciales, sujetos a confirmación, pensados dentro del tramo de precios de viviendas con subsidio habitacional; los requisitos vigentes deben verificarse con el MINVU.</p>
+    <span>Arquitectura y desarrollo: Averarq · averarq.cl · contacto@averarq.cl</span>
+  </footer>
+</div>
+
+<script>
+/* ===== DATOS EDITABLES ===================================================
+   TYPES: superficie construida, dormitorios, baños, valor (UF) y atributos.
+   LOT_TYPE: tipología asignada a cada lote.
+   STATUS: "Disponible", "Reservada" o "Vendida" por número de lote.
+   CONTACT: correo al que llega "Consultar por este lote".
+========================================================================= */
+const TYPES = {
+  A:{name:"Mediterránea Esencial", st:"Mediterránea", c:70,  d:2, b:1, uf:3750, desc:"Compacta y de alto estándar: terminaciones premium, cielos altos y un living que se abre completo al jardín. Ideal para parejas.", feats:["Cocina con isla","Cielos altos","Ventanales de piso a cielo"]},
+  B:{name:"Mediterránea Loft",     st:"Mediterránea", c:80,  d:2, b:2, uf:3790, desc:"Dos dormitorios en suite y un estar en doble altura que se abre a la terraza. Pensada para teletrabajo.", feats:["2 suites","Doble altura","Rincón de trabajo"]},
+  C:{name:"Mediterránea Familiar", st:"Mediterránea", c:90,  d:3, b:2, uf:3830, desc:"Tres dormitorios y terraza blanca transitable con pérgola, frente a la plaza central.", feats:["Terraza en 2º piso","Pérgola","Vista a la plaza"]},
+  D:{name:"Mediterránea Jardín",   st:"Mediterránea", c:95,  d:3, b:2, uf:3860, desc:"La mediterránea con más jardín: terraza a nivel, quincho propio y lote profundo hacia el sur.", feats:["Quincho propio","Terraza a nivel","Lote profundo"]},
+  E:{name:"Colonial Corredor",     st:"Colonial",     c:95,  d:3, b:2, uf:3880, desc:"Teja chilena, aleros y un corredor techado hacia el patio: la casa de campo de siempre, en dos pisos.", feats:["Corredor techado","Teja chilena","Chimenea"]},
+  F:{name:"Colonial Patio",        st:"Colonial",     c:100, d:3, b:3, uf:3920, desc:"Volúmenes en L que abrazan un patio interior, con dormitorio principal en suite y baño de visitas.", feats:["Patio interior","Suite principal","Baño de visitas"]},
+  G:{name:"Colonial Mayor",        st:"Colonial",     c:110, d:4, b:3, uf:3960, desc:"Cuatro dormitorios en el borde norte, con vista abierta al huerto y estacionamiento techado.", feats:["4 dormitorios","Vista al huerto","Logia"]},
+  H:{name:"Casa Hacienda",         st:"Colonial",     c:120, d:4, b:3, uf:4000, desc:"Una sola unidad en el lote más grande del condominio, con escritorio, corredor en dos frentes y gran jardín.", feats:["Lote de 795 m²","Escritorio","Corredor en dos frentes"]}
+};
+/* Qué tipología lleva cada lote */
+const LOT_TYPE = {1:"G",2:"G",3:"G",4:"G",5:"G",6:"C",7:"C",8:"C",9:"C",10:"C",11:"E",12:"E",13:"E",14:"E",15:"D",16:"D",17:"D",18:"D",
+                  19:"D",20:"B",21:"B",22:"A",23:"F",24:"F",25:"F",26:"F",27:"F",28:"H"};
+const STATUS = {};               // ej: {12:"Reservada", 3:"Vendida"}
+const CONTACT = "contacto@averarq.cl";
+const TOUR_MS = 4500;            // duración de cada lote en el recorrido automático
+
+const POIS = [
+  {id:"plaza", x:1166,y:440, name:"Plaza central", desc:"Plaza arbolada con senderos de maicillo y bancas, al centro de la Etapa 1.", box:[1105,382,1228,495]},
+  {id:"cancha",x:440, y:485, name:"Multicancha", desc:"Cancha multiuso para fútbol y básquetbol en el parque común.", box:[405,445,478,540]},
+  {id:"quincho",x:527,y:575, name:"Quincho comunitario", desc:"Quincho techado con pérgola para celebraciones de la comunidad.", box:[490,540,570,605]},
+  {id:"juegos",x:614,y:572, name:"Juegos infantiles", desc:"Zona de juegos rodeada de pradera y árboles de sombra.", box:[585,545,645,600]},
+  {id:"acc1",  x:1170,y:655, name:"Conserjería Etapa 1", desc:"Caseta de conserjería y portón: el único acceso vehicular de la Etapa 1.", box:[1135,630,1205,690]},
+  {id:"acc2",  x:404, y:660, name:"Conserjería Etapa 2", desc:"Caseta de conserjería y portón de la Etapa 2, por el borde poniente.", box:[375,635,440,690]}
+];
+const LOTS = [{"n":1,"e":1,"st":"Colonial","m2":532,"p":[[861.0,349.6],[969.0,349.7],[969.2,269.4],[861.1,269.3]]},{"n":2,"e":1,"st":"Colonial","m2":532,"p":[[969.0,349.7],[1077.0,349.8],[1077.2,269.6],[969.2,269.4]]},{"n":3,"e":1,"st":"Colonial","m2":532,"p":[[1077.0,349.8],[1185.1,349.9],[1185.2,269.7],[1077.2,269.6]]},{"n":4,"e":1,"st":"Colonial","m2":532,"p":[[1185.1,349.9],[1293.1,350.1],[1293.3,269.8],[1185.2,269.7]]},{"n":5,"e":1,"st":"Colonial","m2":532,"p":[[1293.1,350.1],[1401.1,350.2],[1401.3,270.0],[1293.3,269.8]]},{"n":6,"e":1,"st":"Mediterr\u00e1nea","m2":490,"p":[[893.2,494.0],[964.2,494.1],[964.5,381.8],[893.4,381.7]]},{"n":7,"e":1,"st":"Mediterr\u00e1nea","m2":490,"p":[[964.2,494.1],[1035.3,494.2],[1035.6,381.9],[964.5,381.8]]},{"n":8,"e":1,"st":"Mediterr\u00e1nea","m2":490,"p":[[1035.3,494.2],[1106.4,494.3],[1106.6,382.0],[1035.6,381.9]]},{"n":9,"e":1,"st":"Mediterr\u00e1nea","m2":490,"p":[[1226.2,494.4],[1297.3,494.5],[1297.5,382.2],[1226.4,382.1]]},{"n":10,"e":1,"st":"Mediterr\u00e1nea","m2":490,"p":[[1297.3,494.5],[1368.4,494.6],[1368.6,382.3],[1297.5,382.2]]},{"n":11,"e":1,"st":"Colonial","m2":562,"p":[[860.3,670.5],[923.8,670.6],[924.1,526.2],[860.6,526.1]]},{"n":12,"e":1,"st":"Colonial","m2":562,"p":[[923.8,670.6],[987.2,670.7],[987.5,526.3],[924.1,526.2]]},{"n":13,"e":1,"st":"Colonial","m2":562,"p":[[987.2,670.7],[1050.7,670.8],[1051.0,526.3],[987.5,526.3]]},{"n":14,"e":1,"st":"Colonial","m2":562,"p":[[1050.7,670.8],[1114.2,670.9],[1114.5,526.4],[1051.0,526.3]]},{"n":15,"e":1,"st":"Mediterr\u00e1nea","m2":562,"p":[[1146.6,670.9],[1210.1,671.0],[1210.4,526.5],[1146.9,526.4]]},{"n":16,"e":1,"st":"Mediterr\u00e1nea","m2":562,"p":[[1210.1,671.0],[1273.6,671.0],[1273.9,526.6],[1210.4,526.5]]},{"n":17,"e":1,"st":"Mediterr\u00e1nea","m2":562,"p":[[1273.6,671.0],[1337.0,671.1],[1337.3,526.7],[1273.9,526.6]]},{"n":18,"e":1,"st":"Mediterr\u00e1nea","m2":562,"p":[[1337.0,671.1],[1400.5,671.2],[1400.8,526.8],[1337.3,526.7]]},{"n":19,"e":2,"st":"Mediterr\u00e1nea","m2":612,"p":[[381.0,686.0],[454.1,686.1],[454.4,549.7],[381.3,549.6]]},{"n":20,"e":2,"st":"Mediterr\u00e1nea","m2":476,"p":[[519.4,508],[588.4,508],[588.7,437.5],[519.6,437.4]]},{"n":21,"e":2,"st":"Mediterr\u00e1nea","m2":476,"p":[[588.4,508],[657.5,508],[657.7,437.6],[588.7,437.5]]},{"n":22,"e":2,"st":"Mediterr\u00e1nea","m2":325,"p":[[657.6,485.7],[767.7,485.9],[767.8,437.7],[657.7,437.6]]},{"n":23,"e":2,"st":"Colonial","m2":571,"p":[[381.6,405.2],[458.9,405.2],[459.1,284.9],[381.9,284.8]]},{"n":24,"e":2,"st":"Colonial","m2":571,"p":[[458.9,405.2],[536.1,405.3],[536.4,285.0],[459.1,284.9]]},{"n":25,"e":2,"st":"Colonial","m2":571,"p":[[536.1,405.3],[613.4,405.4],[613.6,285.1],[536.4,285.0]]},{"n":26,"e":2,"st":"Colonial","m2":571,"p":[[613.4,405.4],[690.6,405.5],[690.9,285.2],[613.6,285.1]]},{"n":27,"e":2,"st":"Colonial","m2":571,"p":[[690.6,405.5],[767.9,405.6],[768.1,285.2],[690.9,285.2]]},{"n":28,"e":2,"st":"Colonial","m2":795,"p":[[767.7,485.9],[832.3,485.9],[832.7,285.3],[768.1,285.2]]}];
+const HOUSES = {"1":[[951,301],[930,299],[928,293],[923,291],[922,287],[910,292],[889,293],[891,327],[895,329],[895,323],[902,321],[908,330],[908,340],[924,339],[921,333],[920,317],[926,314],[927,310],[931,310],[932,318],[927,321],[946,321],[947,326],[950,328],[952,320]],"2":[[986,304],[988,332],[990,325],[1003,324],[1004,332],[1009,333],[1010,328],[1013,327],[1012,312],[1016,312],[1017,315],[1021,315],[1022,312],[1029,312],[1030,317],[1034,319],[1035,312],[1040,312],[1041,308],[1046,308],[1047,315],[1039,320],[1039,326],[1040,322],[1057,321],[1056,301],[1045,300],[1034,291],[1004,290],[1001,291],[1001,301],[999,303]],"3":[[1164,304],[1146,301],[1144,299],[1145,290],[1141,290],[1140,294],[1105,294],[1104,318],[1108,319],[1108,330],[1111,330],[1113,335],[1113,317],[1121,317],[1122,319],[1125,317],[1135,319],[1141,317],[1144,320],[1146,333],[1162,333],[1162,326],[1165,324]],"4":[[1262,291],[1239,291],[1236,296],[1222,296],[1219,301],[1207,305],[1205,316],[1207,333],[1211,332],[1212,326],[1220,326],[1220,332],[1224,333],[1224,338],[1243,337],[1244,330],[1260,328],[1261,318],[1264,317]],"5":[[1319,297],[1320,328],[1327,328],[1328,324],[1332,324],[1337,329],[1336,338],[1340,338],[1342,330],[1351,330],[1351,339],[1354,331],[1360,331],[1365,336],[1377,337],[1376,329],[1375,335],[1367,335],[1364,327],[1358,327],[1355,324],[1356,314],[1363,314],[1367,319],[1370,316],[1376,316],[1377,322],[1377,315],[1380,313],[1379,297],[1377,295],[1354,296],[1346,291],[1343,296],[1326,295]],"6":[[927,404],[923,405],[925,406],[925,416],[923,417],[925,420],[925,440],[918,441],[916,433],[911,436],[913,465],[916,464],[917,458],[923,459],[924,450],[929,450],[930,454],[938,453],[936,428],[938,421],[941,419],[938,417],[938,412]],"7":[[1007,409],[1007,448],[1001,448],[999,452],[994,451],[994,435],[991,428],[988,429],[991,430],[991,443],[989,445],[977,444],[976,437],[977,473],[987,469],[993,469],[997,473],[1000,472],[1001,467],[1008,465],[1009,468],[1010,461],[1015,461],[1016,468],[1019,469],[1021,427],[1019,416]],"8":[[1074,407],[1068,411],[1073,410],[1075,415],[1075,432],[1071,439],[1059,438],[1053,432],[1053,429],[1050,429],[1053,473],[1066,472],[1067,468],[1072,468],[1073,474],[1077,468],[1095,468],[1096,472],[1097,469],[1096,439],[1095,465],[1082,464],[1081,460],[1076,457],[1075,434],[1080,433],[1088,438],[1086,415]],"9":[[1260,405],[1262,443],[1253,451],[1247,450],[1247,420],[1245,420],[1247,468],[1253,468],[1256,461],[1263,461],[1266,470],[1269,466],[1275,466],[1276,469],[1281,470],[1282,462],[1287,461],[1291,464],[1292,469],[1294,458],[1291,427],[1278,427],[1272,412]],"10":[[1351,407],[1343,405],[1345,436],[1342,437],[1341,442],[1334,446],[1328,444],[1328,457],[1322,457],[1316,453],[1316,448],[1320,447],[1315,446],[1314,428],[1312,435],[1316,469],[1322,467],[1323,462],[1335,462],[1336,467],[1331,469],[1343,468],[1345,470],[1348,457],[1353,457],[1354,463],[1356,463],[1357,421],[1355,410]],"11":[[907,577],[903,577],[902,581],[873,581],[873,599],[876,603],[874,609],[876,634],[881,633],[882,625],[888,625],[889,633],[893,636],[916,637],[916,628],[916,634],[910,636],[906,633],[905,627],[903,636],[893,635],[895,617],[898,616],[895,615],[896,602],[904,602],[906,608],[909,609],[909,614],[904,616],[905,618],[913,617],[914,583]],"12":[[977,581],[953,580],[950,588],[938,588],[939,620],[941,618],[954,618],[957,623],[957,627],[950,632],[949,636],[942,636],[939,627],[941,637],[959,636],[960,638],[961,635],[965,634],[965,623],[972,623],[973,633],[977,634],[977,624],[979,623]],"13":[[1035,579],[999,582],[1001,618],[1014,613],[1019,614],[1023,609],[1026,609],[1020,608],[1021,603],[1042,603],[1040,585]],"14":[[1103,584],[1086,581],[1083,585],[1064,587],[1065,618],[1069,616],[1083,617],[1081,634],[1074,636],[1085,636],[1089,632],[1094,634],[1097,632],[1104,633],[1107,597],[1104,594],[1105,587]],"15":[[1181,574],[1181,607],[1173,612],[1168,612],[1166,603],[1168,594],[1161,594],[1160,596],[1161,628],[1163,630],[1162,620],[1167,619],[1169,614],[1179,614],[1180,618],[1192,617],[1194,586],[1189,579]],"16":[[1267,582],[1254,576],[1257,611],[1252,615],[1245,615],[1243,605],[1243,610],[1235,613],[1239,619],[1238,624],[1230,623],[1229,610],[1231,609],[1228,608],[1228,598],[1241,598],[1244,595],[1241,592],[1227,593],[1228,633],[1243,632],[1246,634],[1245,629],[1248,620],[1253,621],[1254,633],[1256,631],[1268,633],[1270,613]],"17":[[1322,575],[1323,608],[1318,610],[1316,614],[1312,614],[1312,605],[1307,612],[1311,617],[1310,622],[1313,623],[1312,630],[1294,629],[1292,600],[1301,594],[1305,594],[1306,599],[1307,587],[1305,593],[1291,594],[1292,635],[1295,633],[1306,633],[1307,635],[1316,633],[1319,635],[1322,625],[1327,626],[1328,632],[1333,631],[1334,618],[1336,617],[1333,582]],"18":[[1395,580],[1384,574],[1386,607],[1377,612],[1373,612],[1371,608],[1370,612],[1364,611],[1363,614],[1359,614],[1357,610],[1358,600],[1369,600],[1369,586],[1364,587],[1362,595],[1356,595],[1357,633],[1360,630],[1367,630],[1368,635],[1379,632],[1385,633],[1388,623],[1393,623],[1394,629],[1397,630],[1399,603]],"19":[[407,555],[406,594],[403,598],[395,600],[398,624],[404,622],[414,624],[416,619],[431,619],[433,622],[437,622],[437,579],[422,579],[421,570],[423,569],[420,562]],"20":[[534,437],[538,441],[545,442],[545,473],[534,477],[533,461],[531,462],[531,482],[534,487],[535,498],[542,497],[541,485],[548,484],[551,498],[555,498],[556,495],[565,495],[566,497],[567,493],[576,493],[581,500],[580,461],[566,461],[580,463],[580,475],[574,489],[555,490],[554,484],[559,483],[559,475],[561,474],[556,471],[556,462],[561,460],[559,445],[555,442],[555,437]],"21":[[622,438],[621,469],[618,470],[620,476],[614,478],[609,476],[610,498],[617,497],[617,485],[623,484],[626,497],[629,499],[633,495],[640,497],[642,493],[651,494],[654,499],[655,473],[655,478],[651,479],[652,486],[648,490],[631,489],[631,485],[635,482],[635,473],[632,471],[635,448],[633,444]],"22":[[709,437],[709,467],[702,471],[696,469],[698,485],[706,485],[707,483],[714,483],[715,485],[729,483],[731,485],[739,481],[745,483],[746,453],[736,452],[736,437],[735,453],[725,452],[720,437]],"23":[[446,334],[435,332],[434,325],[429,325],[429,330],[423,332],[396,332],[395,348],[400,364],[403,364],[404,355],[428,355],[429,361],[422,362],[433,366],[435,373],[439,372],[440,368],[448,369],[450,343],[446,341]],"24":[[523,325],[485,324],[484,333],[473,335],[472,352],[476,358],[477,366],[481,366],[482,362],[487,362],[488,366],[491,367],[491,374],[495,375],[496,373],[492,372],[492,367],[496,366],[497,355],[504,354],[508,367],[509,365],[523,367],[523,356],[525,354]],"25":[[609,345],[600,344],[599,336],[589,334],[588,328],[584,327],[581,334],[551,335],[551,356],[554,359],[555,366],[558,367],[558,363],[561,362],[562,358],[590,358],[590,367],[593,368],[593,373],[597,367],[607,367],[608,369]],"26":[[667,329],[664,329],[662,334],[627,335],[627,355],[630,358],[631,367],[634,366],[634,359],[641,357],[643,375],[648,376],[644,374],[644,369],[648,365],[642,361],[643,356],[656,356],[658,368],[662,362],[666,362],[660,362],[660,356],[667,356],[668,358],[675,355],[674,335],[669,334]],"27":[[740,329],[737,329],[735,333],[702,334],[701,352],[704,367],[707,364],[706,358],[713,357],[714,367],[719,369],[718,376],[719,369],[728,365],[739,365],[740,374],[741,368],[752,366],[756,368],[757,374],[756,367],[759,365],[758,344],[750,344],[748,335],[742,334]],"28":[[775,354],[778,388],[780,384],[791,381],[793,377],[804,377],[807,381],[807,394],[810,395],[810,398],[814,395],[824,395],[824,391],[827,389],[827,364],[820,362],[819,353],[810,352],[810,345],[805,345],[800,352]]};
+
+const IMG={w:1672,h:941,src:"masterplan.jpg"};
+const HOME={x:300,y:215,w:1160,h:520};
+const ASPECT=HOME.w/HOME.h;
+const fmt=n=>n.toLocaleString("es-CL");
+const NS="http://www.w3.org/2000/svg";
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+LOTS.forEach(l=>{
+  l.t=LOT_TYPE[l.n];
+  const T=TYPES[l.t]; l.c=T.c; l.d=T.d; l.b=T.b; l.uf=T.uf;
+  l.s=STATUS[l.n]||"Disponible";
+  const xs=l.p.map(p=>p[0]), ys=l.p.map(p=>p[1]);
+  l.box=[Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)];
+  l.cx=(l.box[0]+l.box[2])/2; l.cy=(l.box[1]+l.box[3])/2;
+});
+
+/* ---------- Vista: zoom y desplazamiento ---------- */
+const svg=document.getElementById("svg"), plan=document.getElementById("plan");
+let vb={...HOME}, anim=null;
+function clampVB(v){
+  v.w=Math.max(220,Math.min(IMG.w,v.w)); v.h=v.w/ASPECT;
+  v.x=Math.max(0,Math.min(IMG.w-v.w,v.x)); v.y=Math.max(0,Math.min(IMG.h-v.h,v.y));
+  return v;
+}
+function setVB(v){ vb=clampVB(v); svg.setAttribute("viewBox",`${vb.x} ${vb.y} ${vb.w} ${vb.h}`); rescale(); }
+function animateVB(t,ms=750){
+  t=clampVB({...t}); if(anim) cancelAnimationFrame(anim);
+  if(reduce){ setVB(t); return; }
+  const s={...vb}, t0=performance.now();
+  const ease=k=>k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+  const step=now=>{const k=Math.min(1,(now-t0)/ms), e=ease(k);
+    setVB({x:s.x+(t.x-s.x)*e,y:s.y+(t.y-s.y)*e,w:s.w+(t.w-s.w)*e,h:0});
+    if(k<1) anim=requestAnimationFrame(step);};
+  anim=requestAnimationFrame(step);
+}
+function boxView(b,f=4){
+  const bw=(b[2]-b[0])*f, bh=(b[3]-b[1])*f;
+  const w=Math.max(bw,bh*ASPECT,300);
+  return {x:(b[0]+b[2])/2-w/2,y:(b[1]+b[3])/2-w/ASPECT/2,w,h:w/ASPECT};
+}
+function zoomAt(factor,px,py){
+  const r=svg.getBoundingClientRect();
+  const mx=vb.x+(px-r.left)/r.width*vb.w, my=vb.y+(py-r.top)/r.height*vb.h;
+  const w=vb.w*factor;
+  setVB({x:mx-(mx-vb.x)*factor,y:my-(my-vb.y)*factor,w,h:w/ASPECT});
+}
+svg.addEventListener("wheel",e=>{e.preventDefault(); stopTour(); zoomAt(e.deltaY>0?1.12:1/1.12,e.clientX,e.clientY);},{passive:false});
+let drag=null, moved=false;
+svg.addEventListener("pointerdown",e=>{drag={x:e.clientX,y:e.clientY,vb:{...vb}}; moved=false;});
+window.addEventListener("pointermove",e=>{
+  if(!drag) return;
+  const dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+  if(!moved && Math.hypot(dx,dy)<5) return;
+  moved=true; plan.classList.add("dragging"); stopTour();
+  const r=svg.getBoundingClientRect();
+  setVB({x:drag.vb.x-dx/r.width*vb.w,y:drag.vb.y-dy/r.height*vb.h,w:vb.w,h:vb.h});
+});
+window.addEventListener("pointerup",()=>{drag=null; plan.classList.remove("dragging");});
+svg.addEventListener("click",e=>{ if(moved){e.stopPropagation(); e.preventDefault();} },true);
+
+/* Etiquetas que mantienen su tamaño al acercar */
+const scalables=[];
+function rescale(){
+  const r=svg.getBoundingClientRect(); if(!r.width) return;
+  const k=(vb.w/r.width)*1.1;  // ~1 unidad = 1 px de pantalla
+  svg.style.setProperty("--k",k);
+  scalables.forEach(s=>s.g.setAttribute("transform",`translate(${s.x} ${s.y}) scale(${k})`));
+}
+
+/* ---------- Lotes ---------- */
+const gLots=document.getElementById("lots"), hole=document.getElementById("holePoly");
+function el(tag,attrs,parent){const n=document.createElementNS(NS,tag); for(const a in attrs)n.setAttribute(a,attrs[a]); parent&&parent.append(n); return n;}
+LOTS.forEach(l=>{
+  const grp=el("g",{class:"lotg"},gLots);
+  const pg=el("polygon",{points:l.p.map(p=>p.join(",")).join(" "),class:`lot e${l.e}`,tabindex:"0",role:"button","aria-label":`Lote ${l.n}, ${TYPES[l.t].name}, ${l.uf} UF`},grp);
+  const hp=HOUSES[l.n];
+  const hs=el("path",{d:"M"+hp.map(p=>p.join(",")).join("L")+"Z",pathLength:"100",class:"house"},grp);
+  // número
+  const tg=el("g",{class:"tag"},grp);
+  el("rect",{x:-15,y:-10,width:30,height:20,rx:10},tg);
+  const tt=el("text",{x:0,y:0},tg); tt.textContent=l.n;
+  scalables.push({g:tg,x:l.cx,y:l.box[1]+10});
+  // etiqueta de volumetría
+  const hx=hp.map(p=>p[0]), hy=hp.map(p=>p[1]);
+  const right=Math.max(...hx), topY=Math.min(...hy), left=l.cx>1350;
+  const T=TYPES[l.t], txt=`${T.c} m² · ${T.d}D/${T.b}B · UF ${fmt(T.uf)}`, w=txt.length*5.9+34;
+  const vg=el("g",{class:"vlabel"},grp);
+  const ox=left?-14:14;
+  vg.innerHTML=`<line x1="0" y1="0" x2="${ox}" y2="-14"/>`+
+    `<rect x="${left?ox-w:ox}" y="-25" width="${w}" height="22" rx="4"/>`+
+    `<text x="${(left?ox-w:ox)+8}" y="-14"><tspan class="k">${l.t}</tspan>  ${txt}</text>`;
+  scalables.push({g:vg,x:left?Math.min(...hx):right,y:topY+2});
+  l.el=grp; l.poly=pg; l.house=hs;
+  pg.addEventListener("mouseenter",()=>{ if(!touring && !drag) show(l); });
+  pg.addEventListener("focus",()=>show(l));
+  pg.addEventListener("click",()=>{ stopTour(); select(l); });
+  pg.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault(); stopTour(); select(l);}});
+});
+
+/* ---------- Equipamiento ---------- */
+const gPois=document.getElementById("pois");
+const poiIcon={plaza:"M-4 3h8M0 3v-7M-3-1l3-3 3 3",cancha:"M-5-4h10v8h-10zM0-4v8",quincho:"M-5 0l5-4 5 4M-4 0v4h8v-4",juegos:"M-4 4l4-8 4 8M-2 0h4",acc1:"M-4 4v-5l4-3 4 3v5z",acc2:"M-4 4v-5l4-3 4 3v5z"};
+POIS.forEach(p=>{
+  const g=el("g",{class:"poi",tabindex:"0",role:"button","aria-label":p.name},gPois);
+  const inner=el("g",{},g);
+  el("circle",{class:"ring",r:14},inner);
+  el("circle",{class:"core",r:11},inner);
+  el("path",{d:poiIcon[p.id],stroke:"#fc4c02","stroke-width":"1.8",fill:"none","stroke-linecap":"round","stroke-linejoin":"round"},inner);
+  const lab=el("g",{class:"poi-l"},inner);
+  const w=p.name.length*6.6+20;
+  lab.innerHTML=`<rect x="16" y="-12" width="${w}" height="24" rx="12"/><text x="26" y="0">${p.name}</text>`;
+  scalables.push({g:inner,x:p.x,y:p.y});
+  p.el=g;
+  const go=()=>{stopTour(); selectPoi(p);};
+  g.addEventListener("click",go); g.addEventListener("keydown",e=>{if(e.key==="Enter")go();});
+});
+
+/* ---------- Estado y filtros ---------- */
+let pinned=null, current=null, curPoi=null;
+const F={e:"all",st:"all",d:"all",t:"all"};
+const match=l=>(F.e==="all"||String(l.e)===F.e)&&(F.st==="all"||l.st===F.st)&&(F.d==="all"||String(l.d)===F.d)&&(F.t==="all"||l.t===F.t);
+const visible=()=>LOTS.filter(match).sort((a,b)=>a.n-b.n);
+
+function highlight(l){
+  LOTS.forEach(x=>{const on=x===l; x.el.classList.toggle("on",on); x.poly.classList.toggle("on",on); x.row&&x.row.classList.toggle("on",on);});
+  POIS.forEach(p=>p.el.classList.remove("on"));
+  if(l.house){l.house.style.animation="none"; void l.house.getBBox(); l.house.style.animation="";}
+  hole.setAttribute("points",l.p.map(p=>p.join(",")).join(" "));
+  plan.classList.add("focus");
+}
+function show(l){ if(!match(l)) return; current=l; curPoi=null; highlight(l); renderCard(l); }
+function select(l,zoom=true){ if(!match(l)) return; pinned=l; show(l); if(zoom) animateVB(boxView(l.box)); }
+function selectPoi(p){
+  pinned=null; current=null; curPoi=p;
+  LOTS.forEach(x=>{x.el.classList.remove("on"); x.poly.classList.remove("on"); x.row&&x.row.classList.remove("on");});
+  POIS.forEach(q=>q.el.classList.toggle("on",q===p));
+  hole.setAttribute("points",`${p.box[0]},${p.box[1]} ${p.box[2]},${p.box[1]} ${p.box[2]},${p.box[3]} ${p.box[0]},${p.box[3]}`);
+  plan.classList.add("focus");
+  animateVB(boxView(p.box,3));
+  renderPoi(p);
+}
+function clear(){
+  current=null; curPoi=null;
+  LOTS.forEach(x=>{x.el.classList.remove("on"); x.poly.classList.remove("on"); x.row&&x.row.classList.remove("on");});
+  POIS.forEach(p=>p.el.classList.remove("on"));
+  plan.classList.remove("focus");
+  renderSummary();
+}
+function overview(){ pinned=null; stopTour(); clear(); animateVB(HOME); }
+plan.addEventListener("mouseleave",()=>{ if(touring) return; if(pinned) show(pinned); else if(!curPoi) clear(); });
+
+function step(dir){
+  const list=visible(); if(!list.length) return;
+  const ref=pinned||current; let i=ref?list.indexOf(ref):-1;
+  i=(i+dir+list.length)%list.length;
+  select(list[i]);
+}
+
+/* ---------- Ficha ---------- */
+const card=document.getElementById("card");
+function zoomTo(node,box,pad=1.2){
+  const W=node.clientWidth||340, H=node.clientHeight||250;
+  const s=Math.min(W/((box[2]-box[0])*pad), H/((box[3]-box[1])*pad));
+  node.style.backgroundImage=`url(${IMG.src})`;
+  node.style.backgroundSize=`${IMG.w*s}px ${IMG.h*s}px`;
+  node.style.backgroundPosition=`${W/2-(box[0]+box[2])/2*s}px ${H/2-(box[1]+box[3])/2*s}px`;
+}
+function renderCard(l){
+  const T=TYPES[l.t];
+  const subject=encodeURIComponent(`Condominio San Pablo · Lote ${l.n}`);
+  card.innerHTML=`
+    <div class="zoom" id="cz"><span class="badge">Etapa ${l.e}</span></div>
+    <div class="cbody">
+      <div class="ctitle"><h3>Lote ${String(l.n).padStart(2,"0")}</h3><span class="status ${l.s}">${l.s}</span></div>
+      <div class="ctype">Tipología ${l.t} · ${T.name} · 2 pisos</div>
+      <p class="cdesc">${T.desc}</p>
+      <ul class="feats">${T.feats.map(f=>`<li>${f}</li>`).join("")}</ul>
+      <div class="specs num">
+        <div><small>Terreno</small><b>${fmt(l.m2)} m²</b></div>
+        <div><small>Construido</small><b>${l.c} m²</b></div>
+        <div><small>Dormitorios</small><b>${l.d}</b></div>
+        <div><small>Baños</small><b>${l.b}</b></div>
+      </div>
+      <div class="price"><div><small>Valor referencial</small><b class="num">UF ${fmt(l.uf)}</b></div></div>
+      <div class="nav2">
+        <button id="prev" aria-label="Lote anterior">←</button>
+        <a class="cta" href="mailto:${CONTACT}?subject=${subject}">Consultar por este lote</a>
+        <button id="next" aria-label="Lote siguiente">→</button>
+      </div>
+    </div>`;
+  zoomTo(document.getElementById("cz"),l.box,1.08);
+  document.getElementById("prev").onclick=()=>{stopTour(); step(-1);};
+  document.getElementById("next").onclick=()=>{stopTour(); step(1);};
+}
+function renderPoi(p){
+  card.innerHTML=`
+    <div class="zoom" id="cz"><span class="badge">Espacio común</span></div>
+    <div class="cbody">
+      <div class="ctitle"><h3>${p.name}</h3></div>
+      <p class="ctype" style="margin-top:10px">${p.desc}</p>
+      <div class="nav2"><button id="back" style="flex:1">Volver al conjunto</button></div>
+    </div>`;
+  zoomTo(document.getElementById("cz"),p.box,1.15);
+  document.getElementById("back").onclick=overview;
+}
+function renderSummary(){
+  const vis=visible();
+  const from=vis.length?Math.min(...vis.map(l=>l.uf)):0;
+  card.innerHTML=`
+    <div class="zoom" id="cz"></div>
+    <div class="empty">
+      <h3>Elige tu casa</h3>
+      <p>Pasa el mouse por el plano: la casa se dibuja en blanco y aquí aparece su ficha. Haz clic para acercarte.</p>
+      <div class="mini num">
+        <div><b>${vis.length}</b><span>disponibles</span></div>
+        <div><b>${vis.length?fmt(Math.min(...vis.map(l=>l.m2))):0}</b><span>m² desde</span></div>
+        <div><b>${fmt(from)}</b><span>UF desde</span></div>
+      </div>
+      <div class="keys"><kbd>←</kbd><kbd>→</kbd> recorrer lotes · <kbd>Espacio</kbd> recorrido automático · <kbd>F</kbd> presentar · <kbd>Esc</kbd> ver todo</div>
+    </div>`;
+  zoomTo(document.getElementById("cz"),[370,250,1415,700],1.02);
+}
+
+/* ---------- Recorrido automático ---------- */
+let touring=false, tourTimer=null, tourStart=0, fillRaf=null;
+const tBtn=document.getElementById("tTour"), fill=document.getElementById("tourFill");
+function tourTick(){ step(1); tourStart=performance.now(); }
+function fillLoop(){ if(!touring) return; fill.style.width=Math.min(100,(performance.now()-tourStart)/TOUR_MS*100)+"%"; fillRaf=requestAnimationFrame(fillLoop); }
+function startTour(){ if(touring) return; touring=true; tBtn.setAttribute("aria-pressed","true"); tourTick(); tourTimer=setInterval(tourTick,TOUR_MS); fillLoop(); }
+function stopTour(){ if(!touring) return; touring=false; tBtn.setAttribute("aria-pressed","false"); clearInterval(tourTimer); cancelAnimationFrame(fillRaf); fill.style.width="0"; }
+tBtn.onclick=()=>touring?stopTour():startTour();
+
+/* ---------- Herramientas ---------- */
+document.getElementById("tZoomIn").onclick=()=>{const r=svg.getBoundingClientRect(); zoomAt(1/1.35,r.left+r.width/2,r.top+r.height/2);};
+document.getElementById("tZoomOut").onclick=()=>{const r=svg.getBoundingClientRect(); zoomAt(1.35,r.left+r.width/2,r.top+r.height/2);};
+document.getElementById("tFit").onclick=overview;
+const pBtn=document.getElementById("tPoi");
+pBtn.onclick=()=>{const on=pBtn.getAttribute("aria-pressed")!=="true"; pBtn.setAttribute("aria-pressed",on); plan.classList.toggle("nopoi",!on);};
+const stage=document.getElementById("stage");
+function toggleFull(){
+  try{ if(document.fullscreenElement) document.exitFullscreen(); else stage.requestFullscreen().catch(()=>{}); }catch(e){}
+}
+document.getElementById("tFull").onclick=toggleFull;
+document.addEventListener("fullscreenchange",()=>setTimeout(()=>{rescale(); if(current)renderCard(current); else if(curPoi)renderPoi(curPoi); else renderSummary();},120));
+
+document.addEventListener("keydown",e=>{
+  if(e.target.closest&&e.target.closest("input,textarea")) return;
+  if(e.key==="ArrowRight"){e.preventDefault(); stopTour(); step(1);}
+  else if(e.key==="ArrowLeft"){e.preventDefault(); stopTour(); step(-1);}
+  else if(e.key==="Escape"){overview();}
+  else if(e.key===" " && !e.target.closest("button,a,[role=button]")){e.preventDefault(); touring?stopTour():startTour();}
+  else if(e.key==="f"||e.key==="F"){toggleFull();}
+  else if(e.key==="+"||e.key==="="){document.getElementById("tZoomIn").click();}
+  else if(e.key==="-"){document.getElementById("tZoomOut").click();}
+});
+
+/* ---------- Filtros ---------- */
+document.querySelectorAll(".fgroup").forEach(grp=>{
+  grp.addEventListener("click",e=>{
+    const b=e.target.closest(".chip"); if(!b) return;
+    if(grp.dataset.key==="t"){ F.t="all"; grp.hidden=true; applyFilters(); return; }
+    F[grp.dataset.key]=b.dataset.v;
+    grp.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed",c===b));
+    applyFilters();
+  });
+});
+function applyFilters(){
+  LOTS.forEach(l=>{const m=match(l); l.poly.classList.toggle("off",!m); l.el.classList.toggle("off",!m); l.row&&l.row.classList.toggle("off",!m);});
+  plan.classList.toggle("tint",!(F.e==="all" && F.st==="all" && F.d==="all" && F.t==="all"));
+  if(pinned&&!match(pinned)) pinned=null;
+  if(current&&match(current)) renderCard(current); else { clear(); }
+  if(F.e!=="all"){ const ls=visible(); if(ls.length){const b=[Math.min(...ls.map(l=>l.box[0])),Math.min(...ls.map(l=>l.box[1])),Math.max(...ls.map(l=>l.box[2])),Math.max(...ls.map(l=>l.box[3]))]; animateVB(boxView(b,1.12));} }
+  else animateVB(HOME);
+}
+
+/* ---------- Tipologías ---------- */
+const sample={A:22,B:20,C:8,D:16,E:13,F:25,G:2,H:28};
+const typesEl=document.getElementById("types");
+typesEl.innerHTML=Object.entries(TYPES).map(([code,T])=>{
+  const ls=LOTS.filter(l=>l.t===code);
+  return `<article class="type" tabindex="0" data-t="${code}">
+    <div class="zoom" data-s="${sample[code]}"><span class="badge">${T.st}</span></div>
+    <div class="cbody">
+      <h3>${code} · ${T.name}</h3>
+      <p>${T.desc}</p>
+      <ul class="num"><li>${T.c} m²</li><li>${T.d} dorm.</li><li>${T.b} ${T.b>1?"baños":"baño"}</li><li>${ls.length} ${ls.length>1?"lotes":"lote"}</li></ul>
+      <div class="from"><small>Terreno ${fmt(Math.min(...ls.map(l=>l.m2)))}${ls.length>1&&Math.min(...ls.map(l=>l.m2))!==Math.max(...ls.map(l=>l.m2))?"–"+fmt(Math.max(...ls.map(l=>l.m2))):""} m²</small><b class="num">UF ${fmt(T.uf)}</b></div>
+    </div></article>`;
+}).join("");
+typesEl.querySelectorAll(".type").forEach(a=>{
+  const go=()=>{
+    const code=a.dataset.t;
+    F.e="all"; F.st="all"; F.d="all"; F.t=code;
+    document.querySelectorAll(".fgroup").forEach(g=>g.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed",c.dataset.v==="all")));
+    const ft=document.getElementById("ftype"); ft.hidden=false;
+    document.getElementById("f-t-x").textContent=`${code} · ${TYPES[code].name}  ✕`;
+    document.getElementById("f-t-x").setAttribute("aria-pressed","true");
+    applyFilters();
+    const ls=visible(); if(ls.length){const b=[Math.min(...ls.map(l=>l.box[0])),Math.min(...ls.map(l=>l.box[1])),Math.max(...ls.map(l=>l.box[2])),Math.max(...ls.map(l=>l.box[3]))]; animateVB(boxView(b,1.3));}
+    document.getElementById("plano").scrollIntoView({behavior:reduce?"auto":"smooth"});
+  };
+  a.addEventListener("click",go); a.addEventListener("keydown",e=>{if(e.key==="Enter")go();});
+});
+function zoomTypes(){document.querySelectorAll(".type .zoom").forEach(z=>{const l=LOTS.find(x=>x.n==z.dataset.s); zoomTo(z,l.box,1.15);});}
+
+/* ---------- Equipamiento (tarjetas) ---------- */
+const amenEl=document.getElementById("amen");
+[["acc1","Acceso controlado","Portón y caseta de conserjería en cada etapa. Ninguna casa abre al camino."],
+ ["plaza","Plaza central","Arbolada, con senderos de maicillo y bancas, frente al acceso de la Etapa 1."],
+ ["cancha","Parque común","Multicancha, quincho con pérgola y juegos infantiles en la Etapa 2."],
+ [null,"Muro verde","Cortina de cipreses italianos y álamos en todo el perímetro."]].forEach(([id,t,d])=>{
+  const b=document.createElement("button"); b.innerHTML=`<i></i><b>${t}</b><span>${d}</span>`;
+  b.onclick=()=>{document.getElementById("plano").scrollIntoView({behavior:reduce?"auto":"smooth"}); if(id) selectPoi(POIS.find(p=>p.id===id)); else overview();};
+  amenEl.append(b);
+});
+
+/* ---------- Tabla ---------- */
+const rows=document.getElementById("rows");
+const stColor={Colonial:"#d9673a","Mediterránea":"#8a8f93"};
+let sortK="n", sortDir=1;
+function renderRows(){
+  const key={n:l=>l.n,e:l=>l.e,t:l=>l.t,m2:l=>l.m2,c:l=>l.c,d:l=>l.d,b:l=>l.b,uf:l=>l.uf,s:l=>l.s}[sortK];
+  const list=[...LOTS].sort((a,b)=>(key(a)>key(b)?1:key(a)<key(b)?-1:a.n-b.n)*sortDir);
+  rows.innerHTML="";
+  list.forEach(l=>{
+    const tr=document.createElement("tr"); tr.className="lotrow"; tr.tabIndex=0;
+    tr.innerHTML=`<td>${String(l.n).padStart(2,"0")}</td><td>Etapa ${l.e}</td><td><span class="dot" style="background:${stColor[l.st]}"></span>${l.t} · ${TYPES[l.t].name}</td>
+      <td class="r">${fmt(l.m2)} m²</td><td class="r">${l.c} m²</td><td class="r">${l.d}</td><td class="r">${l.b}</td><td class="r">UF ${fmt(l.uf)}</td><td>${l.s}</td>`;
+    const go=()=>{ if(!match(l)) return; stopTour(); document.getElementById("plano").scrollIntoView({behavior:reduce?"auto":"smooth"}); select(l); };
+    tr.addEventListener("click",go); tr.addEventListener("keydown",e=>{if(e.key==="Enter")go();});
+    tr.classList.toggle("off",!match(l)); tr.classList.toggle("on",l===current);
+    l.row=tr; rows.append(tr);
+  });
+  document.querySelectorAll("th").forEach(th=>th.classList.toggle("sorted",th.dataset.k===sortK));
+}
+document.querySelectorAll("th").forEach(th=>th.addEventListener("click",()=>{
+  if(sortK===th.dataset.k) sortDir*=-1; else {sortK=th.dataset.k; sortDir=1;}
+  renderRows();
+}));
+
+/* ---------- Inicio ---------- */
+document.getElementById("statFrom").textContent=fmt(Math.min(...LOTS.map(l=>l.uf)));
+if(!reduce){
+  document.querySelectorAll("[data-count], #statFrom").forEach(n=>{
+    const end=n.id==="statFrom"?Math.min(...LOTS.map(l=>l.uf)):+n.dataset.count, t0=performance.now();
+    const f=now=>{const k=Math.min(1,(now-t0)/1200); n.textContent=fmt(Math.round(end*(1-Math.pow(1-k,3)))); if(k<1)requestAnimationFrame(f);};
+    requestAnimationFrame(f);
+  });
+}
+renderRows(); renderSummary(); zoomTypes(); setVB(HOME);
+window.addEventListener("resize",()=>{rescale(); zoomTypes(); if(current)renderCard(current); else if(curPoi)renderPoi(curPoi); else renderSummary();});
+</script>
+</body>
+</html>
