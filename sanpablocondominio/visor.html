@@ -230,8 +230,11 @@ button{font:inherit;color:inherit;cursor:pointer}
   </div>
 </div>
 <div class="toast" id="toast"></div>
-<div class="err" id="err" hidden><div><h2>No se pudieron cargar los datos del visor</h2><p>Abre el visor desde el sitio web (averarq.cl/sanpablocondominio/visor.html). Al abrir el archivo con doble clic, el navegador bloquea la lectura de la carpeta <b>data</b>.</p></div></div>
+<div class="err" id="err" hidden><div><h2>Faltan los datos del visor</h2><p>No se encontraron los archivos de la carpeta <b>data</b> (geometria.js, unidades.js y medios.js). Revisa que la carpeta <b>data</b> esté junto a visor.html.</p></div></div>
 
+<script src="data/geometria.js"></script>
+<script src="data/unidades.js"></script>
+<script src="data/medios.js"></script>
 <script src="vendor/three.min.js"></script>
 <script src="vendor/OrbitControls.js"></script>
 <script>
@@ -244,9 +247,8 @@ const toast=t=>{const e=$("#toast"); e.textContent=t; e.classList.add("on"); cle
 const S={view:"2d", sel:null, etapa:"all"};
 let G,U,M,P,TYPES, units={}, IMG;
 
-Promise.all(["data/geometria.json","data/unidades.json","data/medios.json"].map(u=>fetch(u).then(r=>{if(!r.ok)throw 0;return r.json();})))
-  .then(([g,u,m])=>{G=g;U=u;M=m;init();})
-  .catch(e=>{console.error("visor",e); $("#err").hidden=false;});
+if(window.SP_GEOMETRIA&&window.SP_UNIDADES&&window.SP_MEDIOS){ G=SP_GEOMETRIA; U=SP_UNIDADES; M=SP_MEDIOS; addEventListener("DOMContentLoaded",init); }
+else { $("#err").hidden=false; }
 
 function init(){
   P=U.proyecto; TYPES=U.tipologias; IMG=G.imagen;
@@ -378,8 +380,10 @@ function build3D(){
   const m=IMG.m_por_px, [ox,oy]=IMG.origen_px;
   const W=(px,py)=>new THREE.Vector3((px-ox)*m,0,(py-oy)*m);
   // terreno con el fotomontaje
-  const tex=new THREE.TextureLoader().load(IMG.src); tex.encoding=THREE.sRGBEncoding; tex.anisotropy=8;
-  const ground=new THREE.Mesh(new THREE.PlaneGeometry(IMG.w*m,IMG.h*m),new THREE.MeshLambertMaterial({map:tex}));
+  const gmat=new THREE.MeshLambertMaterial({color:0x7f8f55});
+  // Con doble clic (file://) el navegador no deja usar la foto como textura 3D: queda un terreno liso.
+  new THREE.TextureLoader().load(IMG.src,tex=>{tex.encoding=THREE.sRGBEncoding; tex.anisotropy=8; gmat.map=tex; gmat.color.set(0xffffff); gmat.needsUpdate=true;},undefined,()=>{});
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(IMG.w*m,IMG.h*m),gmat);
   ground.rotation.x=-Math.PI/2; ground.position.set((IMG.w/2-ox)*m,0,(IMG.h/2-oy)*m); ground.receiveShadow=true; scene.add(ground);
   const far=new THREE.Mesh(new THREE.PlaneGeometry(3000,3000),new THREE.MeshLambertMaterial({color:0x6f7d4e}));
   far.rotation.x=-Math.PI/2; far.position.y=-0.2; scene.add(far);
