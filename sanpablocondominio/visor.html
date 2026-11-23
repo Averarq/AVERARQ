@@ -69,6 +69,10 @@ button{font:inherit;color:inherit;cursor:pointer}
 .pill{background:transparent;border:0;border-radius:999px;padding:7px 14px;font-size:13px;font-weight:500;letter-spacing:.02em}
 .pill[aria-pressed="true"]{background:#fff;color:#1a1c1b}
 .right{display:flex;gap:8px;align-items:center}
+.home{display:flex;align-items:center;gap:6px;background:rgba(26,28,27,.82);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.18);color:#fff;text-decoration:none;border-radius:999px;padding:8px 14px;font-weight:500;font-size:13px}
+.home:hover{background:rgba(26,28,27,.95)}
+.home svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:760px){.home span{display:none}.home{padding:9px}}
 .contact{background:#fff;color:#1a1c1b;border:0;border-radius:999px;padding:9px 16px;font-weight:600;font-size:13px}
 .center{position:absolute;left:50%;transform:translateX(-50%);top:calc(14px + env(safe-area-inset-top));display:flex;flex-direction:column;align-items:center;gap:8px}
 
@@ -110,6 +114,22 @@ button{font:inherit;color:inherit;cursor:pointer}
 .grid sup{font-size:10px;color:var(--muted);font-weight:400;margin-left:3px}
 .feats{list-style:none;padding:0;margin:12px 0 0;display:flex;flex-wrap:wrap;gap:6px}
 .feats li{border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;color:var(--muted)}
+.planbox{margin-top:16px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.planhead{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:8px 10px;background:#1b1d1c}
+.planhead b{font-size:13px;font-weight:600}
+.ptabs{display:flex;gap:4px}
+.ptab{background:transparent;border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:12px}
+.ptab[aria-pressed="true"]{background:#fff;color:#1a1c1b;border-color:#fff}
+.plansvg{background:#151716;cursor:zoom-in}
+.plansvg svg{display:block;width:100%;height:auto}
+.planfoot{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;font-size:11px;color:var(--muted)}
+.planfoot button{background:transparent;border:0;color:var(--accent);font-size:12px;font-weight:600}
+.pmodal{position:fixed;inset:0;background:rgba(10,11,11,.92);z-index:25;display:flex;flex-direction:column;padding:calc(16px + env(safe-area-inset-top)) 16px 16px}
+.pmodal[hidden]{display:none}
+.pmodal header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.pmodal h3{margin:0;font-size:20px;font-weight:600}
+.pmodal .pbody{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:auto}
+.pmodal .pbody svg{max-width:100%;max-height:100%;width:auto;height:auto}
 .price{display:flex;justify-content:space-between;align-items:end;margin:16px 0 14px}
 .price small{display:block;font-size:11px;color:var(--muted)}
 .price b{font-size:32px;font-weight:600;line-height:1}
@@ -211,7 +231,7 @@ button{font:inherit;color:inherit;cursor:pointer}
           <button class="pill" data-e="2" aria-pressed="false">Etapa 2</button>
         </div>
       </div>
-      <div class="right"><button class="contact" id="bContact">Contacto</button></div>
+      <div class="right"><a class="home" href="index.html" aria-label="Volver al inicio del proyecto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7M5 10v10h5v-6h4v6h5V10"/></svg><span>Inicio</span></a><button class="contact" id="bContact">Contacto</button></div>
     </div>
 
     <div class="dock">
@@ -229,12 +249,18 @@ button{font:inherit;color:inherit;cursor:pointer}
     <div class="mact" id="mAct"></div>
   </div>
 </div>
+<div class="pmodal" id="pmodal" hidden role="dialog" aria-modal="true" aria-labelledby="pTitle">
+  <header><div><h3 id="pTitle"></h3><div class="code" id="pSub"></div></div><button class="btn ghost" id="pClose">Cerrar</button></header>
+  <div class="pbody" id="pBody"></div>
+  <p class="code" style="margin:8px 0 0">Planta ilustrativa referencial, sin escala. La distribución definitiva se fija en el proyecto de arquitectura.</p>
+</div>
 <div class="toast" id="toast"></div>
 <div class="err" id="err" hidden><div><h2>Faltan los datos del visor</h2><p>No se encontraron <b>geometria.js</b>, <b>unidades.js</b> o <b>medios.js</b>. Deben estar en la misma carpeta que visor.html.</p></div></div>
 
 <script src="geometria.js"></script>
 <script src="unidades.js"></script>
 <script src="medios.js"></script>
+<script src="planos.js"></script>
 <script src="three.min.js"></script>
 <script src="OrbitControls.js"></script>
 <script>
@@ -542,6 +568,11 @@ function openSheet(u){
         <div><small>Baños</small><b>${T.banos}</b></div>
       </div>
       <ul class="feats">${T.atributos.map(a=>`<li>${a}</li>`).join("")}</ul>
+      <div class="planbox">
+        <div class="planhead"><b>Planta tipología ${u.tipologia}</b><div class="ptabs"><button class="ptab" data-f="0" aria-pressed="true">1er piso</button><button class="ptab" data-f="1" aria-pressed="false">2º piso</button></div></div>
+        <div class="plansvg" id="planSvg" role="button" tabindex="0" aria-label="Ampliar planta"></div>
+        <div class="planfoot"><span>Ilustrativa · ${T.construido_m2} m² en 2 pisos</span><button id="planBig">Ver ambos pisos</button></div>
+      </div>
       <div class="price"><div><small>${u.precio_uf?"Valor referencial":"Valor"}</small><b class="num">${price}</b></div><span class="code">2 pisos</span></div>
       <div class="actions"><button class="btn wa" id="bWa">Consultar</button><button class="btn visit" id="bVisit">Agendar visita</button></div>
       <div class="navu"><button id="prevU">← Anterior</button><button id="nextU">Siguiente →</button></div>
@@ -557,9 +588,21 @@ function openSheet(u){
     if(m.id==="@unidad") cropStyle(t,u.box,1.1); else t.style.backgroundImage=`url(${m.src})`;
     t.onclick=()=>show(+t.dataset.i);});
   show(0);
+  const drawPlan=f=>{ $("#planSvg").innerHTML=SP_PLANOS.svgPlan(u.tipologia,T.construido_m2,{floor:f}).svg;
+    document.querySelectorAll(".ptab").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.f===f)); };
+  if(window.SP_PLANOS){ drawPlan(0); document.querySelectorAll(".ptab").forEach(b=>b.onclick=()=>drawPlan(+b.dataset.f));
+    const big=()=>openPlan(u); $("#planBig").onclick=big; $("#planSvg").onclick=big; $("#planSvg").onkeydown=e=>{if(e.key==="Enter")big();}; }
+  else $(".planbox").remove();
   $("#close").onclick=()=>closeSheet();
   $("#bWa").onclick=()=>message(u,"consulta"); $("#bVisit").onclick=()=>message(u,"visita");
   $("#prevU").onclick=()=>stepUnit(-1); $("#nextU").onclick=()=>stepUnit(1);
+}
+function openPlan(u){
+  const T=u.T, m=$("#pmodal");
+  $("#pTitle").textContent=`Tipología ${u.tipologia} · ${T.nombre}`;
+  $("#pSub").textContent=`${T.construido_m2} m² en 2 pisos · ${T.dorm} dormitorios · ${T.banos} ${T.banos>1?"baños":"baño"} · Lote ${u.lote} (${u.id})`;
+  $("#pBody").innerHTML=SP_PLANOS.svgPlan(u.tipologia,T.construido_m2).svg;
+  m.hidden=false; $("#pClose").focus();
 }
 function stepUnit(d){
   const list=Object.values(units).filter(match).sort((a,b)=>a.lote-b.lote); if(!list.length) return;
@@ -599,8 +642,11 @@ function setupUI(){
     $("#mAct").innerHTML=`<a class="btn visit" href="mailto:${P.email}?subject=${encodeURIComponent(P.nombre)}">Enviar correo</a><button class="btn ghost" id="mClose">Cerrar</button>`;
     $("#mClose").onclick=()=>$("#modal").hidden=true; $("#modal").hidden=false; };
   $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")$("#modal").hidden=true;});
+  $("#pClose").onclick=()=>$("#pmodal").hidden=true;
+  $("#pmodal").addEventListener("click",e=>{if(e.target.id==="pmodal"||e.target.id==="pBody")$("#pmodal").hidden=true;});
   addEventListener("keydown",e=>{
     if(!$("#modal").hidden&&e.key==="Escape"){$("#modal").hidden=true;return;}
+    if(!$("#pmodal").hidden&&e.key==="Escape"){$("#pmodal").hidden=true;return;}
     if(!$("#intro").classList.contains("gone")) { if(e.key==="Enter") $("#go").click(); return; }
     if(e.key==="ArrowRight") stepUnit(1); else if(e.key==="ArrowLeft") stepUnit(-1);
     else if(e.key==="Escape"){ closeSheet(); S.view==="2d"?fit2D(home2d):camTo("aerea"); }
