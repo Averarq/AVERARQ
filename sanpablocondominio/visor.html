@@ -230,13 +230,13 @@ button{font:inherit;color:inherit;cursor:pointer}
   </div>
 </div>
 <div class="toast" id="toast"></div>
-<div class="err" id="err" hidden><div><h2>Faltan los datos del visor</h2><p>No se encontraron los archivos de la carpeta <b>data</b> (geometria.js, unidades.js y medios.js). Revisa que la carpeta <b>data</b> esté junto a visor.html.</p></div></div>
+<div class="err" id="err" hidden><div><h2>Faltan los datos del visor</h2><p>No se encontraron <b>geometria.js</b>, <b>unidades.js</b> o <b>medios.js</b>. Deben estar en la misma carpeta que visor.html.</p></div></div>
 
-<script src="data/geometria.js"></script>
-<script src="data/unidades.js"></script>
-<script src="data/medios.js"></script>
-<script src="vendor/three.min.js"></script>
-<script src="vendor/OrbitControls.js"></script>
+<script src="geometria.js"></script>
+<script src="unidades.js"></script>
+<script src="medios.js"></script>
+<script src="three.min.js"></script>
+<script src="OrbitControls.js"></script>
 <script>
 "use strict";
 const $=s=>document.querySelector(s);
