@@ -7,7 +7,7 @@
 <title>Condominio San Pablo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
   /* Mundo grafito Averarq: el plano manda, el naranja marca la elección, el blanco dibuja la volumetría. */
@@ -64,7 +64,7 @@ button{font:inherit;color:inherit}
 .hero .top nav{color:rgba(255,255,255,.85)}
 .hero-copy{max-width:1600px}
 .hero h1{font-size:clamp(40px,7vw,96px);line-height:.98;letter-spacing:-.02em;animation:rise .9s .1s both}
-.hero .eyebrow{color:#fff;display:flex;align-items:center;gap:10px;animation:rise .9s both}
+.hero .eyebrow{color:#fff;display:flex;align-items:center;gap:10px;animation:rise .9s both;text-transform:none;letter-spacing:.01em;font-size:16px}
 .hero .eyebrow::before{content:"";width:28px;height:3px;background:var(--accent);border-radius:2px}
 .hero-copy p{font-size:clamp(16px,1.5vw,20px);max-width:52ch;margin:16px 0 0;color:rgba(255,255,255,.88);animation:rise .9s .2s both}
 .hero-row{display:flex;justify-content:space-between;align-items:end;gap:24px;flex-wrap:wrap;margin-top:28px;animation:rise .9s .3s both}
@@ -73,6 +73,24 @@ button{font:inherit;color:inherit}
 .hero .stat span{color:rgba(255,255,255,.75)}
 .vidtoggle{position:absolute;right:clamp(16px,3vw,40px);top:76px;background:rgba(26,28,27,.6);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;opacity:.6}
 .vidtoggle:hover{opacity:1}
+/* Intro: el video dentro de las letras, luego se abre a pantalla completa */
+.sp-mask,.sp-intro-label{display:none}
+.hero.sp-intro .sp-mask{display:flex}
+.hero.sp-intro .sp-intro-label{display:block}
+.sp-mask{position:absolute;inset:0;z-index:3;background:var(--bg);mix-blend-mode:darken;align-items:center;justify-content:center;cursor:pointer;
+  transition:opacity 1.1s ease .15s,transform 1.5s cubic-bezier(.7,0,.25,1);transform-origin:50% 52%}
+.sp-mask span{color:#fff;font-family:var(--display);font-weight:800;font-size:20vw;line-height:.9;letter-spacing:-.055em;white-space:nowrap;
+  animation:maskIn .9s cubic-bezier(.2,.7,.2,1) both}
+.sp-intro-label{position:absolute;z-index:4;left:0;right:0;margin:0;top:calc(50% - 14vw);text-align:center;color:var(--muted);font-size:clamp(15px,1.5vw,20px);
+  pointer-events:none;transition:opacity .35s}
+.sp-intro-label span{display:inline-block;animation:maskIn .9s .2s both}
+.hero.revealing .sp-mask{opacity:0;transform:scale(7);pointer-events:none}
+.hero.revealing .sp-intro-label{opacity:0}
+.hero-shade{transition:opacity 1s ease .6s}
+.hero.sp-intro .hero-shade{opacity:0}
+.hero.sp-intro .hero-in,.hero.sp-intro .vidtoggle{visibility:hidden}
+.hero.sp-intro .hero-in *{animation:none!important}
+@keyframes maskIn{from{opacity:0;transform:scale(1.06)}to{opacity:1;transform:none}}
 @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 #plano{scroll-margin-top:12px}
 
@@ -130,7 +148,7 @@ button{font:inherit;color:inherit}
 .tool:hover{background:rgba(255,255,255,.08)}
 .tool[aria-pressed="true"]{background:var(--accent);color:#fff}
 .tool svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.hint{position:absolute;left:14px;bottom:14px;background:rgba(26,28,27,.85);backdrop-filter:blur(6px);padding:8px 14px;border-radius:999px;font-size:13px;pointer-events:none;transition:opacity .2s}
+.hint{position:absolute;right:14px;top:14px;background:rgba(26,28,27,.85);backdrop-filter:blur(6px);padding:8px 14px;border-radius:999px;font-size:13px;pointer-events:none;transition:opacity .2s}
 .plan.focus .hint{opacity:0}
 .hint kbd,.keys kbd{font:inherit;font-size:11px;border:1px solid var(--line);border-radius:4px;padding:0 5px;margin:0 2px}
 .tourbar{position:absolute;left:0;right:0;top:0;height:3px;background:transparent}
@@ -144,7 +162,10 @@ button{font:inherit;color:inherit}
 .ctitle{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 .ctitle h3{font-size:32px}
 .status{font-size:12px;font-weight:500;color:var(--ok);border:1px solid currentColor;border-radius:999px;padding:3px 10px;white-space:nowrap}
-.status.Reservada{color:#e3b341}.status.Vendida{color:#e5534b}
+.status.Reservada,.st.Reservada{color:#e3b341}.status.Vendida,.st.Vendida{color:#e5534b}
+.st{color:var(--ok)}
+.cta-sec{display:block;text-align:center;margin-top:10px;font-size:13px;color:var(--muted)}
+.cta-sec:hover{color:var(--ink)}
 .ctype{color:var(--muted);margin:2px 0 10px}
 .cdesc{margin:0 0 10px;font-size:14px;color:var(--ink);opacity:.85}
 .feats{list-style:none;padding:0;margin:0 0 16px;display:flex;flex-wrap:wrap;gap:6px}
@@ -205,6 +226,26 @@ td.r,th.r{text-align:right}
 .lotrow.off{opacity:.35}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;vertical-align:middle}
 
+/* El lugar: fotos reales de dron */
+.place{display:grid;grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr;gap:12px;height:clamp(420px,46vw,640px)}
+.place figure{margin:0;position:relative;border-radius:14px;overflow:hidden;background:#000}
+.place figure:first-child{grid-row:1 / 3}
+.place img{width:100%;height:100%;object-fit:cover;display:block}
+.place figcaption{position:absolute;left:0;right:0;bottom:0;padding:28px 16px 14px;background:linear-gradient(180deg,transparent,rgba(20,22,21,.82));font-size:14px;color:#fff}
+.place figcaption b{font-weight:500;display:block;font-size:16px}
+.place figcaption span{color:rgba(255,255,255,.78)}
+
+/* Contacto */
+.contact{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:clamp(24px,4vw,44px)}
+.contact h2{font-size:clamp(26px,3vw,40px)}
+.contact p{color:var(--muted);margin:10px 0 0;max-width:56ch}
+.contact .acts{display:flex;gap:10px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-weight:500;padding:14px 24px;border-radius:999px;border:1px solid var(--line)}
+.btn.wa{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.wa:hover{filter:brightness(1.08)}
+.btn:not(.wa):hover{border-color:var(--muted)}
+.btn svg{width:18px;height:18px;fill:currentColor}
+
 footer{margin:72px 0 0;padding:28px 0 40px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;color:var(--muted);font-size:13px}
 footer p{margin:0;max-width:70ch}
 
@@ -217,7 +258,22 @@ footer p{margin:0;max-width:70ch}
 }
 @media (max-width:680px){
   .intro{grid-template-columns:1fr}
-  .vidtoggle{top:auto;bottom:12px}
+  .vidtoggle{top:20px}
+  .sp-mask span{font-size:36vw;white-space:normal;text-align:center;width:min-content}
+  .sp-intro-label{top:calc(50% - 60vw);padding:0 24px}
+  .plan{aspect-ratio:4/3}
+  .hud span{font-size:11px;padding:4px 9px}
+  .shead{flex-direction:column;align-items:flex-start;gap:10px}
+  .place{grid-template-columns:1fr;grid-template-rows:none;height:auto}
+  .place figure{aspect-ratio:16/10}
+  .place figure:first-child{grid-row:auto}
+  .contact{grid-template-columns:1fr}
+  /* Tabla en celular: lote, tipología, valor y estado (el resto está en la ficha) */
+  table{min-width:0}
+  th:nth-child(2),td:nth-child(2),th:nth-child(4),td:nth-child(4),th:nth-child(5),td:nth-child(5),th:nth-child(6),td:nth-child(6),th:nth-child(7),td:nth-child(7){display:none}
+  td .dot{display:none}
+  th,td{padding:11px 10px;white-space:normal}
+  td:nth-child(8){white-space:nowrap}
   .top nav{display:none}
   .types,.amen{grid-template-columns:1fr}
   .tool .tl{display:none}
@@ -237,6 +293,8 @@ footer p{margin:0;max-width:70ch}
     <source src="banner.mp4" type="video/mp4">
   </video>
   <div class="hero-shade"></div>
+  <div class="sp-mask" id="spMask" aria-hidden="true" title="Saltar intro"><span>San Pablo</span></div>
+  <p class="sp-intro-label" aria-hidden="true"><span>Condominio en Panquehue, Valle del Aconcagua</span></p>
   <div class="wrap hero-in">
     <header class="top">
       <a class="brand" href="#plano" aria-label="Averarq">
@@ -248,6 +306,7 @@ footer p{margin:0;max-width:70ch}
         <a href="#tipologias">Tipologías</a>
         <a href="#equipamiento">Equipamiento</a>
         <a href="#disponibilidad">Disponibilidad</a>
+        <a href="#contacto">Contacto</a>
       </nav>
     </header>
     <div class="hero-copy">
@@ -303,7 +362,7 @@ footer p{margin:0;max-width:70ch}
         <span><i class="sw" style="background:#fc4c02"></i>Etapa 1 · 18 casas</span>
         <span><i class="sw" style="background:#78beff"></i>Etapa 2 · 10 casas</span>
       </div>
-      <div class="hint">Pasa el mouse por una casa · rueda para acercar · <kbd>←</kbd><kbd>→</kbd> para recorrer</div>
+      <div class="hint">Pasa sobre una casa para ver su ficha · <kbd>←</kbd><kbd>→</kbd> recorrer</div>
       <div class="tools" role="toolbar" aria-label="Controles del plano">
         <button class="tool" id="tZoomIn" title="Acercar"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
         <button class="tool" id="tZoomOut" title="Alejar"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
@@ -322,6 +381,18 @@ footer p{margin:0;max-width:70ch}
       <p>De 70 a 120 m², entre UF 3.750 y UF 4.000, con terminaciones de alto estándar. La colonial lleva teja chilena, aleros y corredor; la mediterránea, volúmenes blancos sin aleros y terrazas. Toca una tipología para ver sus lotes en el plano.</p>
     </div>
     <div class="types" id="types"></div>
+  </section>
+
+  <section class="block" id="lugar">
+    <div class="shead">
+      <h2>El terreno hoy</h2>
+      <p>Fotos de dron del predio y su entorno en Panquehue, entre huertos y el cerro.</p>
+    </div>
+    <div class="place">
+      <figure><img src="dron-valle.jpg" alt="Vista aérea del Valle del Aconcagua en Panquehue, con campos de cultivo y el cerro al fondo" loading="lazy" width="1600" height="900"><figcaption><b>El valle</b><span>Panquehue y el Valle del Aconcagua</span></figcaption></figure>
+      <figure><img src="dron-terreno.jpg" alt="Potrero del terreno con la alameda del deslinde sur" loading="lazy" width="1600" height="900"><figcaption><b>El terreno</b><span>Potrero y alameda del deslinde sur</span></figcaption></figure>
+      <figure><img src="dron-huerto.jpg" alt="Huerto joven vecino al terreno con el cerro detrás" loading="lazy" width="1600" height="900"><figcaption><b>El entorno</b><span>Huerto vecino con el cerro al fondo</span></figcaption></figure>
+    </div>
   </section>
 
   <section class="block" id="equipamiento">
@@ -344,6 +415,19 @@ footer p{margin:0;max-width:70ch}
         </tr></thead>
         <tbody id="rows"></tbody>
       </table>
+    </div>
+  </section>
+
+  <section class="block" id="contacto">
+    <div class="contact">
+      <div>
+        <h2>¿Te interesa una casa?</h2>
+        <p>Escríbenos por WhatsApp con el lote o la tipología que te gustó. Te respondemos con disponibilidad, valores actualizados y los pasos para reservar.</p>
+      </div>
+      <div class="acts">
+        <a class="btn wa" id="waMain" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.2c0-.1-.2-.2-.4-.3z"/></svg>Escribir por WhatsApp</a>
+        <a class="btn" href="mailto:contacto@averarq.cl?subject=Condominio%20San%20Pablo">Enviar correo</a>
+      </div>
     </div>
   </section>
 
@@ -375,6 +459,8 @@ const LOT_TYPE = {1:"G",2:"G",3:"G",4:"G",5:"G",6:"C",7:"C",8:"C",9:"C",10:"C",1
                   19:"D",20:"B",21:"B",22:"A",23:"F",24:"F",25:"F",26:"F",27:"F",28:"H"};
 const STATUS = {};               // ej: {12:"Reservada", 3:"Vendida"}
 const CONTACT = "contacto@averarq.cl";
+const WHATSAPP = "56954317945";  // número sin + ni espacios
+const waLink = msg => `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`;
 const TOUR_MS = 4500;            // duración de cada lote en el recorrido automático
 
 const POIS = [
@@ -389,8 +475,10 @@ const LOTS = [{"n":1,"e":1,"st":"Colonial","m2":532,"p":[[861.0,349.6],[969.0,34
 const HOUSES = {"1":[[951,301],[930,299],[928,293],[923,291],[922,287],[910,292],[889,293],[891,327],[895,329],[895,323],[902,321],[908,330],[908,340],[924,339],[921,333],[920,317],[926,314],[927,310],[931,310],[932,318],[927,321],[946,321],[947,326],[950,328],[952,320]],"2":[[986,304],[988,332],[990,325],[1003,324],[1004,332],[1009,333],[1010,328],[1013,327],[1012,312],[1016,312],[1017,315],[1021,315],[1022,312],[1029,312],[1030,317],[1034,319],[1035,312],[1040,312],[1041,308],[1046,308],[1047,315],[1039,320],[1039,326],[1040,322],[1057,321],[1056,301],[1045,300],[1034,291],[1004,290],[1001,291],[1001,301],[999,303]],"3":[[1164,304],[1146,301],[1144,299],[1145,290],[1141,290],[1140,294],[1105,294],[1104,318],[1108,319],[1108,330],[1111,330],[1113,335],[1113,317],[1121,317],[1122,319],[1125,317],[1135,319],[1141,317],[1144,320],[1146,333],[1162,333],[1162,326],[1165,324]],"4":[[1262,291],[1239,291],[1236,296],[1222,296],[1219,301],[1207,305],[1205,316],[1207,333],[1211,332],[1212,326],[1220,326],[1220,332],[1224,333],[1224,338],[1243,337],[1244,330],[1260,328],[1261,318],[1264,317]],"5":[[1319,297],[1320,328],[1327,328],[1328,324],[1332,324],[1337,329],[1336,338],[1340,338],[1342,330],[1351,330],[1351,339],[1354,331],[1360,331],[1365,336],[1377,337],[1376,329],[1375,335],[1367,335],[1364,327],[1358,327],[1355,324],[1356,314],[1363,314],[1367,319],[1370,316],[1376,316],[1377,322],[1377,315],[1380,313],[1379,297],[1377,295],[1354,296],[1346,291],[1343,296],[1326,295]],"6":[[927,404],[923,405],[925,406],[925,416],[923,417],[925,420],[925,440],[918,441],[916,433],[911,436],[913,465],[916,464],[917,458],[923,459],[924,450],[929,450],[930,454],[938,453],[936,428],[938,421],[941,419],[938,417],[938,412]],"7":[[1007,409],[1007,448],[1001,448],[999,452],[994,451],[994,435],[991,428],[988,429],[991,430],[991,443],[989,445],[977,444],[976,437],[977,473],[987,469],[993,469],[997,473],[1000,472],[1001,467],[1008,465],[1009,468],[1010,461],[1015,461],[1016,468],[1019,469],[1021,427],[1019,416]],"8":[[1074,407],[1068,411],[1073,410],[1075,415],[1075,432],[1071,439],[1059,438],[1053,432],[1053,429],[1050,429],[1053,473],[1066,472],[1067,468],[1072,468],[1073,474],[1077,468],[1095,468],[1096,472],[1097,469],[1096,439],[1095,465],[1082,464],[1081,460],[1076,457],[1075,434],[1080,433],[1088,438],[1086,415]],"9":[[1260,405],[1262,443],[1253,451],[1247,450],[1247,420],[1245,420],[1247,468],[1253,468],[1256,461],[1263,461],[1266,470],[1269,466],[1275,466],[1276,469],[1281,470],[1282,462],[1287,461],[1291,464],[1292,469],[1294,458],[1291,427],[1278,427],[1272,412]],"10":[[1351,407],[1343,405],[1345,436],[1342,437],[1341,442],[1334,446],[1328,444],[1328,457],[1322,457],[1316,453],[1316,448],[1320,447],[1315,446],[1314,428],[1312,435],[1316,469],[1322,467],[1323,462],[1335,462],[1336,467],[1331,469],[1343,468],[1345,470],[1348,457],[1353,457],[1354,463],[1356,463],[1357,421],[1355,410]],"11":[[907,577],[903,577],[902,581],[873,581],[873,599],[876,603],[874,609],[876,634],[881,633],[882,625],[888,625],[889,633],[893,636],[916,637],[916,628],[916,634],[910,636],[906,633],[905,627],[903,636],[893,635],[895,617],[898,616],[895,615],[896,602],[904,602],[906,608],[909,609],[909,614],[904,616],[905,618],[913,617],[914,583]],"12":[[977,581],[953,580],[950,588],[938,588],[939,620],[941,618],[954,618],[957,623],[957,627],[950,632],[949,636],[942,636],[939,627],[941,637],[959,636],[960,638],[961,635],[965,634],[965,623],[972,623],[973,633],[977,634],[977,624],[979,623]],"13":[[1035,579],[999,582],[1001,618],[1014,613],[1019,614],[1023,609],[1026,609],[1020,608],[1021,603],[1042,603],[1040,585]],"14":[[1103,584],[1086,581],[1083,585],[1064,587],[1065,618],[1069,616],[1083,617],[1081,634],[1074,636],[1085,636],[1089,632],[1094,634],[1097,632],[1104,633],[1107,597],[1104,594],[1105,587]],"15":[[1181,574],[1181,607],[1173,612],[1168,612],[1166,603],[1168,594],[1161,594],[1160,596],[1161,628],[1163,630],[1162,620],[1167,619],[1169,614],[1179,614],[1180,618],[1192,617],[1194,586],[1189,579]],"16":[[1267,582],[1254,576],[1257,611],[1252,615],[1245,615],[1243,605],[1243,610],[1235,613],[1239,619],[1238,624],[1230,623],[1229,610],[1231,609],[1228,608],[1228,598],[1241,598],[1244,595],[1241,592],[1227,593],[1228,633],[1243,632],[1246,634],[1245,629],[1248,620],[1253,621],[1254,633],[1256,631],[1268,633],[1270,613]],"17":[[1322,575],[1323,608],[1318,610],[1316,614],[1312,614],[1312,605],[1307,612],[1311,617],[1310,622],[1313,623],[1312,630],[1294,629],[1292,600],[1301,594],[1305,594],[1306,599],[1307,587],[1305,593],[1291,594],[1292,635],[1295,633],[1306,633],[1307,635],[1316,633],[1319,635],[1322,625],[1327,626],[1328,632],[1333,631],[1334,618],[1336,617],[1333,582]],"18":[[1395,580],[1384,574],[1386,607],[1377,612],[1373,612],[1371,608],[1370,612],[1364,611],[1363,614],[1359,614],[1357,610],[1358,600],[1369,600],[1369,586],[1364,587],[1362,595],[1356,595],[1357,633],[1360,630],[1367,630],[1368,635],[1379,632],[1385,633],[1388,623],[1393,623],[1394,629],[1397,630],[1399,603]],"19":[[407,555],[406,594],[403,598],[395,600],[398,624],[404,622],[414,624],[416,619],[431,619],[433,622],[437,622],[437,579],[422,579],[421,570],[423,569],[420,562]],"20":[[534,437],[538,441],[545,442],[545,473],[534,477],[533,461],[531,462],[531,482],[534,487],[535,498],[542,497],[541,485],[548,484],[551,498],[555,498],[556,495],[565,495],[566,497],[567,493],[576,493],[581,500],[580,461],[566,461],[580,463],[580,475],[574,489],[555,490],[554,484],[559,483],[559,475],[561,474],[556,471],[556,462],[561,460],[559,445],[555,442],[555,437]],"21":[[622,438],[621,469],[618,470],[620,476],[614,478],[609,476],[610,498],[617,497],[617,485],[623,484],[626,497],[629,499],[633,495],[640,497],[642,493],[651,494],[654,499],[655,473],[655,478],[651,479],[652,486],[648,490],[631,489],[631,485],[635,482],[635,473],[632,471],[635,448],[633,444]],"22":[[709,437],[709,467],[702,471],[696,469],[698,485],[706,485],[707,483],[714,483],[715,485],[729,483],[731,485],[739,481],[745,483],[746,453],[736,452],[736,437],[735,453],[725,452],[720,437]],"23":[[446,334],[435,332],[434,325],[429,325],[429,330],[423,332],[396,332],[395,348],[400,364],[403,364],[404,355],[428,355],[429,361],[422,362],[433,366],[435,373],[439,372],[440,368],[448,369],[450,343],[446,341]],"24":[[523,325],[485,324],[484,333],[473,335],[472,352],[476,358],[477,366],[481,366],[482,362],[487,362],[488,366],[491,367],[491,374],[495,375],[496,373],[492,372],[492,367],[496,366],[497,355],[504,354],[508,367],[509,365],[523,367],[523,356],[525,354]],"25":[[609,345],[600,344],[599,336],[589,334],[588,328],[584,327],[581,334],[551,335],[551,356],[554,359],[555,366],[558,367],[558,363],[561,362],[562,358],[590,358],[590,367],[593,368],[593,373],[597,367],[607,367],[608,369]],"26":[[667,329],[664,329],[662,334],[627,335],[627,355],[630,358],[631,367],[634,366],[634,359],[641,357],[643,375],[648,376],[644,374],[644,369],[648,365],[642,361],[643,356],[656,356],[658,368],[662,362],[666,362],[660,362],[660,356],[667,356],[668,358],[675,355],[674,335],[669,334]],"27":[[740,329],[737,329],[735,333],[702,334],[701,352],[704,367],[707,364],[706,358],[713,357],[714,367],[719,369],[718,376],[719,369],[728,365],[739,365],[740,374],[741,368],[752,366],[756,368],[757,374],[756,367],[759,365],[758,344],[750,344],[748,335],[742,334]],"28":[[775,354],[778,388],[780,384],[791,381],[793,377],[804,377],[807,381],[807,394],[810,395],[810,398],[814,395],[824,395],[824,391],[827,389],[827,364],[820,362],[819,353],[810,352],[810,345],[805,345],[800,352]]};
 
 const IMG={w:1672,h:941,src:"masterplan.jpg"};
-const HOME={x:300,y:215,w:1160,h:520};
-const ASPECT=HOME.w/HOME.h;
+const HOME0={x:300,y:215,w:1160,h:520};
+let HOME={...HOME0};
+let ASPECT=HOME0.w/HOME0.h;
+const touch=matchMedia("(hover: none)").matches;
 const fmt=n=>n.toLocaleString("es-CL");
 const NS="http://www.w3.org/2000/svg";
 const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -408,7 +496,7 @@ LOTS.forEach(l=>{
 const svg=document.getElementById("svg"), plan=document.getElementById("plan");
 let vb={...HOME}, anim=null;
 function clampVB(v){
-  v.w=Math.max(220,Math.min(IMG.w,v.w)); v.h=v.w/ASPECT;
+  v.w=Math.max(220,Math.min(IMG.w,IMG.h*ASPECT,v.w)); v.h=v.w/ASPECT;
   v.x=Math.max(0,Math.min(IMG.w-v.w,v.x)); v.y=Math.max(0,Math.min(IMG.h-v.h,v.y));
   return v;
 }
@@ -452,7 +540,7 @@ svg.addEventListener("click",e=>{ if(moved){e.stopPropagation(); e.preventDefaul
 const scalables=[];
 function rescale(){
   const r=svg.getBoundingClientRect(); if(!r.width) return;
-  const k=(vb.w/r.width)*1.1;  // ~1 unidad = 1 px de pantalla
+  const k=(vb.w/r.width)*(r.width<700?.8:1.1);  // ~1 unidad = 1 px de pantalla; más chico en celular
   svg.style.setProperty("--k",k);
   scalables.forEach(s=>s.g.setAttribute("transform",`translate(${s.x} ${s.y}) scale(${k})`));
 }
@@ -574,9 +662,10 @@ function renderCard(l){
       <div class="price"><div><small>Valor referencial</small><b class="num">UF ${fmt(l.uf)}</b></div></div>
       <div class="nav2">
         <button id="prev" aria-label="Lote anterior">←</button>
-        <a class="cta" href="mailto:${CONTACT}?subject=${subject}">Consultar por este lote</a>
+        <a class="cta" target="_blank" rel="noopener" href="${waLink(`Hola Averarq, me interesa el Lote ${l.n} (${T.name}, UF ${fmt(l.uf)}) del Condominio San Pablo.`)}">Consultar por el lote ${l.n}</a>
         <button id="next" aria-label="Lote siguiente">→</button>
       </div>
+      <a class="cta-sec" href="mailto:${CONTACT}?subject=${subject}">o escribir por correo</a>
     </div>`;
   zoomTo(document.getElementById("cz"),l.box,1.08);
   document.getElementById("prev").onclick=()=>{stopTour(); step(-1);};
@@ -597,18 +686,16 @@ function renderSummary(){
   const vis=visible();
   const from=vis.length?Math.min(...vis.map(l=>l.uf)):0;
   card.innerHTML=`
-    <div class="zoom" id="cz"></div>
     <div class="empty">
       <h3>Elige tu casa</h3>
-      <p>Pasa el mouse por el plano: la casa se dibuja en blanco y aquí aparece su ficha. Haz clic para acercarte.</p>
+      <p>${touch?"Toca una casa en el plano: se dibuja en blanco y aquí aparece su ficha.":"Pasa sobre una casa en el plano: se dibuja en blanco y aquí aparece su ficha. Haz clic para acercarte."}</p>
       <div class="mini num">
         <div><b>${vis.length}</b><span>disponibles</span></div>
         <div><b>${vis.length?fmt(Math.min(...vis.map(l=>l.m2))):0}</b><span>m² desde</span></div>
         <div><b>${fmt(from)}</b><span>UF desde</span></div>
       </div>
-      <div class="keys"><kbd>←</kbd><kbd>→</kbd> recorrer lotes · <kbd>Espacio</kbd> recorrido automático · <kbd>F</kbd> presentar · <kbd>Esc</kbd> ver todo</div>
+      ${touch?"":`<div class="keys"><kbd>←</kbd><kbd>→</kbd> recorrer lotes · <kbd>Espacio</kbd> recorrido automático · <kbd>F</kbd> presentar · <kbd>Esc</kbd> ver todo</div>`}
     </div>`;
-  zoomTo(document.getElementById("cz"),[370,250,1415,700],1.02);
 }
 
 /* ---------- Recorrido automático ---------- */
@@ -631,7 +718,7 @@ function toggleFull(){
   try{ if(document.fullscreenElement) document.exitFullscreen(); else stage.requestFullscreen().catch(()=>{}); }catch(e){}
 }
 document.getElementById("tFull").onclick=toggleFull;
-document.addEventListener("fullscreenchange",()=>setTimeout(()=>{rescale(); if(current)renderCard(current); else if(curPoi)renderPoi(curPoi); else renderSummary();},120));
+document.addEventListener("fullscreenchange",()=>setTimeout(()=>{fitAspect(); setVB(current||curPoi?vb:HOME); if(current)renderCard(current); else if(curPoi)renderPoi(curPoi); else renderSummary();},120));
 
 document.addEventListener("keydown",e=>{
   if(e.target.closest&&e.target.closest("input,textarea")) return;
@@ -715,7 +802,7 @@ function renderRows(){
   list.forEach(l=>{
     const tr=document.createElement("tr"); tr.className="lotrow"; tr.tabIndex=0;
     tr.innerHTML=`<td>${String(l.n).padStart(2,"0")}</td><td>Etapa ${l.e}</td><td><span class="dot" style="background:${stColor[l.st]}"></span>${l.t} · ${TYPES[l.t].name}</td>
-      <td class="r">${fmt(l.m2)} m²</td><td class="r">${l.c} m²</td><td class="r">${l.d}</td><td class="r">${l.b}</td><td class="r">UF ${fmt(l.uf)}</td><td>${l.s}</td>`;
+      <td class="r">${fmt(l.m2)} m²</td><td class="r">${l.c} m²</td><td class="r">${l.d}</td><td class="r">${l.b}</td><td class="r">UF ${fmt(l.uf)}</td><td><span class="st ${l.s}">${l.s}</span></td>`;
     const go=()=>{ if(!match(l)) return; stopTour(); document.getElementById("plano").scrollIntoView({behavior:reduce?"auto":"smooth"}); select(l); };
     tr.addEventListener("click",go); tr.addEventListener("keydown",e=>{if(e.key==="Enter")go();});
     tr.classList.toggle("off",!match(l)); tr.classList.toggle("on",l===current);
@@ -729,6 +816,22 @@ document.querySelectorAll("th").forEach(th=>th.addEventListener("click",()=>{
 }));
 
 
+/* ---------- Intro del banner: video dentro de las letras ---------- */
+const INTRO_MS = 3600;   // cuánto tiempo se ven las letras antes de abrirse
+(function(){
+  const hero=document.querySelector(".hero"), mask=document.getElementById("spMask");
+  if(reduce || !hero || !mask) return;
+  hero.classList.add("sp-intro");
+  let done=false;
+  const open=()=>{
+    if(done) return; done=true;
+    hero.classList.add("revealing");
+    setTimeout(()=>{ hero.classList.remove("sp-intro","revealing"); document.dispatchEvent(new Event("heroopen")); }, 1300);
+  };
+  setTimeout(open, INTRO_MS);
+  mask.addEventListener("click", open);
+})();
+
 /* ---------- Video del banner ---------- */
 const vid=document.getElementById("heroVid"), vt=document.getElementById("vidToggle");
 if(reduce){ vid.removeAttribute("autoplay"); vid.pause(); vt.textContent="Reproducir"; vt.setAttribute("aria-label","Reproducir video"); }
@@ -736,15 +839,27 @@ vt.onclick=()=>{ if(vid.paused){ vid.play().catch(()=>{}); vt.textContent="Pausa
 
 /* ---------- Inicio ---------- */
 document.getElementById("statFrom").textContent=fmt(Math.min(...LOTS.map(l=>l.uf)));
-if(!reduce){
+function countUp(){
   document.querySelectorAll("[data-count], #statFrom").forEach(n=>{
     const end=n.id==="statFrom"?Math.min(...LOTS.map(l=>l.uf)):+n.dataset.count, t0=performance.now();
     const f=now=>{const k=Math.min(1,(now-t0)/1200); n.textContent=fmt(Math.round(end*(1-Math.pow(1-k,3)))); if(k<1)requestAnimationFrame(f);};
     requestAnimationFrame(f);
   });
 }
+if(!reduce){
+  if(document.querySelector(".hero.sp-intro")) document.addEventListener("heroopen",countUp,{once:true});
+  else countUp();
+}
+/* El plano toma la proporción de su contenedor (más alto en celular) */
+function fitAspect(){
+  const r=plan.getBoundingClientRect(); if(!r.width||!r.height) return;
+  ASPECT=r.width/r.height;
+  HOME=boxView([HOME0.x,HOME0.y,HOME0.x+HOME0.w,HOME0.y+HOME0.h],1);
+}
+document.getElementById("waMain").href=waLink("Hola Averarq, vi la página del Condominio San Pablo y quiero más información.");
+fitAspect();
 renderRows(); renderSummary(); zoomTypes(); setVB(HOME);
-window.addEventListener("resize",()=>{rescale(); zoomTypes(); if(current)renderCard(current); else if(curPoi)renderPoi(curPoi); else renderSummary();});
+window.addEventListener("resize",()=>{fitAspect(); setVB(pinned||curPoi?vb:HOME); zoomTypes(); if(current)renderCard(current); else if(curPoi)renderPoi(curPoi); else renderSummary();});
 </script>
 </body>
 </html>
